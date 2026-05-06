@@ -12,6 +12,9 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from _auth import require_password
+require_password()
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DB_PATH = PROJECT_ROOT / "data" / "db" / "jigyou_review.db"
 
