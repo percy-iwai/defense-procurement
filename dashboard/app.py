@@ -210,6 +210,13 @@ def _classify_url(url: str) -> tuple[str, str]:
 # ════════════════════════════════════════════════════════════════════
 # キャッシュ付きデータロード
 # ════════════════════════════════════════════════════════════════════
+# 機関名の表示名上書き（DB側のリネーム漏れ・キャッシュ残留に備える防御層）
+_AGENCY_NAME_OVERRIDES = {
+    "防衛装備庁本庁":   "防衛装備庁 調達事業部（中央調達）",
+    "防衛装備庁（旧）": "防衛装備庁 調達事業部（中央調達）",
+}
+
+
 @st.cache_data(ttl=300)
 def _load_contracts() -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
@@ -221,6 +228,7 @@ def _load_contracts() -> pd.DataFrame:
                FROM contracts""",
             conn,
         )
+    df["agency_name"]  = df["agency_name"].replace(_AGENCY_NAME_OVERRIDES)
     df["amount_oku"]   = df["contract_amount"].fillna(0) / 1e8
     df["bid_display"]  = df["bid_method"].map(_normalize_bid)
     df["vendor_norm"]  = df["vendor_name"].map(_normalize_vendor)
