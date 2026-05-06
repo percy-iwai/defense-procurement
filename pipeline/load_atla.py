@@ -102,7 +102,7 @@ def _warp_r04_urls(filename: str) -> list[str]:
 def _enrich_record(rec: dict, *, kind: str, kind_label: str, source_url: str) -> dict:
     rec.update({
         "agency_id": "atla",
-        "agency_name": "防衛装備庁本庁",
+        "agency_name": "防衛装備庁 調達事業部（中央調達）",
         "agency_category": "防衛装備庁",
         "contract_type": kind_label,
         "source_url": source_url,
