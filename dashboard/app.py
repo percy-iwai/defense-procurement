@@ -73,6 +73,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+from _auth import require_password
+require_password()
+
 st.markdown(f"""
 <style>
 .stApp, .stApp p, .stApp span, .stApp label, .stApp li, .stApp th, .stApp td {{

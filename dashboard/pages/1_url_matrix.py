@@ -18,6 +18,9 @@ from openpyxl.styles import Alignment, Font, PatternFill
 import pandas as pd
 import streamlit as st
 
+from _auth import require_password
+require_password()
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 URL_DB = PROJECT_ROOT / "data" / "db" / "url_matrix.db"
 PROC_DB = PROJECT_ROOT / "data" / "db" / "procurement.db"
