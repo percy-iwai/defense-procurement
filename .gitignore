@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.fuse_hidden*
+
+# Secrets / local config
+.env
+.env.local
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/projects/
+.claude/todos/
+.claude/shell-snapshots/
+.claude/statsig/
+
+# Logs
+logs/
+*.log
+
+# Project-specific data — DO NOT remove the LFS-tracked *.db in data/db/
+data/raw/
+data/cache/
+data/db/backup/
+data/db/.fuse_hidden*
+data/db/*.db-journal
+data/db/*.db-wal
+data/db/*.db-shm
+
+# Notebook checkpoints
+.ipynb_checkpoints/
