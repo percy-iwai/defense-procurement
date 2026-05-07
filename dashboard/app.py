@@ -799,6 +799,7 @@ pg = st.navigation(
         "": [
             st.Page(main, title="トップページ", icon="🏠", default=True),
             st.Page("pages/1_url_matrix.py", title="URLマトリクス", icon="📊"),
+            st.Page("pages/4_search.py", title="検索", icon="🔎"),
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
