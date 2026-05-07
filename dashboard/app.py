@@ -305,9 +305,10 @@ def _load_url_months() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300)
-def _load_requesting_org(fiscal_year: int = 2025) -> pd.DataFrame:
+def _load_requesting_org() -> pd.DataFrame:
     _LABELS = {
         "MSDF":     "海上自衛隊",
+        "ATLA":     "防衛装備庁（中央調達）",
         "GSDF":     "陸上自衛隊",
         "ASDF":     "航空自衛隊",
         "RDB":      "地方防衛局",
@@ -321,25 +322,17 @@ def _load_requesting_org(fiscal_year: int = 2025) -> pd.DataFrame:
     }
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
-            """SELECT
-                 CASE
-                   WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
-                     THEN '要求元未解決（中央調達）'
-                   WHEN cro.requesting_org = 'ATLA'
-                     THEN '装備庁（研究所等）'
-                   ELSE cro.requesting_org
-                 END AS display_org,
-                 COUNT(*) AS cnt,
-                 COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
+            """SELECT cro.requesting_org,
+                      COUNT(*) AS cnt,
+                      COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
                FROM contracts c
                JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
-               WHERE c.fiscal_year = ?
-               GROUP BY display_org
+               WHERE c.fiscal_year = 2025
+               GROUP BY cro.requesting_org
                ORDER BY SUM(c.contract_amount) DESC""",
             conn,
-            params=(fiscal_year,),
         )
-    df["org_label"] = df["display_org"].map(_LABELS).fillna(df["display_org"])
+    df["org_label"] = df["requesting_org"].map(_LABELS).fillna(df["requesting_org"])
     return df
 
 
@@ -543,7 +536,7 @@ def main():
 
     st.divider()
 
-    # ── 要求元別 調達規模（FY選択対応）──────────────────────────────────
+    # ── 要求元別 調達規模（FY2025）────────────────────────────────────
     req_h1, req_h2 = st.columns([3, 1])
     with req_h1:
         st.subheader("🎯 要求元別 調達規模（試行錯誤中）")
@@ -554,71 +547,69 @@ def main():
             key="req_org_fy", label_visibility="collapsed",
         )
 
-    req_fy_int = int(sel_req_fy.replace("FY", ""))
-    req_df = _load_requesting_org(req_fy_int)
-    if req_df.empty:
-        st.info("要求元データがありません。")
+    if sel_req_fy != "FY2025":
+        st.info(f"{sel_req_fy} の要求元マッピングは今後対応予定です。")
     else:
-        req_c1, req_c2 = st.columns([3, 2])
-        with req_c1:
-            req_sorted = req_df.sort_values("oku", ascending=True)
-            fig_req = px.bar(
-                req_sorted,
-                x="oku", y="org_label", orientation="h",
-                text="oku",
-                color="oku", color_continuous_scale="Blues",
-                template=PLOT_TEMPLATE, height=420,
-                labels={"org_label": "要求元", "oku": "総額（億円）"},
-                custom_data=["display_org", "cnt"],
-                hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
-                hover_name="org_label",
-            )
-            fig_req.update_traces(
-                texttemplate="%{text:,.0f}",
-                textposition="outside",
-                cliponaxis=False,
-            )
-            fig_req.update_layout(
-                coloraxis_showscale=False,
-                margin=dict(l=10, r=100, t=20, b=10),
-                yaxis=dict(categoryorder="total ascending"),
-                xaxis=dict(title="総額（億円）"),
-            )
-            st.plotly_chart(fig_req, use_container_width=True, config={"displayModeBar": False})
+        req_df = _load_requesting_org()
+        if req_df.empty:
+            st.info("要求元データがありません。")
+        else:
+            req_c1, req_c2 = st.columns([3, 2])
+            with req_c1:
+                req_sorted = req_df.sort_values("oku", ascending=True)
+                fig_req = px.bar(
+                    req_sorted,
+                    x="oku", y="org_label", orientation="h",
+                    text="oku",
+                    color="oku", color_continuous_scale="Blues",
+                    template=PLOT_TEMPLATE, height=420,
+                    labels={"org_label": "要求元", "oku": "総額（億円）"},
+                    custom_data=["requesting_org", "cnt"],
+                    hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
+                    hover_name="org_label",
+                )
+                fig_req.update_traces(
+                    texttemplate="%{text:,.0f}",
+                    textposition="outside",
+                    cliponaxis=False,
+                )
+                fig_req.update_layout(
+                    coloraxis_showscale=False,
+                    margin=dict(l=10, r=100, t=20, b=10),
+                    yaxis=dict(categoryorder="total ascending"),
+                    xaxis=dict(title="総額（億円）"),
+                )
+                st.plotly_chart(fig_req, use_container_width=True, config={"displayModeBar": False})
 
-        with req_c2:
-            fig_pie = px.pie(
-                req_df,
-                values="oku", names="org_label",
-                template=PLOT_TEMPLATE, height=420,
-                color_discrete_sequence=COLOR_SEQ,
-                hole=0.35,
-            )
-            fig_pie.update_traces(
-                texttemplate="%{label}<br>%{percent:.0%}",
-                hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
-                textposition="inside",
-            )
-            fig_pie.update_layout(
-                showlegend=False,
-                margin=dict(l=0, r=0, t=20, b=0),
-            )
-            st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
+            with req_c2:
+                fig_pie = px.pie(
+                    req_df,
+                    values="oku", names="org_label",
+                    template=PLOT_TEMPLATE, height=420,
+                    color_discrete_sequence=COLOR_SEQ,
+                    hole=0.35,
+                )
+                fig_pie.update_traces(
+                    texttemplate="%{label}<br>%{percent:.0%}",
+                    hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
+                    textposition="inside",
+                )
+                fig_pie.update_layout(
+                    showlegend=False,
+                    margin=dict(l=0, r=0, t=20, b=0),
+                )
+                st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
 
-    total_req = int(req_df["cnt"].sum()) if not req_df.empty else 0
-    total_oku = float(req_df["oku"].sum()) if not req_df.empty else 0.0
-    chy_note = (
-        "令和7年度調達予定品目表（xlsx）" if req_fy_int == 2025
-        else f"令和{req_fy_int - 2018}年度調達予定品目表（PDF）"
-    )
-    st.caption(
-        f"{sel_req_fy} 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
-        "※ 要求元の分類方法: "
-        "地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
-        f"中央調達（防衛装備庁）は{chy_note}の品目名と契約名を全FY横断で突合して要求元を特定（exact 0.9 / fuzzy Δ別 0.65–0.90）。"
-        "突合不能分は装備品マスター(0.7)・FMSベンダー軍種(0.5)・手動辞書(0.85)で補完。"
-        "詳細ロジックは「🎯 要求元判定ロジック」ページを参照。"
-    )
+        total_req = int(req_df["cnt"].sum()) if not req_df.empty else 0
+        total_oku = float(req_df["oku"].sum()) if not req_df.empty else 0.0
+        st.caption(
+            f"FY2025 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
+            "※ 要求元の分類方法: "
+            "地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
+            "中央調達（防衛装備庁）は令和7年度調達予定品目表の品目名と契約名を突合して要求元を特定。"
+            "突合不能分は担当官室・契約月・ベンダー実績から推定（confidence=0.3〜0.7）。"
+            "FY2024以前は今後対応予定。"
+        )
 
     st.divider()
 
@@ -824,14 +815,13 @@ def main():
         )
         fig_cov.update_layout(
             template=PLOT_TEMPLATE, height=320, barmode="stack",
-            xaxis=dict(fixedrange=True),
-            yaxis=dict(title="億円", fixedrange=True),
+            yaxis=dict(title="億円"),
             yaxis2=dict(title="カバレッジ率(%)", overlaying="y", side="right",
-                        showgrid=False, range=[0, 120], fixedrange=True),
+                        showgrid=False, range=[0, 120]),
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
             margin=dict(l=10, r=10, t=30, b=10),
         )
-        st.plotly_chart(fig_cov, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_cov, use_container_width=True)
     st.caption(
         "実質母数 = 物件費（契約ベース）− 非契約系（光熱水・補助金等）− 不用額。"
         "FY2025不用額は未公表のため0として計算。"
@@ -883,12 +873,11 @@ def main():
         fig_wf.update_layout(
             template=PLOT_TEMPLATE, height=380,
             title=dict(text=f"FY{sel_cov_fy} カバレッジ計算", font=dict(size=13)),
-            xaxis=dict(fixedrange=True),
-            yaxis=dict(title="億円", fixedrange=True),
+            yaxis=dict(title="億円"),
             margin=dict(l=10, r=10, t=50, b=10),
             showlegend=False,
         )
-        st.plotly_chart(fig_wf, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_wf, use_container_width=True)
         if sel_cov_fy == 2025:
             st.caption("※FY2025 は3月分が未公開につき未収録のため、DB収録額・カバレッジ率は暫定値。")
 
@@ -968,4 +957,8 @@ pg = st.navigation(
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
-            s
+            st.Page("pages/5_requesting_org_methodology.py", title="要求元判定ロジック", icon="🔬"),
+        ],
+    }
+)
+pg.run()
