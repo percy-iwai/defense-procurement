@@ -815,13 +815,14 @@ def main():
         )
         fig_cov.update_layout(
             template=PLOT_TEMPLATE, height=320, barmode="stack",
-            yaxis=dict(title="億円"),
+            xaxis=dict(fixedrange=True),
+            yaxis=dict(title="億円", fixedrange=True),
             yaxis2=dict(title="カバレッジ率(%)", overlaying="y", side="right",
-                        showgrid=False, range=[0, 120]),
+                        showgrid=False, range=[0, 120], fixedrange=True),
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
             margin=dict(l=10, r=10, t=30, b=10),
         )
-        st.plotly_chart(fig_cov, use_container_width=True)
+        st.plotly_chart(fig_cov, use_container_width=True, config={"displayModeBar": False})
     st.caption(
         "実質母数 = 物件費（契約ベース）− 非契約系（光熱水・補助金等）− 不用額。"
         "FY2025不用額は未公表のため0として計算。"
@@ -873,11 +874,12 @@ def main():
         fig_wf.update_layout(
             template=PLOT_TEMPLATE, height=380,
             title=dict(text=f"FY{sel_cov_fy} カバレッジ計算", font=dict(size=13)),
-            yaxis=dict(title="億円"),
+            xaxis=dict(fixedrange=True),
+            yaxis=dict(title="億円", fixedrange=True),
             margin=dict(l=10, r=10, t=50, b=10),
             showlegend=False,
         )
-        st.plotly_chart(fig_wf, use_container_width=True)
+        st.plotly_chart(fig_wf, use_container_width=True, config={"displayModeBar": False})
         if sel_cov_fy == 2025:
             st.caption("※FY2025 は3月分が未公開につき未収録のため、DB収録額・カバレッジ率は暫定値。")
 
