@@ -546,7 +546,7 @@ def main():
     # ── 要求元別 調達規模（FY選択対応）──────────────────────────────────
     req_h1, req_h2 = st.columns([3, 1])
     with req_h1:
-        st.subheader("🎯 要求元別 調達規模")
+        st.subheader("🎯 要求元別 調達規模（試行錯誤中）")
     with req_h2:
         req_fy_opts = ["FY2025", "FY2024", "FY2023", "FY2022"]
         sel_req_fy = st.selectbox(
@@ -968,8 +968,4 @@ pg = st.navigation(
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
-            st.Page("pages/5_requesting_org_methodology.py", title="要求元判定ロジック", icon="🔬"),
-        ],
-    }
-)
-pg.run()
+            s
