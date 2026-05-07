@@ -1,0 +1,1118 @@
+[
+  {
+    "equipment_id": "asdf_cloud_c2",
+    "name_ja": "空自クラウド指揮統制",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_jfps3",
+    "name_ja": "J/FPS-3",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_jfps5",
+    "name_ja": "J/FPS-5",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_jtps102a",
+    "name_ja": "J/TPS-102A",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_jupx111",
+    "name_ja": "J/UPX-111",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_uh60j",
+    "name_ja": "UH-60J",
+    "name_en": "UH-60J",
+    "branch": "ASDF",
+    "category": "回転翼(救難)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/kyuunanki/UH-60J/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_ch47j",
+    "name_ja": "CH-47J",
+    "name_en": "CH-47J",
+    "branch": "ASDF",
+    "category": "回転翼(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/CH-47J/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_rq4b",
+    "name_ja": "RQ-4B",
+    "name_en": "RQ-4B",
+    "branch": "ASDF",
+    "category": "固定翼(偵察)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/globalhawk/RQ-4B_Globalhawk/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_f15jdj",
+    "name_ja": "F-15J／DJ",
+    "name_en": "F-15J／DJ",
+    "branch": "ASDF",
+    "category": "固定翼(戦闘)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/sentouki/F-15/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_f2ab",
+    "name_ja": "F-2A／B",
+    "name_en": "F-2A／B",
+    "branch": "ASDF",
+    "category": "固定翼(戦闘)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/sentouki/F-2/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_f35a",
+    "name_ja": "F-35A",
+    "name_en": "F-35A",
+    "branch": "ASDF",
+    "category": "固定翼(戦闘)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/sentouki/F-35/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_e2c",
+    "name_ja": "E-2C",
+    "name_en": "E-2C",
+    "branch": "ASDF",
+    "category": "固定翼(早期警戒)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/keikaiki/E-2C/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_e2d",
+    "name_ja": "E-2D",
+    "name_en": "E-2D",
+    "branch": "ASDF",
+    "category": "固定翼(早期警戒)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/keikaiki/E-2C/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_e767",
+    "name_ja": "E-767",
+    "name_en": "E-767",
+    "branch": "ASDF",
+    "category": "固定翼(早期警戒管制)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/keikaiki/E-767/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_kc130h",
+    "name_ja": "KC-130H",
+    "name_en": "KC-130H",
+    "branch": "ASDF",
+    "category": "固定翼(空中給油・輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/C-130H/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_kc46a",
+    "name_ja": "KC-46A",
+    "name_en": "KC-46A",
+    "branch": "ASDF",
+    "category": "固定翼(空中給油・輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/kc-46a.html",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_kc767",
+    "name_ja": "KC-767",
+    "name_en": "KC-767",
+    "branch": "ASDF",
+    "category": "固定翼(空中給油・輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/KC-767/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_c1",
+    "name_ja": "C-1",
+    "name_en": "C-1",
+    "branch": "ASDF",
+    "category": "固定翼(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/C-1/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_c130h",
+    "name_ja": "C-130H",
+    "name_en": "C-130H",
+    "branch": "ASDF",
+    "category": "固定翼(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/C-130H/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_c2",
+    "name_ja": "C-2",
+    "name_en": "C-2",
+    "branch": "ASDF",
+    "category": "固定翼(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/yusouki/C-2/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_uav_attritable",
+    "name_ja": "UAVアトリタブル",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "無人機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_tacan",
+    "name_ja": "TACAN航法援助装置",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "航法",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_914e",
+    "name_ja": "914E給油システム",
+    "name_en": "914E",
+    "branch": "ASDF",
+    "category": "航空機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_rc2",
+    "name_ja": "RC-2電子作戦機",
+    "name_en": "RC-2",
+    "branch": "ASDF",
+    "category": "航空機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_ec2",
+    "name_ja": "スタンド・オフ電子戦機",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "航空機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_gcap",
+    "name_ja": "次期戦闘機/GCAP",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "航空機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_aim120",
+    "name_ja": "AIM-120",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_aim9x",
+    "name_ja": "AIM-9X",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_jsm",
+    "name_ja": "JSM",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_pac3",
+    "name_ja": "PAC-3",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/other/Patriot/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_basic_sam",
+    "name_ja": "基地防空用地対空誘導弾",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/asdf/equipment/other/yuudoudan/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "asdf_jnaam",
+    "name_ja": "次期中距離空対空誘導弾JNAAM",
+    "name_en": "JNAAM",
+    "branch": "ASDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "asdf_kijou_dempa",
+    "name_ja": "機上電波測定装置",
+    "name_en": null,
+    "branch": "ASDF",
+    "category": "電子戦",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "gsdf_adccs",
+    "name_ja": "ADCCS",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "gsdf_fccs",
+    "name_ja": "FCCS",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "gsdf_v22",
+    "name_ja": "V-22",
+    "name_en": "V-22",
+    "branch": "GSDF",
+    "category": "ティルト・ローター機(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_uh1j",
+    "name_ja": "UH-1J",
+    "name_en": "UH-1J",
+    "branch": "GSDF",
+    "category": "回転翼(多用途)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_uh2",
+    "name_ja": "UH-2",
+    "name_en": "UH-2",
+    "branch": "GSDF",
+    "category": "回転翼(多用途)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_uh60ja",
+    "name_ja": "UH-60JA",
+    "name_en": "UH-60JA",
+    "branch": "GSDF",
+    "category": "回転翼(多用途)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_ah1s",
+    "name_ja": "AH-1S",
+    "name_en": "AH-1S",
+    "branch": "GSDF",
+    "category": "回転翼(対戦車)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_ah64d",
+    "name_ja": "AH-64D",
+    "name_en": "AH-64D",
+    "branch": "GSDF",
+    "category": "回転翼(戦闘)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_oh1",
+    "name_ja": "OH-1",
+    "name_en": "OH-1",
+    "branch": "GSDF",
+    "category": "回転翼(観測)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_ch47jja",
+    "name_ja": "CH-47J／JA",
+    "name_en": "CH-47J／JA",
+    "branch": "GSDF",
+    "category": "回転翼(輸送)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_lr2",
+    "name_ja": "LR-2",
+    "name_en": "LR-2",
+    "branch": "GSDF",
+    "category": "固定翼(連絡偵察)",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_20rifle",
+    "name_ja": "20式5.56mm小銃",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "小火器",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_tank",
+    "name_ja": "戦車",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "戦闘車両",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/ve/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_armored",
+    "name_ja": "装甲車",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "戦闘車両",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/ve/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_arty",
+    "name_ja": "各種火砲",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "火砲",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_heavy_mortar",
+    "name_ja": "重迫撃砲",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "火砲",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_combat_aircraft",
+    "name_ja": "戦闘用航空機",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "航空機",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/air/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_03sam_kai",
+    "name_ja": "03式中距離地対空誘導弾改善型",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_11sam",
+    "name_ja": "11式短距離地対空誘導弾",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_12ssm_kai",
+    "name_ja": "12式地対艦誘導弾能力向上型",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_91sam",
+    "name_ja": "91式携帯地対空誘導弾",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_ssm_regiment",
+    "name_ja": "地対艦誘導弾連隊",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_hgv",
+    "name_ja": "島嶼防衛用高速滑空弾",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_cat_portable_sam",
+    "name_ja": "携SAM",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "誘導弾",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/fire/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_wbml_radio",
+    "name_ja": "広帯域多目的無線機",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "通信",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/ce/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_yagai_comm",
+    "name_ja": "野外通信システム",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "通信",
+    "ref_url_official": "https://www.mod.go.jp/gsdf/equipment/ce/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "gsdf_jasq2",
+    "name_ja": "J/ASQ-2",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "電子戦",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "gsdf_idou_dempa",
+    "name_ja": "移動型電波測定装置",
+    "name_en": null,
+    "branch": "GSDF",
+    "category": "電子戦",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_ai",
+    "name_ja": "AI技術（人工知能）",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "AI",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_dics",
+    "name_ja": "DICS",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_msii_open",
+    "name_ja": "MSIIオープン系",
+    "name_en": "MSII",
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_central_iaas",
+    "name_ja": "中央クラウドIaaS",
+    "name_en": "IaaS",
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_central_paas",
+    "name_ja": "中央クラウドPaaS",
+    "name_en": "PaaS",
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_ccs",
+    "name_ja": "中央指揮システムCCS",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_kyodo_sekkei",
+    "name_ja": "共同設計環境",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_geospatial",
+    "name_ja": "地理空間情報支援システム",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_link16",
+    "name_ja": "戦術データリンクLink-16",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_crypto",
+    "name_ja": "暗号装置",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_keisoku_eval",
+    "name_ja": "統合装備計測評価システム",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_sogo_kaiseki",
+    "name_ja": "総合解析システム",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_sec_gw",
+    "name_ja": "防衛セキュリティゲートウェイ",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_dii",
+    "name_ja": "防衛情報通信基盤DII",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_jadge",
+    "name_ja": "JADGE自動警戒管制システム",
+    "name_en": "JADGE",
+    "branch": "JOINT",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_cyber_sim",
+    "name_ja": "サイバー総合模擬環境",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "サイバー",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_cyber_def",
+    "name_ja": "サイバー防護分析装置",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "サイバー",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_ssa",
+    "name_ja": "SSA衛星システム",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "宇宙",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_xband_kirameki",
+    "name_ja": "Xバンド防衛通信衛星きらめき",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "宇宙",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_constellation",
+    "name_ja": "衛星コンステレーション",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "宇宙",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_jeta1",
+    "name_ja": "航空タービン燃料Jet A-1",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "燃料",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_egi",
+    "name_ja": "EGI統合航法装置",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "航法",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_ins",
+    "name_ja": "慣性航法装置",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "航法",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_kyocho_yudo",
+    "name_ja": "協調型誘導システム",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "joint_hcm",
+    "name_ja": "極超音速誘導弾",
+    "name_en": null,
+    "branch": "JOINT",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_maccs",
+    "name_ja": "海上航空作戦指揮統制MACCS",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_logistics",
+    "name_ja": "海自ロジスティクス基盤",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "C4ISR",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_vls_mk41",
+    "name_ja": "VLS MK41",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_opy2",
+    "name_ja": "多機能レーダOPY-2",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "IAMD",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_oqr5",
+    "name_ja": "OQR-5えい航式ソーナー",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "センサー",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_aos_ship",
+    "name_ja": "音響測定艦システム",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "センサー",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_07vla",
+    "name_ja": "07式垂直発射魚雷投射ロケット",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_12torpedo",
+    "name_ja": "12式魚雷",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_97torpedo",
+    "name_ja": "97式魚雷",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_railgun",
+    "name_ja": "レールガン",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_taiken_bogo",
+    "name_ja": "対艦ミサイル防御装置",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_20mm_ciws",
+    "name_ja": "高性能20mm機関砲",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "兵装",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_sh60j",
+    "name_ja": "SH-60J",
+    "name_en": "SH-60J",
+    "branch": "MSDF",
+    "category": "回転翼(哨戒)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/rotorcraft/patrol/sh60j/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_sh60k",
+    "name_ja": "SH-60K",
+    "name_en": "SH-60K",
+    "branch": "MSDF",
+    "category": "回転翼(哨戒)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/rotorcraft/patrol/sh60k/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_sh60l",
+    "name_ja": "SH-60L",
+    "name_en": "SH-60L",
+    "branch": "MSDF",
+    "category": "回転翼(哨戒)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/rotorcraft/patrol/sh60k/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_mch101",
+    "name_ja": "MCH-101",
+    "name_en": "MCH-101",
+    "branch": "MSDF",
+    "category": "回転翼(掃海・輸送)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/rotorcraft/ms-t/mch-101/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_p1",
+    "name_ja": "P-1",
+    "name_en": "P-1",
+    "branch": "MSDF",
+    "category": "固定翼(哨戒)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/aircraft/patrol/p-1/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_p3c",
+    "name_ja": "P-3C",
+    "name_en": "P-3C",
+    "branch": "MSDF",
+    "category": "固定翼(哨戒)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/aircraft/patrol/p-3c/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_us2",
+    "name_ja": "US-2",
+    "name_en": "US-2",
+    "branch": "MSDF",
+    "category": "固定翼(救難)",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/aircraft/rescue/us-2/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_ozz100",
+    "name_ja": "OZZ-100",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "無人機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_ozz5",
+    "name_ja": "OZZ-5",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "無人機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_usv",
+    "name_ja": "USV水上無人機",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "無人機",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_aegis_ship",
+    "name_ja": "イージス・システム搭載艦",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/ddg/atago/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_patrol",
+    "name_ja": "哨戒艦艇",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_mine_warfare",
+    "name_ja": "機雷艦艇",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_submarine",
+    "name_ja": "潜水艦",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/index3.html",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_auxiliary",
+    "name_ja": "補助艦艇",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/index2.html",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_destroyer",
+    "name_ja": "護衛艦",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_cat_transport",
+    "name_ja": "輸送艦艇",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "艦艇",
+    "ref_url_official": "https://www.mod.go.jp/msdf/equipment/ships/",
+    "match_reason": "manual"
+  },
+  {
+    "equipment_id": "msdf_17ssm",
+    "name_ja": "17式艦対艦誘導弾",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_23sam",
+    "name_ja": "23式艦対空誘導弾",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_sm3",
+    "name_ja": "SM-3",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_sm6",
+    "name_ja": "SM-6",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_seasparrow",
+    "name_ja": "シースパローRIM-162",
+    "name_en": "RIM-162",
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_tomahawk",
+    "name_ja": "トマホーク",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_lrasm",
+    "name_ja": "長射程誘導弾LRASM",
+    "name_en": "LRASM",
+    "branch": "MSDF",
+    "category": "誘導弾",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_slq32",
+    "name_ja": "AN/SLQ-32",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "電子戦",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  },
+  {
+    "equipment_id": "msdf_nolq3",
+    "name_ja": "NOLQ-3",
+    "name_en": null,
+    "branch": "MSDF",
+    "category": "電子戦",
+    "ref_url_official": null,
+    "match_reason": "no_match"
+  }
+]

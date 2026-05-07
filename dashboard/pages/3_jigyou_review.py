@@ -235,7 +235,7 @@ if not org_agg.empty:
 st.divider()
 st.subheader(f"📊 事業一覧 ({len(filtered):,}件) — FY{sel_fy}")
 
-show_cols = ["project_number", "name", "organization_name",
+show_cols = ["project_number", "name", "overview", "purpose", "organization_name",
              "requested_amount_oku", "finalized_amount_oku",
              "previous_year_execution_amount_oku",
              "top_payee_name", "top_payee_amount_oku", "rs_url"]
@@ -243,6 +243,8 @@ display = filtered[show_cols].copy()
 display = display.rename(columns={
     "project_number": "事業番号",
     "name": "事業名",
+    "overview": "概要",
+    "purpose": "目的",
     "organization_name": "組織",
     "requested_amount_oku": "要求額(億)",
     "finalized_amount_oku": "確定額(億)",
@@ -262,8 +264,10 @@ st.dataframe(
     column_config={
         "No.": st.column_config.NumberColumn(width=50),
         "事業番号": st.column_config.TextColumn(width=80),
-        "事業名": st.column_config.TextColumn(width=300),
-        "組織": st.column_config.TextColumn(width=200),
+        "事業名": st.column_config.TextColumn(width=250),
+        "概要": st.column_config.TextColumn(width=300),
+        "目的": st.column_config.TextColumn(width=300),
+        "組織": st.column_config.TextColumn(width=150),
         "要求額(億)": st.column_config.NumberColumn(format="%.1f", width=90),
         "確定額(億)": st.column_config.NumberColumn(format="%.1f", width=90),
         "前年執行額(億)": st.column_config.NumberColumn(format="%.1f", width=110),

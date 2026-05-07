@@ -1,5 +1,17 @@
 # defense_procurement_2nd — 開発ノート
 
+## ⚠️ 重要: ファイル編集ルール
+
+**すべてのファイル編集はメインディレクトリに直接行うこと。worktreeに書かないこと。**
+
+- メインディレクトリ: `C:\Users\Percy Iwai\Documents\defense_procurement_2nd`
+- SQLite DB: `data/db/procurement.db`（メインディレクトリの実体ファイル）
+- ダッシュボード: `dashboard/app.py`, `dashboard/pages/*.py`
+
+Claude Codeのworktree分離機能がデフォルトで有効だが、worktreeに書き込むとローカルのStreamlitに反映されず、
+git pushしてもworktreeの変更がmainに反映されないことがある。
+必ずメインディレクトリのファイルを直接編集し、DBもメインディレクトリのprocurement.dbに書き込むこと。
+
 ## プロジェクト概要
 防衛省・自衛隊の調達公表データ（FY2022–2025）を自動収集・構造化し、
 SQLite DB（`data/db/procurement.db`）に格納するパイプライン。
@@ -208,6 +220,78 @@ python -m pipeline.reconcile_urlmatrix
 #### Bug 2: gsdf_nadep 全インデックスURL 403
 - **修正**: `pipeline/gsdf_config.py` の gsdf_nadep index_urls を
   `nyuusatujouhou/070kouhyou07/kouhyou07.htm` に変更（FY2025のみ取得可能）
+
+---
+
+## Phase 7: 要求元判定ロジック改訂（2026-05-08）
+
+ATLA中央調達契約 30,659件 / 169,924億 の `contract_requesting_org`
+判定ロジックを刷新。`vendor_majority`（重工は要求元べったりではない）を廃止し、
+choutatsuyotei（調達予定品目表）との全FY横断 fuzzy 突合・装備品マスター branch
+推定・FMSベンダー軍種推定・手動オーバーライド辞書を導入。
+
+### 優先順位（recompute_atla_requesting_org.py）
+
+| 順 | match_source | 内容 | conf |
+|---|---|---|---|
+| 1 | `agency_rule` | 非ATLA agency_id 確定 | 1.0 |
+| 2 | `agency_subrule` | ATLAサブ機関 → 全部 ATLA 仮処置 | 0.5 |
+| 3 | `choutatsuyotei_exact` | 全FYの NFKC正規化完全一致 + 単一org | 0.9 |
+| 4a | `choutatsuyotei_fuzzy` (Δ0) | 同一FY substring fuzzy（全FY横断単一org判定） | 0.90 |
+| 4b | `choutatsuyotei_fuzzy` (Δ1) | Δ1 FY fuzzy | 0.80 |
+| 4c | `choutatsuyotei_fuzzy` (Δ2+) | Δ2以上 FY fuzzy | 0.65 |
+| 4d | `manual_analysis` | 手動オーバーライド辞書（行政事業レビュー参照） | 0.85 |
+| 6 | `collision_month` | exact複数org → 契約月一致で解消 | 0.7 |
+| 7 | `collision_majority` | exact複数org → 多数決 | 0.5 |
+| 7.5 | `equipment_master_branch` | 装備品 branch が GSDF/MSDF/ASDF（JOINT除外） | 0.7 |
+| 8 | `fms_vendor_heuristic` | 米陸→GSDF, 米海→MSDF, 米空→ASDF | 0.5 |
+| 9 | `fallback_atla` | 残存 | 0.3 |
+
+**廃止:** `vendor_majority`（重工等は複数機関に供給するため信頼性なし）
+
+### 実行結果（2026-05-08）
+
+| match_source | 件数 |
+|---|---:|
+| choutatsuyotei_exact | 10,687 |
+| choutatsuyotei_fuzzy | 5,719 |
+| agency_subrule | 5,123 |
+| fallback_atla | 5,020 |
+| collision_majority | 2,152 |
+| equipment_master_branch | 1,129 |
+| fms_vendor_heuristic | 411 |
+| collision_month | 405 |
+| manual_analysis | 13 |
+| **合計** | **30,659** |
+
+要求元別: ATLA 10,221 / GSDF 8,196 / MSDF 6,823 / ASDF 4,276 /
+NDA 550 / NDMC 388 / JS 85 / DIH 83 / NAIKYOKU 35 / KANSATSU 2
+
+### 設計上の判断
+
+- **fuzzy index は全FY横断で単一org判定** — FYごと判定だと「灯油1号」が
+  特定FYのみNDA登録 → ATLAの大量燃料調達が誤ってNDAに分類される事故を防ぐ
+- **JOINT 装備品はスキップ** — equipment_master.branch=JOINT は要求元不明
+  （DII=GSDF多数, JADGE=ASDF多数 等、装備品ごとに要求元が異なる）
+- **海兵隊はFMSヒューリスティック対象外** — V-22(PMA-275)等、米海軍省経由でも
+  実態がGSDFの装備があるため「米海軍省」のみ MSDF とする
+- **fallback残存5,020件は honest result** — 旧 vendor_majority 18,305件の多くを
+  「判定不能」に正しく戻した結果。manual_overrides 拡充で順次解決
+
+### 実行コマンド
+
+```bash
+# dry-run（DBに書き込まない）
+python dev/recompute_atla_requesting_org.py --dry-run --workers 14
+
+# 本番（事前バックアップ + atomic 更新）
+python dev/recompute_atla_requesting_org.py --workers 14
+```
+
+実行ログ: `logs/recompute_atla_<timestamp>.json`
+バックアップ: `data/db/backup/procurement_pre_recompute_<timestamp>.db`
+
+ダッシュボード: 「🎯 要求元判定ロジック」ページ（`pages/5_requesting_org_methodology.py`）
 
 ---
 
