@@ -308,7 +308,6 @@ def _load_url_months() -> pd.DataFrame:
 def _load_requesting_org() -> pd.DataFrame:
     _LABELS = {
         "MSDF":     "海上自衛隊",
-        "ATLA":     "防衛装備庁（中央調達）",
         "GSDF":     "陸上自衛隊",
         "ASDF":     "航空自衛隊",
         "RDB":      "地方防衛局",
@@ -322,17 +321,24 @@ def _load_requesting_org() -> pd.DataFrame:
     }
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
-            """SELECT cro.requesting_org,
-                      COUNT(*) AS cnt,
-                      COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
+            """SELECT
+                 CASE
+                   WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
+                     THEN '要求元未解決（中央調達）'
+                   WHEN cro.requesting_org = 'ATLA'
+                     THEN '装備庁（研究所等）'
+                   ELSE cro.requesting_org
+                 END AS display_org,
+                 COUNT(*) AS cnt,
+                 COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
                FROM contracts c
                JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
                WHERE c.fiscal_year = 2025
-               GROUP BY cro.requesting_org
+               GROUP BY display_org
                ORDER BY SUM(c.contract_amount) DESC""",
             conn,
         )
-    df["org_label"] = df["requesting_org"].map(_LABELS).fillna(df["requesting_org"])
+    df["org_label"] = df["display_org"].map(_LABELS).fillna(df["display_org"])
     return df
 
 
@@ -564,7 +570,7 @@ def main():
                     color="oku", color_continuous_scale="Blues",
                     template=PLOT_TEMPLATE, height=420,
                     labels={"org_label": "要求元", "oku": "総額（億円）"},
-                    custom_data=["requesting_org", "cnt"],
+                    custom_data=["display_org", "cnt"],
                     hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
                     hover_name="org_label",
                 )
