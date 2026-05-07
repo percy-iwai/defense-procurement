@@ -113,12 +113,23 @@ def _search(
             f"SELECT COUNT(*) FROM contracts {where_sql}", params
         ).fetchone()[0]
         df = pd.read_sql_query(
-            f"""SELECT contract_name, vendor_name, contract_amount,
-                       agency_name, fiscal_year, contract_date,
-                       bid_method, category_large, source_url
+            f"""SELECT contracts.contract_name, contracts.vendor_name,
+                       contracts.contract_amount, contracts.agency_name,
+                       contracts.fiscal_year, contracts.contract_date,
+                       contracts.bid_method, contracts.category_large,
+                       contracts.source_url,
+                       em.name_ja AS equipment_name,
+                       COALESCE(em.ref_url_official, em.ref_url_wikipedia, em.ref_url_hakusho) AS ref_url
                 FROM contracts
+                LEFT JOIN (
+                    SELECT contract_id, equipment_id, MAX(confidence) AS confidence
+                    FROM contract_equipment
+                    GROUP BY contract_id
+                ) ce ON contracts.id = ce.contract_id
+                LEFT JOIN equipment_master em ON ce.equipment_id = em.equipment_id
                 {where_sql}
-                ORDER BY contract_amount IS NULL, contract_amount DESC
+                ORDER BY contracts.contract_amount IS NULL,
+                         contracts.contract_amount DESC
                 LIMIT ?""",
             conn, params=[*params, limit],
         )
@@ -201,6 +212,8 @@ view = view.rename(columns={
     "bid_method":      "入札方式",
     "category_large":  "大区分",
     "source_url":      "出典URL",
+    "equipment_name":  "装備品",
+    "ref_url":         "解説",
 })
 
 st.dataframe(
@@ -218,6 +231,8 @@ st.dataframe(
         "入札方式": st.column_config.TextColumn(width="small"),
         "大区分":   st.column_config.TextColumn(width="small"),
         "出典URL": st.column_config.LinkColumn(width="small"),
+        "装備品":   st.column_config.TextColumn(width="small"),
+        "解説":     st.column_config.LinkColumn(width="small", display_text="📖"),
     },
 )
 
