@@ -15,7 +15,7 @@ def require_password() -> None:
     try:
         expected = st.secrets["APP_PASSWORD"]
     except Exception:
-        expected = "defense2024"
+        expected = "3111"
 
     st.title("🛡️ 防衛省・自衛隊 調達情報ダッシュボード")
     st.caption("閲覧にはパスワードが必要です。")
