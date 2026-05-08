@@ -1,0 +1,25 @@
+jigyou 機雷含む事業 (11):
+  '機雷探知機の整備等' / '事業監理官（艦船担当）'  -> nfkc='機雷探知機の整備等'
+  '新型機雷（小型機雷）の開発' / '事業監理官（艦船担当）'  -> nfkc='新型機雷(小型機雷)の開発'
+  '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備' / '事業監理官（艦船担当）'  -> nfkc='機雷捜索用UUV(OZZ-5)の整備'
+  '無人機雷排除システムの整備' / '事業監理官（艦船担当）'  -> nfkc='無人機雷排除システムの整備'
+  '機雷探知機の整備等' / '事業監理官（艦船担当）'  -> nfkc='機雷探知機の整備等'
+  '機雷処分具等の整備等' / '事業監理官（艦船担当）'  -> nfkc='機雷処分具等の整備等'
+  '新型機雷（小型機雷）の開発' / '防衛省'  -> nfkc='新型機雷(小型機雷)の開発'
+  '機雷探知機の整備等' / '事業監理官（艦船担当）'  -> nfkc='機雷探知機の整備等'
+  '新型機雷（小型機雷）の開発' / '事業監理官（艦船担当）'  -> nfkc='新型機雷(小型機雷)の開発'
+  '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備' / '事業監理官（艦船担当）'  -> nfkc='機雷捜索用UUV(OZZ-5)の整備'
+  '無人機雷排除システムの整備' / '事業監理官（艦船担当）'  -> nfkc='無人機雷排除システムの整備'
+
+Contract cn='新型機雷(小型機雷)' len=10
+  Project '機雷探知機の整備等': pn_in_cn=False, cn_in_pn=False
+  Project '新型機雷(小型機雷)の開発': pn_in_cn=False, cn_in_pn=True
+  Project '機雷捜索用UUV(OZZ-5)の整備': pn_in_cn=False, cn_in_pn=False
+  Project '無人機雷排除システムの整備': pn_in_cn=False, cn_in_pn=False
+  Project '機雷探知機の整備等': pn_in_cn=False, cn_in_pn=False
+  Project '機雷処分具等の整備等': pn_in_cn=False, cn_in_pn=False
+  Project '新型機雷(小型機雷)の開発': pn_in_cn=False, cn_in_pn=True
+  Project '機雷探知機の整備等': pn_in_cn=False, cn_in_pn=False
+  Project '新型機雷(小型機雷)の開発': pn_in_cn=False, cn_in_pn=True
+  Project '機雷捜索用UUV(OZZ-5)の整備': pn_in_cn=False, cn_in_pn=False
+  Project '無人機雷排除システムの整備': pn_in_cn=False, cn_in_pn=False

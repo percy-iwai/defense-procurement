@@ -273,6 +273,37 @@ NDA 550 / NDMC 388 / JS **171** / DIH **137** / NAIKYOKU 35 / KANSATSU 2
 
 （旧: ATLA 10,221 / JS 85 / DIH 83 / GSDF 8,196 / MSDF 6,823 / ASDF 4,276）
 
+### 実行結果（2026-05-08、choutatsuyotei FY2015-2026拡充後）
+
+choutatsuyotei を FY2015-2026 の12年分（49,075件）に拡充後に再実行。
+
+| match_source | 件数 |
+|---|---:|
+| choutatsuyotei_exact | **14,278** |
+| agency_subrule | 5,123 |
+| choutatsuyotei_fuzzy | **4,888** |
+| collision_majority | 2,830 |
+| **fallback_atla** | **1,792** |
+| equipment_master_branch | 677 |
+| collision_month | 589 |
+| fms_vendor_heuristic | 378 |
+| ref_url_inference | 53 |
+| name_keyword | 39 |
+| manual_analysis | 12 |
+| **合計** | **30,659** |
+
+要求元別: GSDF **8,177** / ATLA **8,118** / MSDF **7,893** / ASDF **4,660** /
+NDMC 716 / NDA 576 / JS **258** / NAIKYOKU **129** / DIH **119** / RDB 7 / KANSATSU 4 / NIDS 2
+
+（旧: ATLA 9,893 / GSDF 8,282 / MSDF 6,895 / ASDF 4,306 / NDMC 388 / NDA 550 / JS 171 / DIH 137）
+
+**改善**: fallback_atla **4,692 → 1,792**（▲2,900件、62%削減）
+- choutatsuyotei_exact が 10,687 → 14,278 に増加（FY2015-2019の18,130件のマッチが寄与）
+- `ref_url_inference` が新規登場（53件）
+- `joint_equipment_explicit` は 0件に（役割がref_url_inferenceに吸収？）
+- バックアップ: `data/db/backup/procurement_pre_recompute_20260508_193751.db`
+- ログ: `logs/recompute_atla_20260508_193752.json`
+
 ### Step 8.5 設計
 
 **name_keyword キーワードリスト:**

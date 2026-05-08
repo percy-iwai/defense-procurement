@@ -1,0 +1,28 @@
+=== choutatsuyotei FY distribution ===
+  FY2020:  3406 rows  item_empty=  18  contract_month_filled= 3406
+  FY2021:  3103 rows  item_empty=  17  contract_month_filled= 2610
+  FY2022:  3156 rows  item_empty=  35  contract_month_filled= 3156
+  FY2023:  5251 rows  item_empty=   0  contract_month_filled= 5251
+  FY2024:  6077 rows  item_empty=   0  contract_month_filled= 6077
+  FY2025:  5364 rows  item_empty=   0  contract_month_filled= 5364
+  FY2026:  4588 rows  item_empty=   0  contract_month_filled= 4588
+
+=== sample FY2021 items ===
+  '灯油１号'  org=MSDF  month=6
+  '灯油１号'  org=MSDF  month=6
+  '灯油１号'  org=MSDF  month=6
+  '軽油２号（艦船用）（免税）'  org=MSDF  month=6
+  '軽油２号（艦船用）（免税）'  org=MSDF  month=6
+  '軽油２号（艦船用）（免税）'  org=MSDF  month=6
+  '軽油２号（艦船用）（免税）'  org=MSDF  month=6
+  '軽油２号（艦船用）（免税）'  org=MSDF  month=6
+
+=== sample FY2020 items ===
+  '簡易型観測装置'  org=MSDF  month=10
+  '雨衣改，空'  org=ASDF  month=14
+  '雨衣改，女子，空'  org=ASDF  month=14
+  '夏服改，ズボン，空'  org=ASDF  month=14
+  '夏服ズボン改，女子，空'  org=ASDF  month=14
+  '作業外被'  org=ASDF  month=14
+  '作業服改，空'  org=ASDF  month=14
+  '作業服改，女子，空'  org=ASDF  month=14

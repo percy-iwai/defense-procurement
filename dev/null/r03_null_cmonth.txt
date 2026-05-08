@@ -1,0 +1,6 @@
+  page=3 item='簡易型風向風速計' cmonth_raw=''
+  page=3 item='簡易型観測装置' cmonth_raw=''
+  page=3 item='鋼製ドラム，内面塗装，２００Ｌ，１．６ｍｍ' cmonth_raw=''
+  page=3 item='航空ジェットエンジン油Ｕ－１２５用（合成基）' cmonth_raw=''
+  page=3 item='航空作動油（石油基）' cmonth_raw=''
+Total null cmonth samples shown: 5

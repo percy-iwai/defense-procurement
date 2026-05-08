@@ -1,19 +1,17 @@
-"""調達予定品目表 PDF（R04/R05/R06）のパース → choutatsuyotei テーブル投入。
+"""調達予定品目表 PDF（R02〜R06）のパース → choutatsuyotei テーブル投入。
 
-入力: data/choutatsuyotei/r04/, r05/, r06/ の各13本
-出力: procurement.db の choutatsuyotei テーブル（FY2022/2023/2024）
+入力: data/choutatsuyotei/r02/, r03/, r04/, r05/, r06/ の各13〜14本
+出力: procurement.db の choutatsuyotei テーブル（FY2020〜2024）
 
 使い方:
-  python dev/load_choutatsuyotei_pdf.py --fy 2022 2023 2024
+  python dev/load_choutatsuyotei_pdf.py --fy 2020 2021 2022 2023 2024
   python dev/load_choutatsuyotei_pdf.py --fy 2022 2023 2024 --dry-run
 
-カラム構造（pdfplumber extract_words の x 座標ベース）:
-  担当官室コード : x = 60-88
-  品名           : x = 88-378
-  要求元         : x = 378-418
-  予定件数       : x = 418-458
-  契約予定月     : x = 458-493  (例: R6.2 → 月=2)
-  区分           : x >= 493     (新/継/改)
+カラム構造はPDFの年度ごとに動的検出:
+  1. ページ上の「要求元」ヘッダーワードを検索 (y上限200pt)
+  2. 「件数/件」「納」「区」を検索して右側列境界を決定
+  3. 左ゾーン (x < reqorg_x-5) の先頭数字ワードを担当官室コード、
+     残りを品名として取り出す
 """
 from __future__ import annotations
 
@@ -31,18 +29,26 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = PROJECT_ROOT / "data" / "db" / "procurement.db"
 PDF_BASE = PROJECT_ROOT / "data" / "choutatsuyotei"
 
-# FY番号 → 和暦対応
-FY_TO_REIWA = {2022: 4, 2023: 5, 2024: 6}
-REIWA_TO_FY = {v: k for k, v in FY_TO_REIWA.items()}
-FY_DIR = {2022: "r04", 2023: "r05", 2024: "r06"}
+FY_DIR = {
+    2015: "h27",
+    2016: "h28",
+    2017: "h29",
+    2018: "h30",
+    2019: "r01",
+    2020: "r02",
+    2021: "r03",
+    2022: "r04",
+    2023: "r05",
+    2024: "r06",
+}
 
-# 要求元（PDF生値）→ 正規化キー（FY2025 xlsx + PDF固有略称を追加）
+# 要求元（PDF生値）→ 正規化キー
 REQ_ORG_NORMALIZE: dict[str, str] = {
     "陸自": "GSDF",
     "海自": "MSDF",
     "空自": "ASDF",
     "医大": "NDMC",
-    "防医大": "NDMC",   # PDF固有略称
+    "防医大": "NDMC",
     "防大": "NDA",
     "装備庁": "ATLA",
     "統幕": "JS",
@@ -51,7 +57,6 @@ REQ_ORG_NORMALIZE: dict[str, str] = {
     "監本": "KANSATSU",
     "防研": "NIDS",
     "防衛局": "RDB",
-    # 地方防衛局の略称（PDF固有）
     "北方局": "RDB",
     "東北局": "RDB",
     "東方局": "RDB",
@@ -61,13 +66,14 @@ REQ_ORG_NORMALIZE: dict[str, str] = {
     "沖縄局": "RDB",
 }
 
-# デフォルト PDF x 座標によるカラム境界（ページ毎に動的調整される）
-_DEFAULT_REQORG_X = 381.0   # '要求元' ヘッダーが見つからない場合のフォールバック
+# ヘッダー行を探すy上限
+HEADER_SEARCH_Y_MAX = 200.0
+# 担当官室コード（left col）として扱う最大x（これを超えたら品名扱い）
+TANTOU_CODE_MAX_X = 130.0
+# 列境界の左オフセット（ヘッダーx座標からデータ左端までのバッファ）
+COL_OFFSET = 8.0
 
-# ヘッダー行のy閾値（この値以下の行はヘッダー/タイトル → スキップ）
-HEADER_Y_MAX = 82.0
-
-# 品名正規化用 punctuation パターン（FY2025と同じ）
+# 品名正規化用
 _PUNCT_RE = re.compile(r"[\s　，、,．。・／/＿_\-－‐ー（）()「」『』【】［］\[\]]+")
 
 
@@ -80,111 +86,136 @@ def normalize_item_name(s: str | None) -> str:
 
 
 def _parse_contract_month(date_str: str | None) -> int | None:
-    """'R6.2' → 2、'R5.10' → 10 のように暦月を返す。"""
+    """
+    各年度のフォーマットに対応:
+      R6.2   → 2    (R05/R06)
+      2022/6/1 → 6  (R04)
+      2021年6月 → 6  (R02/R03)
+    """
     if not date_str:
         return None
-    m = re.match(r"R\d+\.(\d{1,2})", date_str.strip())
+    s = date_str.strip()
+    m = re.match(r"R\d+\.(\d{1,2})", s)
+    if m:
+        return int(m.group(1))
+    m = re.match(r"\d{4}/(\d{1,2})/", s)
+    if m:
+        return int(m.group(1))
+    m = re.match(r"\d{4}年(\d{1,2})月", s)
     if m:
         return int(m.group(1))
     return None
 
 
-def _detect_header_x(words: list, text: str, default: float) -> float:
-    """ヘッダー行から指定テキストを含む word の x0 を返す。"""
-    for w in words:
-        if w["top"] < HEADER_Y_MAX and text in w["text"]:
-            return w["x0"]
-    return default
+def _find_keyword_x(words: list, keywords: list[str], header_y: float,
+                    delta_y: float = 25.0, min_x: float = 0.0) -> float | None:
+    """ヘッダー行付近 (header_y ± delta_y) かつ min_x より右にある
+    keywords のいずれかを含む最初のワードの x0 を返す。"""
+    for w in sorted(words, key=lambda w: w["x0"]):
+        if abs(w["top"] - header_y) <= delta_y and w["x0"] >= min_x:
+            for kw in keywords:
+                if kw in w["text"]:
+                    return w["x0"]
+    return None
 
 
 def _build_col_config(words: list, fallback: dict | None = None) -> dict | None:
     """
-    words からカラム境界辞書を構築して返す。
-    ヘッダー行が存在しない場合は fallback を返す（None なら None）。
+    ページの words から列境界辞書を構築して返す。
+    「要求元」ヘッダーワードを動的に検出し、右側列を
+    「件数/件」「納」「区」ヘッダーで特定する。
+    ヘッダーが見つからない場合は fallback を返す。
     """
-    # 要求元ヘッダーが存在するかチェック
-    has_header = any(
-        w["top"] < HEADER_Y_MAX and "要求元" in w["text"] for w in words
-    )
-    if not has_header:
+    # 「要求元」ヘッダーを探す（y上限 HEADER_SEARCH_Y_MAX）
+    reqorg_word = None
+    for w in words:
+        if "要求元" in w["text"] and w["top"] < HEADER_SEARCH_Y_MAX:
+            if reqorg_word is None or w["top"] < reqorg_word["top"]:
+                reqorg_word = w
+    if reqorg_word is None:
         return fallback
 
-    reqorg_x  = _detect_header_x(words, "要求元",  _DEFAULT_REQORG_X)
-    qty_x     = _detect_header_x(words, "予定件数", reqorg_x + 45)
-    cmonth_x  = _detect_header_x(words, "納期",    qty_x + 40)
-    bunrui_x  = _detect_header_x(words, "区分",    cmonth_x + 35)
+    header_y = reqorg_word["top"]
+    reqorg_x = reqorg_word["x0"]
+
+    # 右側列ヘッダーを検出（reqorg_x より右）
+    qty_x_raw = _find_keyword_x(
+        words, ["件数", "件"], header_y, delta_y=25.0, min_x=reqorg_x + 15
+    ) or (reqorg_x + 40)
+
+    noki_x_raw = _find_keyword_x(
+        words, ["納期", "納"], header_y, delta_y=25.0, min_x=reqorg_x + 40
+    ) or (qty_x_raw + 35)
+
+    bunrui_x_raw = _find_keyword_x(
+        words, ["区分", "区"], header_y, delta_y=25.0, min_x=noki_x_raw + 10
+    ) or (noki_x_raw + 35)
+
+    # データ行開始y（ヘッダー行より25pt以降）
+    data_start_y = header_y + 25.0
 
     return {
-        "col_tantou": (reqorg_x - 330, reqorg_x - 270),
-        "col_item":   (reqorg_x - 270, reqorg_x - 12),
-        "col_reqorg": (reqorg_x - 12,  qty_x - 5),
-        "col_qty":    (qty_x - 5,      cmonth_x - 5),
-        "col_cmonth": (cmonth_x - 5,   bunrui_x - 3),
-        "col_bunrui": (bunrui_x - 3,   999),
+        "data_start_y": data_start_y,
+        "reqorg_x":   reqorg_x,
+        "qty_x":      qty_x_raw,
+        "noki_x":     noki_x_raw,
+        "bunrui_x":   bunrui_x_raw,
     }
 
 
 def _extract_rows_from_page(page, col_config: dict | None = None) -> tuple[list[dict], dict | None]:
-    """
-    1ページ分の words を解析して (行リスト, col_config) を返す。
-    col_config はこのページで検出または引き継いだカラム境界辞書。
-    """
     words = page.extract_words(x_tolerance=3, y_tolerance=3, keep_blank_chars=False)
     if not words:
         return [], col_config
 
-    # このページのヘッダーからカラム境界を更新（なければ引き継ぎ）
     col_config = _build_col_config(words, fallback=col_config)
     if col_config is None:
-        # デフォルト値で構築
-        reqorg_x = _DEFAULT_REQORG_X
-        qty_x    = reqorg_x + 45
-        cmonth_x = qty_x + 40
-        bunrui_x = cmonth_x + 35
-        col_config = {
-            "col_tantou": (reqorg_x - 330, reqorg_x - 270),
-            "col_item":   (reqorg_x - 270, reqorg_x - 12),
-            "col_reqorg": (reqorg_x - 12,  qty_x - 5),
-            "col_qty":    (qty_x - 5,      cmonth_x - 5),
-            "col_cmonth": (cmonth_x - 5,   bunrui_x - 3),
-            "col_bunrui": (bunrui_x - 3,   999),
-        }
+        return [], col_config
 
-    col_tantou = col_config["col_tantou"]
-    col_item   = col_config["col_item"]
-    col_reqorg = col_config["col_reqorg"]
-    col_qty    = col_config["col_qty"]
-    col_cmonth = col_config["col_cmonth"]
-    col_bunrui = col_config["col_bunrui"]
+    data_start_y = col_config["data_start_y"]
+    reqorg_x     = col_config["reqorg_x"]
+    qty_x        = col_config["qty_x"]
+    noki_x       = col_config["noki_x"]
+    bunrui_x     = col_config["bunrui_x"]
 
-    # y 座標でグルーピング（同じ行なら y 差 ≤3 とみなす）
+    # 列境界（左オフセットを適用）
+    b_reqorg  = reqorg_x  - COL_OFFSET / 2
+    b_qty     = qty_x     - COL_OFFSET
+    b_noki    = noki_x    - COL_OFFSET
+    b_bunrui  = bunrui_x  - COL_OFFSET
+
+    def col_text(wlist, xmin: float, xmax: float) -> str:
+        return " ".join(w["text"] for w in wlist if xmin <= w["x0"] < xmax).strip()
+
+    # y 座標でグルーピング
     rows_by_y: dict[int, list] = defaultdict(list)
     for w in words:
-        y_key = round(w["top"])
-        rows_by_y[y_key].append(w)
+        if w["top"] >= data_start_y:
+            rows_by_y[round(w["top"])].append(w)
 
     result = []
     for y_key in sorted(rows_by_y):
-        if y_key < HEADER_Y_MAX:
-            continue  # ヘッダー行スキップ
-
         wlist = sorted(rows_by_y[y_key], key=lambda w: w["x0"])
 
-        def col_text(xmin: float, xmax: float) -> str:
-            parts = [w["text"] for w in wlist if xmin <= w["x0"] < xmax]
-            return " ".join(parts).strip()
+        # 左ゾーン (tantou + item)
+        left_words = [w for w in wlist if w["x0"] < b_reqorg]
+        # 先頭の「小さな数字ワード (x ≤ TANTOU_CODE_MAX_X)」を担当官室コードとして取り出す
+        item_start_idx = 0
+        for i, w in enumerate(left_words):
+            if (w["text"].isdigit()
+                    and len(w["text"]) <= 2
+                    and w["x0"] <= TANTOU_CODE_MAX_X):
+                item_start_idx = i + 1
+            else:
+                break
+        tantou = " ".join(w["text"] for w in left_words[:item_start_idx])
+        item   = " ".join(w["text"] for w in left_words[item_start_idx:])
 
-        tantou = col_text(*col_tantou)
-        item   = col_text(*col_item)
-        reqorg = col_text(*col_reqorg)
-        qty_s  = col_text(*col_qty)
-        cmonth = col_text(*col_cmonth)
-        bunrui = col_text(*col_bunrui)
+        reqorg = col_text(wlist, b_reqorg, b_qty)
+        qty_s  = col_text(wlist, b_qty,    b_noki)
+        cmonth = col_text(wlist, b_noki,   b_bunrui)
+        bunrui = col_text(wlist, b_bunrui, 999)
 
-        # 品名と要求元のどちらかがないとデータ行でない
-        if not item and not reqorg:
-            continue
-        # 要求元が空の行（品名の続き行 = 長い品名が2行に折り返した場合）はスキップ
         if not reqorg:
             continue
 
@@ -194,42 +225,40 @@ def _extract_rows_from_page(page, col_config: dict | None = None) -> tuple[list[
             qty_val = None
 
         result.append({
-            "tantou_code": tantou,
-            "item_name":   item,
-            "req_org_raw": reqorg,
-            "qty":         qty_val,
-            "contract_month_str": cmonth,
-            "bunrui":      bunrui,
+            "tantou_code":         tantou,
+            "item_name":           item,
+            "req_org_raw":         reqorg,
+            "qty":                 qty_val,
+            "contract_month_str":  cmonth,
+            "bunrui":              bunrui,
         })
 
     return result, col_config
 
 
 def parse_pdf(pdf_path: Path, fiscal_year: int) -> list[dict]:
-    """PDF 1本 → DB 投入用 dict のリスト。"""
     records: list[dict] = []
     row_idx = 0
+    tantou_office = pdf_path.stem
 
+    col_config: dict | None = None
     with pdfplumber.open(pdf_path) as pdf:
-        # ページ1の先頭からタイトル行（担当官室名）を取得
-        tantou_office = pdf_path.stem  # fallback: ファイル名 stem
-
-        col_config: dict | None = None  # PDF内で共有するカラム境界
         for page_num, page in enumerate(pdf.pages, start=1):
             rows, col_config = _extract_rows_from_page(page, col_config)
             for row in rows:
                 row_idx += 1
                 raw = row["req_org_raw"]
-                org = REQ_ORG_NORMALIZE.get(raw)
+                # 複数ワードが混入した場合は最初の1語のみを使う
+                raw_key = raw.split()[0] if raw else ""
+                org = REQ_ORG_NORMALIZE.get(raw_key)
                 if org is None:
-                    logger.warning(
+                    logger.debug(
                         f"{pdf_path.name} page={page_num} row={row_idx}: "
-                        f"未知の要求元 {raw!r} - スキップ"
+                        f"未知の要求元 {raw!r} → スキップ"
                     )
                     continue
 
                 cm = _parse_contract_month(row["contract_month_str"])
-                # 暦月 → 会計年度月（4=4月, ..., 12=12月, 13=1月, 14=2月, 15=3月）
                 contract_month_fy = cm if cm is not None and cm >= 4 else (
                     cm + 12 if cm is not None else None
                 )
@@ -238,7 +267,7 @@ def parse_pdf(pdf_path: Path, fiscal_year: int) -> list[dict]:
                     "fiscal_year":         fiscal_year,
                     "source_file":         pdf_path.name,
                     "source_row":          row_idx,
-                    "requesting_org_raw":  raw,
+                    "requesting_org_raw":  raw_key,
                     "requesting_org":      org,
                     "item_name":           row["item_name"],
                     "item_name_norm":      normalize_item_name(row["item_name"]),
@@ -252,12 +281,13 @@ def parse_pdf(pdf_path: Path, fiscal_year: int) -> list[dict]:
 
     logger.info(
         f"[parse] {pdf_path.name}: {len(records)} records "
-        f"(total rows scanned: {row_idx})"
+        f"(rows scanned: {row_idx})"
     )
     return records
 
 
-def load_into_db(records: list[dict], db_path: Path = DB_PATH) -> dict:
+def load_into_db(records: list[dict], db_path: Path,
+                 reload: bool = False) -> dict:
     insert_sql = """
     INSERT OR IGNORE INTO choutatsuyotei
       (fiscal_year, source_file, source_row, requesting_org_raw, requesting_org,
@@ -268,21 +298,31 @@ def load_into_db(records: list[dict], db_path: Path = DB_PATH) -> dict:
        :item_name, :item_name_norm, :spec_class, :qty,
        :request_month, :contract_month, :delivery_date, :tantou_office)
     """
-    inserted = duplicates = 0
+    inserted = skipped = deleted = 0
     with sqlite3.connect(db_path) as con:
         cur = con.cursor()
+        if reload and records:
+            fy = records[0]["fiscal_year"]
+            cur.execute("DELETE FROM choutatsuyotei WHERE fiscal_year = ?", (fy,))
+            deleted = cur.rowcount
+            logger.info(f"[reload] FY{fy}: {deleted} 行削除")
         for rec in records:
             cur.execute(insert_sql, rec)
             if cur.rowcount == 1:
                 inserted += 1
             else:
-                duplicates += 1
+                skipped += 1
         con.commit()
-    return {"inserted": inserted, "duplicates": duplicates, "total": len(records)}
+    return {"deleted": deleted, "inserted": inserted, "skipped": skipped, "total": len(records)}
 
 
-def run_fy(fiscal_year: int, db_path: Path = DB_PATH, dry_run: bool = False) -> dict:
-    fy_dir = PDF_BASE / FY_DIR[fiscal_year]
+def run_fy(fiscal_year: int, db_path: Path = DB_PATH,
+           dry_run: bool = False, reload: bool = False) -> dict:
+    fy_key = FY_DIR.get(fiscal_year)
+    if fy_key is None:
+        return {"error": f"未対応のFY: {fiscal_year}"}
+
+    fy_dir = PDF_BASE / fy_key
     if not fy_dir.exists():
         logger.error(f"ディレクトリが存在しない: {fy_dir}")
         return {"error": str(fy_dir)}
@@ -297,23 +337,21 @@ def run_fy(fiscal_year: int, db_path: Path = DB_PATH, dry_run: bool = False) -> 
         recs = parse_pdf(pdf_path, fiscal_year)
         all_records.extend(recs)
 
-    logger.info(
-        f"[FY{fiscal_year}] {len(pdf_files)} PDFs, {len(all_records)} records total"
-    )
+    logger.info(f"[FY{fiscal_year}] {len(pdf_files)} PDFs, {len(all_records)} records total")
 
     if dry_run:
-        logger.info("[dry-run] DB書き込みスキップ")
-        # req_org 分布を出力
         from collections import Counter
         dist = Counter(r["requesting_org"] for r in all_records)
+        item_empty = sum(1 for r in all_records if not r["item_name"])
         return {
-            "fiscal_year": fiscal_year,
-            "pdf_count": len(pdf_files),
-            "total_records": len(all_records),
-            "req_org_dist": dict(dist.most_common()),
+            "fiscal_year":    fiscal_year,
+            "pdf_count":      len(pdf_files),
+            "total_records":  len(all_records),
+            "item_empty_pct": f"{100*item_empty/len(all_records):.0f}%" if all_records else "N/A",
+            "req_org_dist":   dict(dist.most_common()),
         }
 
-    stats = load_into_db(all_records, db_path)
+    stats = load_into_db(all_records, db_path, reload=reload)
     stats["fiscal_year"] = fiscal_year
     stats["pdf_count"] = len(pdf_files)
     return stats
@@ -322,27 +360,32 @@ def run_fy(fiscal_year: int, db_path: Path = DB_PATH, dry_run: bool = False) -> 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
-        "--fy", nargs="+", type=int, default=[2022, 2023, 2024],
-        choices=[2022, 2023, 2024],
-        help="処理する会計年度 (default: 2022 2023 2024)",
+        "--fy", nargs="+", type=int,
+        default=[2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+        choices=[2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+        help="処理する会計年度 (default: 2015〜2024)",
     )
-    p.add_argument("--db", default=str(DB_PATH), help="DB パス")
-    p.add_argument("--dry-run", action="store_true", help="DB書き込みなしで解析のみ")
+    p.add_argument("--db", default=str(DB_PATH))
+    p.add_argument("--dry-run", action="store_true")
+    p.add_argument(
+        "--reload", action="store_true",
+        help="既存FYを一旦DELETE → 再INSERT（item_name修正・再収集用）",
+    )
     args = p.parse_args()
 
     db_path = Path(args.db)
 
     for fy in sorted(set(args.fy)):
         logger.info(f"=== FY{fy} 処理開始 ===")
-        stats = run_fy(fy, db_path, dry_run=args.dry_run)
+        stats = run_fy(fy, db_path, dry_run=args.dry_run, reload=args.reload)
         print(f"\n[FY{fy}] results:")
         for k, v in stats.items():
             if isinstance(v, dict):
                 print(f"  {k}:")
                 for kk, vv in v.items():
-                    print(f"    {kk:<12} {vv}")
+                    print(f"    {kk:<14} {vv}")
             else:
-                print(f"  {k:<30} {v}")
+                print(f"  {k:<32} {v}")
 
     return 0
 

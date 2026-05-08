@@ -1,0 +1,23 @@
+=== match_source別件数 ===
+  fallback_atla / ATLA: 1771
+  jigyou_review / GSDF: 15
+  jigyou_review / MSDF: 3
+  jigyou_review / ASDF: 3
+
+jigyou_review 件数: 21
+fallback_atla 残存件数: 1771
+
+=== 全match_source ===
+  agency_rule: 120533
+  choutatsuyotei_exact: 14278
+  agency_subrule: 5123
+  choutatsuyotei_fuzzy: 4888
+  collision_majority: 2830
+  fallback_atla: 1771
+  equipment_master_branch: 677
+  collision_month: 589
+  fms_vendor_heuristic: 378
+  ref_url_inference: 53
+  name_keyword: 39
+  jigyou_review: 21
+  manual_analysis: 12

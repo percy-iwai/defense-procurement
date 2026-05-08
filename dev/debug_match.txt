@@ -1,0 +1,1869 @@
+Contract: '新型機雷(小型機雷)'  len=10
+
+  Project: '自動警戒管制組織の弾道ﾐｻｲﾙ対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    name_norm: '自動警戒管制組織の弾道ミサイル対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    org: ASDF, conf: 0.78
+    pn in cn: False, cn in pn: False
+
+  Project: '自動警戒管制組織の弾道ﾐｻｲﾙ対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    name_norm: '自動警戒管制組織の弾道ミサイル対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    org: ASDF, conf: 0.78
+    pn in cn: False, cn in pn: False
+
+  Project: '自動警戒管制組織の弾道ﾐｻｲﾙ対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    name_norm: '自動警戒管制組織の弾道ミサイル対処機能(BMD)\n自動警戒管制組織の航空警戒管制機能の近代化'
+    org: ASDF, conf: 0.78
+    pn in cn: False, cn in pn: False
+
+  Project: 'NATOサイバー防衛協力センター(CCDCOE)サイバー防衛演習に関する経費'
+    name_norm: 'NATOサイバー防衛協力センター(CCDCOE)サイバー防衛演習に関する経費'
+    org: JS, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '指揮統制に関するシステム等の整備（海上自衛隊指揮統制・共通基盤システム等）'
+    name_norm: '指揮統制に関するシステム等の整備(海上自衛隊指揮統制・共通基盤システム等)'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '指揮統制に関するシステム等の整備（海上自衛隊指揮統制・共通基盤システム等）'
+    name_norm: '指揮統制に関するシステム等の整備(海上自衛隊指揮統制・共通基盤システム等)'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '１２式地対艦誘導弾能力向上型（地発型・艦発型・空発型）の開発'
+    name_norm: '12式地対艦誘導弾能力向上型(地発型・艦発型・空発型)の開発'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '１２式地対艦誘導弾能力向上型（地発型・艦発型・空発型）の開発'
+    name_norm: '12式地対艦誘導弾能力向上型(地発型・艦発型・空発型)の開発'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    name_norm: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    name_norm: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    name_norm: '戦闘機等のミッションシステム・インテグレーションの研究試作'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '弾薬整備業務のアウトソーシング\n（総人件費改革関連事業）'
+    name_norm: '弾薬整備業務のアウトソーシング\n(総人件費改革関連事業)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '12式地対艦誘導弾能力向上型(地発型・艦発型・空発型)'
+    name_norm: '12式地対艦誘導弾能力向上型(地発型・艦発型・空発型)'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '基地防空用地対空誘導弾（改）及び新近距離地対空誘導弾'
+    name_norm: '基地防空用地対空誘導弾(改)及び新近距離地対空誘導弾'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '固定式警戒管制レーダー装置（ＦＰＳ－７）への機能付加'
+    name_norm: '固定式警戒管制レーダー装置(FPS-7)への機能付加'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '固定式警戒管制レーダー装置（ＦＰＳ－５）への機能付加'
+    name_norm: '固定式警戒管制レーダー装置(FPS-5)への機能付加'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '基地防空用地対空誘導弾（改）及び新近距離地対空誘導弾'
+    name_norm: '基地防空用地対空誘導弾(改)及び新近距離地対空誘導弾'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '固定式警戒管制レーダー装置（ＦＰＳ－７）への機能付加'
+    name_norm: '固定式警戒管制レーダー装置(FPS-7)への機能付加'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '固定式警戒管制レーダー装置（ＦＰＳ－５）への機能付加'
+    name_norm: '固定式警戒管制レーダー装置(FPS-5)への機能付加'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス艦に搭載する関連器材の取得等（トマホーク）'
+    name_norm: 'イージス艦に搭載する関連器材の取得等(トマホーク)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '０３式中距離地対空誘導弾（改善型）能力向上型の開発'
+    name_norm: '03式中距離地対空誘導弾(改善型)能力向上型の開発'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス艦に搭載する関連器材の取得等（トマホーク）'
+    name_norm: 'イージス艦に搭載する関連器材の取得等(トマホーク)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '０３式中距離地対空誘導弾（改善型）能力向上型の開発'
+    name_norm: '03式中距離地対空誘導弾(改善型)能力向上型の開発'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '海上作戦部隊指揮統制支援システム用器材（借上）'
+    name_norm: '海上作戦部隊指揮統制支援システム用器材(借上)'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス戦闘システムに関わる国内整備態勢の整備'
+    name_norm: 'イージス戦闘システムに関わる国内整備態勢の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '南西地域への陸自警備部隊等の配置に伴う施設整備'
+    name_norm: '南西地域への陸自警備部隊等の配置に伴う施設整備'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '海上作戦部隊指揮統制支援システム用器材（借上）'
+    name_norm: '海上作戦部隊指揮統制支援システム用器材(借上)'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦用高効率電力貯蔵・供給システムの研究試作'
+    name_norm: '潜水艦用高効率電力貯蔵・供給システムの研究試作'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '海上作戦部隊指揮統制支援システム用器材（借上）'
+    name_norm: '海上作戦部隊指揮統制支援システム用器材(借上)'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送ヘリコプター（ＭＣＨ－１０１の生産購入）'
+    name_norm: '輸送ヘリコプター(MCH-101の生産購入)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送ヘリコプター（ＭＣＨ－１０１）の生産購入'
+    name_norm: '輸送ヘリコプター(MCH-101)の生産購入'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送ヘリコプター（ＭＣＨ－１０１の生産購入）'
+    name_norm: '輸送ヘリコプター(MCH-101の生産購入)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '中央指揮システムの個別維持（中央システム）'
+    name_norm: '中央指揮システムの個別維持(中央システム)'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦用高効率電力貯蔵・供給システムの研究'
+    name_norm: '潜水艦用高効率電力貯蔵・供給システムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '中央指揮システムの個別維持（中央システム）'
+    name_norm: '中央指揮システムの個別維持(中央システム)'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機搭載用統合火器管制システムの研究試作'
+    name_norm: '戦闘機搭載用統合火器管制システムの研究試作'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '流体雑音低減型水中発射管構成要素の研究試作'
+    name_norm: '流体雑音低減型水中発射管構成要素の研究試作'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '中央指揮システムの個別維持（中央システム）'
+    name_norm: '中央指揮システムの個別維持(中央システム)'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦用高効率電力貯蔵・供給システムの研究'
+    name_norm: '潜水艦用高効率電力貯蔵・供給システムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '回転翼哨戒機（ＳＨ－６０L（仮称））の取得'
+    name_norm: '回転翼哨戒機(SH-60L(仮称))の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '火器・装軌車等の修理（装軌車等外注整備）'
+    name_norm: '火器・装軌車等の修理(装軌車等外注整備)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '多重通信網の周波数移行の進捗に係る支援等'
+    name_norm: '多重通信網の周波数移行の進捗に係る支援等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '１２式魚雷（魚雷防御機能等付与型）の開発'
+    name_norm: '12式魚雷(魚雷防御機能等付与型)の開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '火器・装軌車等の修理（装軌車等外注整備）'
+    name_norm: '火器・装軌車等の修理(装軌車等外注整備)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '９１式戦車橋（施設器材のオーバーホール）'
+    name_norm: '91式戦車橋(施設器材のオーバーホール)'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '多重通信網の周波数移行の進捗に係る支援等'
+    name_norm: '多重通信網の周波数移行の進捗に係る支援等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '火器・装軌車等の修理（装軌車等外注整備）'
+    name_norm: '火器・装軌車等の修理(装軌車等外注整備)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '多重通信網の周波数移行の進捗に係る支援等'
+    name_norm: '多重通信網の周波数移行の進捗に係る支援等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '１２式魚雷（魚雷防御機能等付与型）の開発'
+    name_norm: '12式魚雷(魚雷防御機能等付与型)の開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ガスタービン機関組部品のオーバーホール'
+    name_norm: 'ガスタービン機関組部品のオーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（F-15）近代化改修/能力向上'
+    name_norm: '戦闘機(F-15)近代化改修/能力向上'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '哨戒ヘリコプター（ＳＨ－６０Ｋ）の取得'
+    name_norm: '哨戒ヘリコプター(SH-60K)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '流体雑音低減型水中発射管構成要素の研究'
+    name_norm: '流体雑音低減型水中発射管構成要素の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '哨戒ヘリコプター（ＳＨ－６０Ｌ）の取得'
+    name_norm: '哨戒ヘリコプター(SH-60L)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ガスタービン機関組部品のオーバーホール'
+    name_norm: 'ガスタービン機関組部品のオーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（F-15）近代化改修/能力向上'
+    name_norm: '戦闘機(F-15)近代化改修/能力向上'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '哨戒ヘリコプター（ＳＨ－６０Ｋ）の取得'
+    name_norm: '哨戒ヘリコプター(SH-60K)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ガスタービン機関組部品のオーバーホール'
+    name_norm: 'ガスタービン機関組部品のオーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（F-15）近代化改修/能力向上'
+    name_norm: '戦闘機(F-15)近代化改修/能力向上'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '哨戒ヘリコプター（ＳＨ－６０Ｋ）の取得'
+    name_norm: '哨戒ヘリコプター(SH-60K)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '流体雑音低減型水中発射管構成要素の研究'
+    name_norm: '流体雑音低減型水中発射管構成要素の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ジブチ軍に対する災害対処能力強化支援'
+    name_norm: 'ジブチ軍に対する災害対処能力強化支援'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備'
+    name_norm: '機雷捜索用UUV(OZZ-5)の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '指揮所の近代化（ハードウェアの整備）'
+    name_norm: '指揮所の近代化(ハードウェアの整備)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信衛星の中継機能の借上（三幕共同）'
+    name_norm: '通信衛星の中継機能の借上(三幕共同)'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＳＨ－６０Ｋ搭載電子機器整備用構成品'
+    name_norm: 'SH-60K搭載電子機器整備用構成品'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '地理情報システムの整備（レンタル料）'
+    name_norm: '地理情報システムの整備(レンタル料)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦用静粛型駆動システムの研究試作'
+    name_norm: '潜水艦用静粛型駆動システムの研究試作'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ジブチ軍に対する災害対処能力強化支援'
+    name_norm: 'ジブチ軍に対する災害対処能力強化支援'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船の維持整備の経費抑制に関する調査'
+    name_norm: '艦船の維持整備の経費抑制に関する調査'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ジブチ軍に対する災害対処能力強化支援'
+    name_norm: 'ジブチ軍に対する災害対処能力強化支援'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備'
+    name_norm: '機雷捜索用UUV(OZZ-5)の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '高速高機動目標対応レーダ技術の研究'
+    name_norm: '高速高機動目標対応レーダ技術の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '水際障害処理装置（地雷原処理装置）'
+    name_norm: '水際障害処理装置(地雷原処理装置)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '次期装輪装甲車（人員輸送型）の取得'
+    name_norm: '次期装輪装甲車(人員輸送型)の取得'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '高速高機動目標対応レーダ技術の研究'
+    name_norm: '高速高機動目標対応レーダ技術の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '高速高機動目標対応レーダ技術の研究'
+    name_norm: '高速高機動目標対応レーダ技術の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '次期装輪装甲車（人員輸送型）の取得'
+    name_norm: '次期装輪装甲車(人員輸送型)の取得'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '防衛情報通信基盤（DII)の整備'
+    name_norm: '防衛情報通信基盤(DII)の整備'
+    org: JS, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持・通信部品'
+    name_norm: '航空機搭載通信機器維持・通信部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '回転翼哨戒機（能力向上型）の開発'
+    name_norm: '回転翼哨戒機(能力向上型)の開発'
+    org: MSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '地域通信処理システム用器材の借料'
+    name_norm: '地域通信処理システム用器材の借料'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '情報収集・分析用器材の維持・整備'
+    name_norm: '情報収集・分析用器材の維持・整備'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船用ガスタービン機関の維持整備'
+    name_norm: '艦船用ガスタービン機関の維持整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '移動式警戒管制レーダー装置の整備'
+    name_norm: '移動式警戒管制レーダー装置の整備'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦用新戦闘指揮システムの研究'
+    name_norm: '護衛艦用新戦闘指揮システムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '防衛情報通信基盤（DII)の整備'
+    name_norm: '防衛情報通信基盤(DII)の整備'
+    org: JS, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: 'ソーナー用ラバーウィンドウの整備'
+    name_norm: 'ソーナー用ラバーウィンドウの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '製造中止部品対策（水中武器の部）'
+    name_norm: '製造中止部品対策(水中武器の部)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持・通信部品'
+    name_norm: '航空機搭載通信機器維持・通信部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '回転翼哨戒機（能力向上型）の開発'
+    name_norm: '回転翼哨戒機(能力向上型)の開発'
+    org: MSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '地域通信処理システム用器材の借料'
+    name_norm: '地域通信処理システム用器材の借料'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '防衛情報通信基盤（DII)の整備'
+    name_norm: '防衛情報通信基盤(DII)の整備'
+    org: JS, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持・通信部品'
+    name_norm: '航空機搭載通信機器維持・通信部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '回転翼哨戒機（能力向上型）の開発'
+    name_norm: '回転翼哨戒機(能力向上型)の開発'
+    org: MSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '地域通信処理システム用器材の借料'
+    name_norm: '地域通信処理システム用器材の借料'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦用静粛型駆動システムの研究'
+    name_norm: '潜水艦用静粛型駆動システムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '情報収集・分析用器材の維持・整備'
+    name_norm: '情報収集・分析用器材の維持・整備'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船用ガスタービン機関の維持整備'
+    name_norm: '艦船用ガスタービン機関の維持整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '移動式警戒管制レーダー装置の整備'
+    name_norm: '移動式警戒管制レーダー装置の整備'
+    org: ASDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦用新戦闘指揮システムの研究'
+    name_norm: '護衛艦用新戦闘指揮システムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（Ｆ－３５Ａ／Ｂ）の取得'
+    name_norm: '戦闘機(F-35A/B)の取得'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦の主蓄電池の換装及び購入'
+    name_norm: '潜水艦の主蓄電池の換装及び購入'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス・システム搭載艦の整備'
+    name_norm: 'イージス・システム搭載艦の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '可変深度ソーナーシステムの整備'
+    name_norm: '可変深度ソーナーシステムの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '指揮統制・情報関連機能（陸自）'
+    name_norm: '指揮統制・情報関連機能(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '高速高機動目標対応レーダの開発'
+    name_norm: '高速高機動目標対応レーダの開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（Ｆ-３５Ａ/Ｂ）の取得'
+    name_norm: '戦闘機(F-35A/B)の取得'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦の主蓄電池の換装及び購入'
+    name_norm: '潜水艦の主蓄電池の換装及び購入'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス艦へのＢＭＤ機能の付加'
+    name_norm: 'イージス艦へのBMD機能の付加'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '将来軽量橋梁構成要素の研究試作'
+    name_norm: '将来軽量橋梁構成要素の研究試作'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: 'パシフィック・パートナーシップ'
+    name_norm: 'パシフィック・パートナーシップ'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '将来潜水艦用ソーナー装置の試作'
+    name_norm: '将来潜水艦用ソーナー装置の試作'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '戦闘機（Ｆ－３５Ａ／Ｂ）の取得'
+    name_norm: '戦闘機(F-35A/B)の取得'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦の主蓄電池の換装及び購入'
+    name_norm: '潜水艦の主蓄電池の換装及び購入'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'イージス・システム搭載艦の整備'
+    name_norm: 'イージス・システム搭載艦の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '可変深度ソーナーシステムの整備'
+    name_norm: '可変深度ソーナーシステムの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '指揮統制・情報関連機能（陸自）'
+    name_norm: '指揮統制・情報関連機能(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '高速高機動目標対応レーダの開発'
+    name_norm: '高速高機動目標対応レーダの開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '救難飛行艇（ＵＳ－２）の取得'
+    name_norm: '救難飛行艇(US-2)の取得'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '固定翼哨戒機（Ｐ－１）の取得'
+    name_norm: '固定翼哨戒機(P-1)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '装甲車両の近代化に関する研究'
+    name_norm: '装甲車両の近代化に関する研究'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '艦載用レーザーシステムの研究'
+    name_norm: '艦載用レーザーシステムの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '水中発射型垂直発射装置の研究'
+    name_norm: '水中発射型垂直発射装置の研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '陸自電算機防護システムの整備'
+    name_norm: '陸自電算機防護システムの整備'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '駐屯地管理用等車両の損耗更新'
+    name_norm: '駐屯地管理用等車両の損耗更新'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '救難飛行艇（ＵＳ－２）の取得'
+    name_norm: '救難飛行艇(US-2)の取得'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '固定翼哨戒機（Ｐ－１）の取得'
+    name_norm: '固定翼哨戒機(P-1)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '救難飛行艇（ＵＳ－２）の取得'
+    name_norm: '救難飛行艇(US-2)の取得'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '固定翼哨戒機（Ｐ－１）の取得'
+    name_norm: '固定翼哨戒機(P-1)の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '装甲車両の近代化に関する研究'
+    name_norm: '装甲車両の近代化に関する研究'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持修理'
+    name_norm: '航空機搭載通信機器維持修理'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '掃海艦艇（ＭＳＯ、ＭＳＣ）'
+    name_norm: '掃海艦艇(MSO、MSC)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＵＵＶ管制技術に関する研究'
+    name_norm: 'UUV管制技術に関する研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '新型機雷（小型機雷）の開発'
+    name_norm: '新型機雷(小型機雷)の開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: True
+
+  Project: '無人機雷排除システムの整備'
+    name_norm: '無人機雷排除システムの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '初等練習機（Ｔ－５）の取得'
+    name_norm: '初等練習機(T-5)の取得'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '自動車リサイクル法関連経費'
+    name_norm: '自動車リサイクル法関連経費'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '弾薬整備等に関わる民間委託'
+    name_norm: '弾薬整備等に関わる民間委託'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持修理'
+    name_norm: '航空機搭載通信機器維持修理'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '将来水陸両用技術の研究試作'
+    name_norm: '将来水陸両用技術の研究試作'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '大口径火砲用弾薬に係る調査'
+    name_norm: '大口径火砲用弾薬に係る調査'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '即応予備自衛官に必要な経費'
+    name_norm: '即応予備自衛官に必要な経費'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＦＣネットワークの研究試作'
+    name_norm: 'FCネットワークの研究試作'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '装備品等の製造体制の拡充等'
+    name_norm: '装備品等の製造体制の拡充等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機搭載通信機器維持修理'
+    name_norm: '航空機搭載通信機器維持修理'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '掃海艦艇（ＭＳＯ、ＭＳＣ）'
+    name_norm: '掃海艦艇(MSO、MSC)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＵＵＶ管制技術に関する研究'
+    name_norm: 'UUV管制技術に関する研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '新型機雷（小型機雷）の開発'
+    name_norm: '新型機雷(小型機雷)の開発'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: True
+
+  Project: '無人機雷排除システムの整備'
+    name_norm: '無人機雷排除システムの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'リフレクタ型デコイ弾の取得'
+    name_norm: 'リフレクタ型デコイ弾の取得'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費等（海自）'
+    name_norm: '諸器材等維持費等(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: 'Ｋｕバンド衛星通信用経費'
+    name_norm: 'Kuバンド衛星通信用経費'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費等（陸自）'
+    name_norm: '諸器材等維持費等(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '中距離地対空誘導弾の取得'
+    name_norm: '中距離地対空誘導弾の取得'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '地対空誘導弾ﾍﾟﾄﾘｵｯﾄ'
+    name_norm: '地対空誘導弾ペトリオット'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '多用途ヘリコプターの取得'
+    name_norm: '多用途ヘリコプターの取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '水陸両用車の研究及び開発'
+    name_norm: '水陸両用車の研究及び開発'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '対潜資料隊用器材の借上げ'
+    name_norm: '対潜資料隊用器材の借上げ'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '将来潜水艦用ソーナー装置'
+    name_norm: '将来潜水艦用ソーナー装置'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '「いずも」型護衛艦の改修'
+    name_norm: '「いずも」型護衛艦の改修'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: 'Ｋｕバンド衛星通信用経費'
+    name_norm: 'Kuバンド衛星通信用経費'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＭＫ４６魚雷等の定期検査'
+    name_norm: 'MK46魚雷等の定期検査'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '中距離地対空誘導弾の取得'
+    name_norm: '中距離地対空誘導弾の取得'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: 'Ｆ－１５用端末装置の取得'
+    name_norm: 'F-15用端末装置の取得'
+    org: ASDF, conf: 0.8
+    pn in cn: False, cn in pn: False
+
+  Project: '地対空誘導弾ﾍﾟﾄﾘｵｯﾄ'
+    name_norm: '地対空誘導弾ペトリオット'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: 'Ｐ－１用整備用器材の整備'
+    name_norm: 'P-1用整備用器材の整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '多用途ヘリコプターの取得'
+    name_norm: '多用途ヘリコプターの取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '定期オーバーホール役務費'
+    name_norm: '定期オーバーホール役務費'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '次期装輪装甲車技術の研究'
+    name_norm: '次期装輪装甲車技術の研究'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '対潜資料隊用器材の借上げ'
+    name_norm: '対潜資料隊用器材の借上げ'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '老朽整備器材更新（機体）'
+    name_norm: '老朽整備器材更新(機体)'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費等（海自）'
+    name_norm: '諸器材等維持費等(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: 'Ｋｕバンド衛星通信用経費'
+    name_norm: 'Kuバンド衛星通信用経費'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費等（陸自）'
+    name_norm: '諸器材等維持費等(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '中距離地対空誘導弾の取得'
+    name_norm: '中距離地対空誘導弾の取得'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '地対空誘導弾ﾍﾟﾄﾘｵｯﾄ'
+    name_norm: '地対空誘導弾ペトリオット'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '多用途ヘリコプターの取得'
+    name_norm: '多用途ヘリコプターの取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '次期装輪装甲車技術の研究'
+    name_norm: '次期装輪装甲車技術の研究'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '水陸両用車の研究及び開発'
+    name_norm: '水陸両用車の研究及び開発'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '対潜資料隊用器材の借上げ'
+    name_norm: '対潜資料隊用器材の借上げ'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '将来潜水艦用ソーナー装置'
+    name_norm: '将来潜水艦用ソーナー装置'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '「いずも」型護衛艦の改修'
+    name_norm: '「いずも」型護衛艦の改修'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（海自）'
+    name_norm: '諸器材購入費等(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（海自）'
+    name_norm: '通信機器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '車両一般整備費（空自）'
+    name_norm: '車両一般整備費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（陸自）'
+    name_norm: '通信機器購入費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（陸自）'
+    name_norm: '諸器材購入費等(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（空自）'
+    name_norm: '諸器材購入費等(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（空自）'
+    name_norm: '通信機器購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（空自）'
+    name_norm: '諸器材等維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＦＣネットワークの研究'
+    name_norm: 'FCネットワークの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦齢延伸措置（潜水艦）'
+    name_norm: '艦齢延伸措置(潜水艦)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦齢延伸措置（護衛艦）'
+    name_norm: '艦齢延伸措置(護衛艦)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '海洋観測用ＵＵＶの整備'
+    name_norm: '海洋観測用UUVの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（海自）'
+    name_norm: '諸器材等維持費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（統幕）'
+    name_norm: '諸器材購入費等(統幕)'
+    org: JS, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（海自）'
+    name_norm: '通信機器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（統幕）'
+    name_norm: '諸器材等維持費(統幕)'
+    org: JS, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '自動車再資源化等預託金'
+    name_norm: '自動車再資源化等預託金'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（統幕）'
+    name_norm: '通信機器購入費(統幕)'
+    org: JS, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（陸自）'
+    name_norm: '通信機器購入費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（陸自）'
+    name_norm: '諸器材等維持費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（空自）'
+    name_norm: '通信機器購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（空自）'
+    name_norm: '諸器材等維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '静粛型動力装置搭載魚雷'
+    name_norm: '静粛型動力装置搭載魚雷'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（海自）'
+    name_norm: '諸器材購入費等(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（海自）'
+    name_norm: '通信機器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '車両一般整備費（空自）'
+    name_norm: '車両一般整備費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（陸自）'
+    name_norm: '通信機器購入費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（陸自）'
+    name_norm: '諸器材購入費等(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費等（空自）'
+    name_norm: '諸器材購入費等(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器購入費（空自）'
+    name_norm: '通信機器購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材等維持費（空自）'
+    name_norm: '諸器材等維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: 'ＦＣネットワークの研究'
+    name_norm: 'FCネットワークの研究'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦齢延伸措置（潜水艦）'
+    name_norm: '艦齢延伸措置(潜水艦)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦齢延伸措置（護衛艦）'
+    name_norm: '艦齢延伸措置(護衛艦)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '海洋観測用ＵＵＶの整備'
+    name_norm: '海洋観測用UUVの整備'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費等（統幕）'
+    name_norm: '通信維持費等(統幕)'
+    org: JS, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '主機等オーバーホール'
+    name_norm: '主機等オーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦救難態勢の維持'
+    name_norm: '潜水艦救難態勢の維持'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '米国における実動訓練'
+    name_norm: '米国における実動訓練'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（陸自）'
+    name_norm: '航空機修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '発動機オーバーホール'
+    name_norm: '発動機オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（海自）'
+    name_norm: '航空機修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '音響測定艦（ＡＯＳ）'
+    name_norm: '音響測定艦(AOS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（空自）'
+    name_norm: '航空機修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '外国との交流・対話等'
+    name_norm: '外国との交流・対話等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '海洋観測艦（ＡGＳ）'
+    name_norm: '海洋観測艦(AGS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費（海自）'
+    name_norm: '諸器材購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '情報業務用車両の取得'
+    name_norm: '情報業務用車両の取得'
+    org: DIH, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費（陸自）'
+    name_norm: '諸器材購入費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '主機等オーバーホール'
+    name_norm: '主機等オーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷処分具等の整備等'
+    name_norm: '機雷処分具等の整備等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦救難態勢の維持'
+    name_norm: '潜水艦救難態勢の維持'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '米国における実動訓練'
+    name_norm: '米国における実動訓練'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（陸自）'
+    name_norm: '航空機修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '発動機オーバーホール'
+    name_norm: '発動機オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（海自）'
+    name_norm: '航空機修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '音響測定艦（ＡＯＳ）'
+    name_norm: '音響測定艦(AOS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '諸器材購入費（空自）'
+    name_norm: '諸器材購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機整備器材修理費'
+    name_norm: '航空機整備器材修理費'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（空自）'
+    name_norm: '航空機修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: 'ハイレベル政策的交流'
+    name_norm: 'ハイレベル政策的交流'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '海洋観測艦（ＡＧＳ）'
+    name_norm: '海洋観測艦(AGS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費等（統幕）'
+    name_norm: '通信維持費等(統幕)'
+    org: JS, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '主機等オーバーホール'
+    name_norm: '主機等オーバーホール'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦救難態勢の維持'
+    name_norm: '潜水艦救難態勢の維持'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '米国における実動訓練'
+    name_norm: '米国における実動訓練'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（陸自）'
+    name_norm: '航空機修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '発動機オーバーホール'
+    name_norm: '発動機オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（海自）'
+    name_norm: '航空機修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '音響測定艦（ＡＯＳ）'
+    name_norm: '音響測定艦(AOS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '航空機修理費（空自）'
+    name_norm: '航空機修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '外国との交流・対話等'
+    name_norm: '外国との交流・対話等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '海洋観測艦（ＡGＳ）'
+    name_norm: '海洋観測艦(AGS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '武器購入費（海自）'
+    name_norm: '武器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（海自）'
+    name_norm: '武器修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（海自）'
+    name_norm: '通信維持費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（空自）'
+    name_norm: '通信維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（陸自）'
+    name_norm: '通信維持費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（空自）'
+    name_norm: '武器修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '弾薬（海上自衛隊）'
+    name_norm: '弾薬(海上自衛隊)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷探知機の整備等'
+    name_norm: '機雷探知機の整備等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船修理費（海自）'
+    name_norm: '艦船修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '地対艦誘導弾の取得'
+    name_norm: '地対艦誘導弾の取得'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（陸自）'
+    name_norm: '武器修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '機体オーバーホール'
+    name_norm: '機体オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '一般用救命装備品等'
+    name_norm: '一般用救命装備品等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦発射型誘導弾'
+    name_norm: '潜水艦発射型誘導弾'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '武器購入費（海自）'
+    name_norm: '武器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（海自）'
+    name_norm: '武器修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（海自）'
+    name_norm: '通信維持費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（空自）'
+    name_norm: '通信維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（陸自）'
+    name_norm: '通信維持費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（空自）'
+    name_norm: '武器修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '弾薬（海上自衛隊）'
+    name_norm: '弾薬(海上自衛隊)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷探知機の整備等'
+    name_norm: '機雷探知機の整備等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '不用弾薬の外注処分'
+    name_norm: '不用弾薬の外注処分'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船修理費（海自）'
+    name_norm: '艦船修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費(陸自)'
+    name_norm: '武器修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '機体オーバーホール'
+    name_norm: '機体オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '一般用救命装備品等'
+    name_norm: '一般用救命装備品等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '武器購入費（空自）'
+    name_norm: '武器購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器購入費（海自）'
+    name_norm: '武器購入費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（海自）'
+    name_norm: '武器修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（海自）'
+    name_norm: '通信維持費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（空自）'
+    name_norm: '通信維持費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '通信維持費（陸自）'
+    name_norm: '通信維持費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（空自）'
+    name_norm: '武器修理費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '弾薬（海上自衛隊）'
+    name_norm: '弾薬(海上自衛隊)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '機雷探知機の整備等'
+    name_norm: '機雷探知機の整備等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船修理費（海自）'
+    name_norm: '艦船修理費(海自)'
+    org: MSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '地対艦誘導弾の取得'
+    name_norm: '地対艦誘導弾の取得'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '武器修理費（陸自）'
+    name_norm: '武器修理費(陸自)'
+    org: GSDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '機体オーバーホール'
+    name_norm: '機体オーバーホール'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '一般用救命装備品等'
+    name_norm: '一般用救命装備品等'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '武器購入費（空自）'
+    name_norm: '武器購入費(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦発射型誘導弾'
+    name_norm: '潜水艦発射型誘導弾'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（施設器材）'
+    name_norm: '乙類(施設器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（化学器材）'
+    name_norm: '乙類(化学器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器の修理等'
+    name_norm: '通信機器の修理等'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '基地防空用ＳＡＭ'
+    name_norm: '基地防空用SAM'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＦＦＭ）'
+    name_norm: '護衛艦(FFM)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '多目的監視レーダ'
+    name_norm: '多目的監視レーダ'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '車両更新（空自）'
+    name_norm: '車両更新(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '補給艦（ＡＯＥ）'
+    name_norm: '補給艦(AOE)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（化学器材）'
+    name_norm: '乙類(化学器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（施設器材）'
+    name_norm: '乙類(施設器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器の修理等'
+    name_norm: '通信機器の修理等'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '廃弾等の外注処分'
+    name_norm: '廃弾等の外注処分'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦潜舵の換装'
+    name_norm: '潜水艦潜舵の換装'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '基地防空用ＳＡＭ'
+    name_norm: '基地防空用SAM'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '掃海艇（ＭＳＣ）'
+    name_norm: '掃海艇(MSC)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＦＦＭ）'
+    name_norm: '護衛艦(FFM)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '多目的監視レーダ'
+    name_norm: '多目的監視レーダ'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '名古屋空港着陸料'
+    name_norm: '名古屋空港着陸料'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '魚雷整備用消耗品'
+    name_norm: '魚雷整備用消耗品'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（施設器材）'
+    name_norm: '乙類(施設器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（化学器材）'
+    name_norm: '乙類(化学器材)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器の修理等'
+    name_norm: '通信機器の修理等'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '基地防空用ＳＡＭ'
+    name_norm: '基地防空用SAM'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＦＦＭ）'
+    name_norm: '護衛艦(FFM)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '多目的監視レーダ'
+    name_norm: '多目的監視レーダ'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '車両更新（空自）'
+    name_norm: '車両更新(空自)'
+    org: ASDF, conf: 0.85
+    pn in cn: False, cn in pn: False
+
+  Project: '補給艦（ＡＯＥ）'
+    name_norm: '補給艦(AOE)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '施設車両整備費'
+    name_norm: '施設車両整備費'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦（ＳＳ）'
+    name_norm: '潜水艦(SS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船需品の整備'
+    name_norm: '艦船需品の整備'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＤＤ）'
+    name_norm: '護衛艦(DD)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送船舶の取得'
+    name_norm: '輸送船舶の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '各種トラック等'
+    name_norm: '各種トラック等'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '車両の維持整備'
+    name_norm: '車両の維持整備'
+    org: DIH, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '車両一般整備費'
+    name_norm: '車両一般整備費'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '施設車両整備費'
+    name_norm: '施設車両整備費'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空車両更新分'
+    name_norm: '航空車両更新分'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦（ＳＳ）'
+    name_norm: '潜水艦(SS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '通信機器等修理'
+    name_norm: '通信機器等修理'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船需品の整備'
+    name_norm: '艦船需品の整備'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＤＤ）'
+    name_norm: '護衛艦(DD)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '一般車両更新分'
+    name_norm: '一般車両更新分'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '部隊レベル対話'
+    name_norm: '部隊レベル対話'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送船舶の取得'
+    name_norm: '輸送船舶の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '施設車両整備費'
+    name_norm: '施設車両整備費'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '潜水艦（ＳＳ）'
+    name_norm: '潜水艦(SS)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '艦船需品の整備'
+    name_norm: '艦船需品の整備'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '護衛艦（ＤＤ）'
+    name_norm: '護衛艦(DD)'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '輸送船舶の取得'
+    name_norm: '輸送船舶の取得'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '各種トラック等'
+    name_norm: '各種トラック等'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（戦車）'
+    name_norm: '甲類(戦車)'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（火砲）'
+    name_norm: '甲類(火砲)'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '誘導弾の取得'
+    name_norm: '誘導弾の取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空一般部品'
+    name_norm: '航空一般部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（車両）'
+    name_norm: '乙類(車両)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '貸費生貸与金'
+    name_norm: '貸費生貸与金'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '機齢延伸措置'
+    name_norm: '機齢延伸措置'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（戦車）'
+    name_norm: '甲類(戦車)'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（火砲）'
+    name_norm: '甲類(火砲)'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '車両維持経費'
+    name_norm: '車両維持経費'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '魚雷の修理等'
+    name_norm: '魚雷の修理等'
+    org: MSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '誘導弾の取得'
+    name_norm: '誘導弾の取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空一般部品'
+    name_norm: '航空一般部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（車両）'
+    name_norm: '乙類(車両)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '貸費生貸与金'
+    name_norm: '貸費生貸与金'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（戦車）'
+    name_norm: '甲類(戦車)'
+    org: GSDF, conf: 0.75
+    pn in cn: False, cn in pn: False
+
+  Project: '甲類（火砲）'
+    name_norm: '甲類(火砲)'
+    org: GSDF, conf: 0.72
+    pn in cn: False, cn in pn: False
+
+  Project: '誘導弾の取得'
+    name_norm: '誘導弾の取得'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '航空一般部品'
+    name_norm: '航空一般部品'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '乙類（車両）'
+    name_norm: '乙類(車両)'
+    org: GSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '貸費生貸与金'
+    name_norm: '貸費生貸与金'
+    org: ASDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+  Project: '機齢延伸措置'
+    name_norm: '機齢延伸措置'
+    org: MSDF, conf: 0.65
+    pn in cn: False, cn in pn: False
+
+jigyou_review 機雷含む事業: 11件
+  '機雷探知機の整備等' / 事業監理官（艦船担当）
+  '新型機雷（小型機雷）の開発' / 事業監理官（艦船担当）
+  '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備' / 事業監理官（艦船担当）
+  '無人機雷排除システムの整備' / 事業監理官（艦船担当）
+  '機雷探知機の整備等' / 事業監理官（艦船担当）
+  '機雷処分具等の整備等' / 事業監理官（艦船担当）
+  '新型機雷（小型機雷）の開発' / 防衛省
+  '機雷探知機の整備等' / 事業監理官（艦船担当）
+  '新型機雷（小型機雷）の開発' / 事業監理官（艦船担当）
+  '機雷捜索用ＵＵＶ（ＯＺＺ－５）の整備' / 事業監理官（艦船担当）
+  '無人機雷排除システムの整備' / 事業監理官（艦船担当）

@@ -1,0 +1,26 @@
+=== FY2021 contract_month NULL samples ===
+  item='簡易型風向風速計'  org=MSDF  file=21_juhin_r03
+  item='簡易型観測装置'  org=MSDF  file=21_juhin_r03
+  item='鋼製ドラム，内面塗装，２００Ｌ，１．６ｍｍ'  org=ASDF  file=21_juhin_r03
+  item='航空ジェットエンジン油Ｕ－１２５用（合成基）'  org=ASDF  file=21_juhin_r03
+  item='航空作動油（石油基）'  org=ASDF  file=21_juhin_r03
+  item='ジェットエンジン油（石油基）１０１０'  org=ASDF  file=21_juhin_r03
+  item='航空タービンエンジン油（合成油基）'  org=ASDF  file=21_juhin_r03
+  item='陸上戦闘下衣，２形'  org=MSDF  file=21_juhin_r03
+  item='武器用伝動油'  org=MSDF  file=21_juhin_r03
+  item='ディーゼルエンジン油 ９２５０'  org=MSDF  file=21_juhin_r03
+
+=== FY2021 contract_month NULL by source_file ===
+  21_juhin_r03.pdf                total=1066  null=129
+  22_kisha_r03.pdf                total= 306  null=69
+  23_buki_r03.pdf                 total=  84  null=14
+  24_danka_r03.pdf                total= 150  null=14
+  31_denon_r03.pdf                total= 235  null=44
+  32_yudou_r03.pdf                total=  76  null=12
+  33_kansen_r03.pdf               total= 115  null=27
+  34_tuden_r03.pdf                total= 437  null=71
+  35_denkei_r03.pdf               total= 240  null=28
+  41_yuchou_r03.pdf               total= 140  null=31
+  43_koukuu_r03.pdf               total=  52  null=5
+  44_koukuubuhin_r03.pdf          total= 177  null=47
+  45_kaitenyoku_r03.pdf           total=  25  null=2
