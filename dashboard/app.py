@@ -304,36 +304,94 @@ def _load_url_months() -> pd.DataFrame:
         )
 
 
+_REQ_ORG_LABELS = {
+    "MSDF":     "海上自衛隊",
+    "GSDF":     "陸上自衛隊",
+    "ASDF":     "航空自衛隊",
+    "RDB":      "地方防衛局",
+    "JS":       "統合幕僚監部",
+    "NAIKYOKU": "内部部局",
+    "DIH":      "情報本部",
+    "NDMC":     "防衛医科大学校",
+    "NDA":      "防衛大学校",
+    "KANSATSU": "監察本部",
+    "NIDS":     "防衛研究所",
+}
+
 @st.cache_data(ttl=300)
-def _load_requesting_org() -> pd.DataFrame:
-    _LABELS = {
-        "MSDF":     "海上自衛隊",
-        "ATLA":     "防衛装備庁（中央調達）",
-        "GSDF":     "陸上自衛隊",
-        "ASDF":     "航空自衛隊",
-        "RDB":      "地方防衛局",
-        "JS":       "統合幕僚監部",
-        "NAIKYOKU": "内部部局",
-        "DIH":      "情報本部",
-        "NDMC":     "防衛医科大学校",
-        "NDA":      "防衛大学校",
-        "KANSATSU": "監察本部",
-        "NIDS":     "防衛研究所",
-    }
+def _load_requesting_org(fiscal_year: int = 2025) -> pd.DataFrame:
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
-            """SELECT cro.requesting_org,
-                      COUNT(*) AS cnt,
-                      COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
+            """SELECT
+                 CASE
+                   WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
+                     THEN '要求元未解決（中央調達）'
+                   WHEN cro.requesting_org = 'ATLA'
+                     THEN '装備庁（研究所等）'
+                   ELSE cro.requesting_org
+                 END AS display_org,
+                 COUNT(*) AS cnt,
+                 COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
                FROM contracts c
                JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
-               WHERE c.fiscal_year = 2025
-               GROUP BY cro.requesting_org
+               WHERE c.fiscal_year = ?
+               GROUP BY display_org
                ORDER BY SUM(c.contract_amount) DESC""",
             conn,
+            params=(fiscal_year,),
         )
-    df["org_label"] = df["requesting_org"].map(_LABELS).fillna(df["requesting_org"])
+    df["org_label"] = df["display_org"].map(_REQ_ORG_LABELS).fillna(df["display_org"])
     return df
+
+
+@st.dialog("要求元ドリルダウン", width="large")
+def show_requesting_org_drilldown(fiscal_year: int, requesting_org: str, label: str) -> None:
+    st.subheader(f"要求元: {label}（FY{fiscal_year}）")
+    with sqlite3.connect(DB_PATH) as conn:
+        sub = pd.read_sql_query(
+            """SELECT c.rowid as id, c.contract_name, c.vendor_name,
+                      c.contract_amount, c.agency_name, c.fiscal_year,
+                      c.contract_date, cro.match_source, cro.confidence
+               FROM contracts c
+               JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
+               WHERE c.fiscal_year = ?
+                 AND CASE
+                       WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
+                         THEN '要求元未解決（中央調達）'
+                       WHEN cro.requesting_org = 'ATLA'
+                         THEN '装備庁（研究所等）'
+                       ELSE cro.requesting_org
+                     END = ?
+               ORDER BY c.contract_amount DESC NULLS LAST""",
+            conn,
+            params=(fiscal_year, requesting_org),
+        )
+    if sub.empty:
+        st.info("該当データなし")
+        return
+    total_amt = sub["contract_amount"].fillna(0).sum()
+    st.caption(f"{len(sub):,}件 / 総額 {total_amt / 1e8:,.1f}億円")
+    eq_map = _load_equipment_map()
+    sub["装備品"] = sub["id"].map(lambda x: eq_map.get(x, {}).get("name", ""))
+    ref = sub["id"].map(lambda x: eq_map.get(x, {}).get("url", ""))
+    sub["解説"] = ref
+    view = sub[["contract_name", "vendor_name", "contract_amount", "agency_name",
+                "contract_date", "match_source", "confidence", "装備品", "解説"]].copy()
+    view["contract_amount"] = (view["contract_amount"].fillna(0) / 1e8).round(1)
+    view = view.rename(columns={
+        "contract_name": "契約名", "vendor_name": "受注企業",
+        "contract_amount": "金額(億)", "agency_name": "調達機関",
+        "contract_date": "契約日", "match_source": "判定方法",
+        "confidence": "確信度",
+    })
+    st.dataframe(
+        view, use_container_width=True, height=500, hide_index=True,
+        column_config={
+            "金額(億)": st.column_config.NumberColumn(format="%.1f"),
+            "確信度": st.column_config.NumberColumn(format="%.2f"),
+            "解説": st.column_config.LinkColumn("解説", display_text="📖"),
+        },
+    )
 
 
 @st.dialog("組織別ドリルダウン", width="large")
@@ -547,69 +605,77 @@ def main():
             key="req_org_fy", label_visibility="collapsed",
         )
 
-    if sel_req_fy != "FY2025":
-        st.info(f"{sel_req_fy} の要求元マッピングは今後対応予定です。")
+    target_req_fy = int(sel_req_fy.replace("FY", ""))
+    req_df = _load_requesting_org(target_req_fy)
+    if req_df.empty:
+        st.info("要求元データがありません。")
     else:
-        req_df = _load_requesting_org()
-        if req_df.empty:
-            st.info("要求元データがありません。")
-        else:
-            req_c1, req_c2 = st.columns([3, 2])
-            with req_c1:
-                req_sorted = req_df.sort_values("oku", ascending=True)
-                fig_req = px.bar(
-                    req_sorted,
-                    x="oku", y="org_label", orientation="h",
-                    text="oku",
-                    color="oku", color_continuous_scale="Blues",
-                    template=PLOT_TEMPLATE, height=420,
-                    labels={"org_label": "要求元", "oku": "総額（億円）"},
-                    custom_data=["requesting_org", "cnt"],
-                    hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
-                    hover_name="org_label",
-                )
-                fig_req.update_traces(
-                    texttemplate="%{text:,.0f}",
-                    textposition="outside",
-                    cliponaxis=False,
-                )
-                fig_req.update_layout(
-                    coloraxis_showscale=False,
-                    margin=dict(l=10, r=100, t=20, b=10),
-                    yaxis=dict(categoryorder="total ascending"),
-                    xaxis=dict(title="総額（億円）"),
-                )
-                st.plotly_chart(fig_req, use_container_width=True, config={"displayModeBar": False})
+        req_c1, req_c2 = st.columns([3, 2])
+        with req_c1:
+            req_sorted = req_df.sort_values("oku", ascending=True)
+            fig_req = px.bar(
+                req_sorted,
+                x="oku", y="org_label", orientation="h",
+                text="oku",
+                color="oku", color_continuous_scale="Blues",
+                template=PLOT_TEMPLATE, height=420,
+                labels={"org_label": "要求元", "oku": "総額（億円）"},
+                custom_data=["display_org", "cnt"],
+                hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
+                hover_name="org_label",
+            )
+            fig_req.update_traces(
+                texttemplate="%{text:,.0f}",
+                textposition="outside",
+                cliponaxis=False,
+            )
+            fig_req.update_layout(
+                coloraxis_showscale=False,
+                margin=dict(l=10, r=100, t=20, b=10),
+                yaxis=dict(categoryorder="total ascending"),
+                xaxis=dict(title="総額（億円）", fixedrange=True),
+                yaxis_fixedrange=True,
+            )
+            st.plotly_chart(fig_req, use_container_width=True, config={"displayModeBar": False})
 
-            with req_c2:
-                fig_pie = px.pie(
-                    req_df,
-                    values="oku", names="org_label",
-                    template=PLOT_TEMPLATE, height=420,
-                    color_discrete_sequence=COLOR_SEQ,
-                    hole=0.35,
-                )
-                fig_pie.update_traces(
-                    texttemplate="%{label}<br>%{percent:.0%}",
-                    hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
-                    textposition="inside",
-                )
-                fig_pie.update_layout(
-                    showlegend=False,
-                    margin=dict(l=0, r=0, t=20, b=0),
-                )
-                st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
+        with req_c2:
+            fig_pie = px.pie(
+                req_df,
+                values="oku", names="org_label",
+                template=PLOT_TEMPLATE, height=420,
+                color_discrete_sequence=COLOR_SEQ,
+                hole=0.35,
+            )
+            fig_pie.update_traces(
+                texttemplate="%{label}<br>%{percent:.0%}",
+                hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
+                textposition="inside",
+            )
+            fig_pie.update_layout(
+                showlegend=False,
+                margin=dict(l=0, r=0, t=20, b=0),
+            )
+            st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
 
-        total_req = int(req_df["cnt"].sum()) if not req_df.empty else 0
-        total_oku = float(req_df["oku"].sum()) if not req_df.empty else 0.0
-        st.caption(
-            f"FY2025 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
-            "※ 要求元の分類方法: "
-            "地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
-            "中央調達（防衛装備庁）は令和7年度調達予定品目表の品目名と契約名を突合して要求元を特定。"
-            "突合不能分は担当官室・契約月・ベンダー実績から推定（confidence=0.3〜0.7）。"
-            "FY2024以前は今後対応予定。"
-        )
+        # ドリルダウンボタン
+        st.markdown("**要求元をクリックして契約一覧を表示:**")
+        btn_cols = st.columns(min(len(req_df), 6))
+        for i, (_, row) in enumerate(req_df.iterrows()):
+            col_idx = i % len(btn_cols)
+            with btn_cols[col_idx]:
+                if st.button(f"{row['org_label']} ({row['cnt']:,}件)", key=f"req_dd_{i}"):
+                    show_requesting_org_drilldown(target_req_fy, row["display_org"], row["org_label"])
+
+    total_req = int(req_df["cnt"].sum()) if not req_df.empty else 0
+    total_oku = float(req_df["oku"].sum()) if not req_df.empty else 0.0
+    fy_label = f"令和{target_req_fy - 2018}年度" if target_req_fy >= 2019 else f"FY{target_req_fy}"
+    st.caption(
+        f"FY{target_req_fy} 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
+        f"※ 要求元の分類方法: "
+        f"地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
+        f"中央調達（防衛装備庁）は{fy_label}調達予定品目表の品目名と契約名を突合して要求元を特定。"
+        f"突合不能分は担当官室・契約月・ベンダー実績・装備品辞書から推定（confidence=0.3〜0.7）。"
+    )
 
     st.divider()
 

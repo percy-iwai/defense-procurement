@@ -20,6 +20,7 @@ Thumbs.db
 .claude/todos/
 .claude/shell-snapshots/
 .claude/statsig/
+.claude/worktrees/
 
 # Logs
 logs/

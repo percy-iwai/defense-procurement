@@ -245,38 +245,60 @@ choutatsuyotei（調達予定品目表）との全FY横断 fuzzy 突合・装備
 | 7 | `collision_majority` | exact複数org → 多数決 | 0.5 |
 | 7.5 | `equipment_master_branch` | 装備品 branch が GSDF/MSDF/ASDF（JOINT除外） | 0.7 |
 | 8 | `fms_vendor_heuristic` | 米陸→GSDF, 米海→MSDF, 米空→ASDF | 0.5 |
+| 8.5a | `name_keyword` | 契約名キーワード（MSDF/GSDF/ASDF/JS/DIH固有語） | 0.70-0.75 |
+| 8.5b | `joint_equipment_explicit` | JOINT装備品IDの明示的org割当（JADGE=ASDF等） | 0.65-0.70 |
 | 9 | `fallback_atla` | 残存 | 0.3 |
 
 **廃止:** `vendor_majority`（重工等は複数機関に供給するため信頼性なし）
 
-### 実行結果（2026-05-08）
+### 実行結果（2026-05-08、step 8.5追加後）
 
 | match_source | 件数 |
 |---|---:|
 | choutatsuyotei_exact | 10,687 |
 | choutatsuyotei_fuzzy | 5,719 |
 | agency_subrule | 5,123 |
-| fallback_atla | 5,020 |
+| fallback_atla | **4,692** |
 | collision_majority | 2,152 |
 | equipment_master_branch | 1,129 |
 | fms_vendor_heuristic | 411 |
 | collision_month | 405 |
+| **name_keyword** | **322** |
 | manual_analysis | 13 |
+| **joint_equipment_explicit** | **6** |
 | **合計** | **30,659** |
 
-要求元別: ATLA 10,221 / GSDF 8,196 / MSDF 6,823 / ASDF 4,276 /
-NDA 550 / NDMC 388 / JS 85 / DIH 83 / NAIKYOKU 35 / KANSATSU 2
+要求元別: ATLA **9,893** / GSDF **8,282** / MSDF **6,895** / ASDF **4,306** /
+NDA 550 / NDMC 388 / JS **171** / DIH **137** / NAIKYOKU 35 / KANSATSU 2
+
+（旧: ATLA 10,221 / JS 85 / DIH 83 / GSDF 8,196 / MSDF 6,823 / ASDF 4,276）
+
+### Step 8.5 設計
+
+**name_keyword キーワードリスト:**
+| org | キーワード（代表） | conf |
+|---|---|---|
+| MSDF | 海上自衛隊, 海幕, 海自, MSII, 艦艇搭載, 潜水艦, 護衛艦 | 0.75 |
+| GSDF | 陸上自衛隊, 陸幕, 陸自, 地対艦誘導弾, 10式戦車 | 0.72 |
+| ASDF | 航空自衛隊, 空幕, 空自, 自動警戒管制, JADGE, 宇宙状況監視 | 0.72 |
+| JS | 統合指揮, 統幕, サイバー防衛, 防衛情報通信基盤, 中央クラウド | 0.70 |
+| DIH | 情報本部, 地理空間情報支援, 総合解析システム, GRQ | 0.70 |
+
+**joint_equipment_explicit マッピング:**
+joint_jadge→ASDF / joint_ssa→ASDF / joint_geospatial→DIH / joint_dics→DIH /
+joint_sogo_kaiseki→DIH / joint_sec_gw→JS / joint_cyber_def→JS / joint_cyber_sim→JS /
+joint_ccs→JS / joint_xband_kirameki→JS
 
 ### 設計上の判断
 
 - **fuzzy index は全FY横断で単一org判定** — FYごと判定だと「灯油1号」が
   特定FYのみNDA登録 → ATLAの大量燃料調達が誤ってNDAに分類される事故を防ぐ
-- **JOINT 装備品はスキップ** — equipment_master.branch=JOINT は要求元不明
-  （DII=GSDF多数, JADGE=ASDF多数 等、装備品ごとに要求元が異なる）
+- **JOINT 装備品はスキップ（8.5b以外）** — equipment_master.branch=JOINT は要求元不明
+  ただし明確に要求元が特定できる JOINT 装備品 ID は step 8.5b で明示割当
 - **海兵隊はFMSヒューリスティック対象外** — V-22(PMA-275)等、米海軍省経由でも
   実態がGSDFの装備があるため「米海軍省」のみ MSDF とする
-- **fallback残存5,020件は honest result** — 旧 vendor_majority 18,305件の多くを
-  「判定不能」に正しく戻した結果。manual_overrides 拡充で順次解決
+- **fallback残存4,692件は honest result** — 研究開発・ATLA固有調達・判定不能が残存
+  step 8.5 で 328件 (name_keyword 322 + joint_equipment_explicit 6) を解決
 
 ### 実行コマンド
 

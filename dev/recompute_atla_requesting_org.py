@@ -13,6 +13,8 @@
   7.5. equipment_master_branch (装備品 branch が GSDF/MSDF/ASDF, conf=0.7)
                                JOINT は要求元不明扱いでスキップ
   8. fms_vendor_heuristic     (米陸/海/空 → GSDF/MSDF/ASDF, conf=0.5)
+  8.5a. name_keyword          (契約名キーワード → 各軍種/情報本部/統幕, conf=0.70-0.75)
+  8.5b. joint_equipment_explicit (JOINT装備品IDの明示的org割当, conf=0.65-0.70)
   9. fallback_atla            (残存, conf=0.3)
 
 廃止: vendor_majority（重工は要求元べったりではない）
@@ -58,6 +60,62 @@ FMS_VENDOR_PREFIX: tuple[tuple[str, str], ...] = (
     ("米海軍省", "MSDF"),
     ("米空軍省", "ASDF"),
 )
+
+# ─── 8.5a: 契約名 直接証拠キーワード → org ──────────────────────────────────
+# 組織名・部隊名が契約名に「明示」されている場合。「運用者」推論ではない直接証拠。
+# source='name_keyword', conf=0.75
+NAME_EXPLICIT_ORG_RULES: list[tuple[str, list[str]]] = [
+    ("MSDF", ["海上自衛隊", "海幕", "海自"]),
+    ("GSDF", ["陸上自衛隊", "陸幕", "陸自"]),
+    ("ASDF", ["航空自衛隊", "空幕", "空自"]),
+    ("JS",   ["統合指揮", "統幕"]),
+    ("DIH",  ["情報本部"]),
+]
+_NAME_EXPLICIT_NORM: list[tuple[str, list[str]]] = [
+    (org, [unicodedata.normalize("NFKC", kw) for kw in kws])
+    for org, kws in NAME_EXPLICIT_ORG_RULES
+]
+
+# ─── 8.5b: 契約名 推論キーワード → org ──────────────────────────────────────
+# 「システム名/装備品名 → 運用者 → 要求元」の間接推論。
+# 運用者≠要求元の場合があることを承知の上で適用（特にJOINT系・FMS系は要注意）。
+# source='ref_url_inference', conf=0.50
+NAME_INFERRED_ORG_RULES: list[tuple[str, list[str]]] = [
+    # MSDF: MSII（海自主要情報処理システム）・艦艇系
+    ("MSDF", ["MSII", "艦艇搭載", "非貫通式潜望鏡", "潜水艦", "護衛艦"]),
+    # GSDF: 陸上装備品
+    ("GSDF", ["地対艦誘導弾", "地対地誘導弾", "10式戦車", "16式機動戦闘車"]),
+    # ASDF: JADGE・宇宙関連（宇宙は要求元が統幕・情報本部の可能性あり）
+    ("ASDF", ["自動警戒管制", "JADGE", "宇宙状況監視", "宇宙状況把握", "空対艦", "空対地"]),
+    # JS: 統幕管理インフラ（DII・中央クラウド・サイバー防衛）
+    ("JS", ["サイバー防衛", "サイバー演習", "サイバー防護分析",
+            "防衛セキュリティゲートウェイ", "中央クラウド", "防衛情報通信基盤",
+            "中央指揮システム", "Xバンド防衛通信衛星"]),
+    # DIH: 地理空間・情報収集（情報本部との紐付けはchoutatsuyotei確認済み）
+    ("DIH", ["地理空間情報支援", "総合解析システム", "総合解析装置",
+             "次期電子情報収集機", "GRQ"]),
+]
+_NAME_INFERRED_NORM: list[tuple[str, list[str]]] = [
+    (org, [unicodedata.normalize("NFKC", kw) for kw in kws])
+    for org, kws in NAME_INFERRED_ORG_RULES
+]
+
+# ─── 8.5c: JOINT equipment_id → org（運用者→要求元 推論）────────────────────
+# 全て「運用者から要求元を推論」する間接推論。
+# source='ref_url_inference', conf=0.50
+# 運用者≠要求元となる可能性があるもの（特に宇宙系・通信衛星系）は注意。
+JOINT_EQUIPMENT_INFERRED_ORG: dict[str, str] = {
+    "joint_jadge":          "ASDF",  # JADGE = 空自自動警戒管制（要求元=空幕）
+    "joint_ssa":            "ASDF",  # SSA衛星 = 空自宇宙作戦群（要求元が統幕の可能性あり）
+    "joint_geospatial":     "DIH",   # 地理空間情報支援 = 情報本部（確認済み）
+    "joint_sogo_kaiseki":   "DIH",   # 総合解析 = 情報本部
+    "joint_dics":           "DIH",   # 情報本部共通基盤
+    "joint_sec_gw":         "JS",    # セキュリティGW = 統幕サイバー
+    "joint_cyber_def":      "JS",    # サイバー防護分析 = 統幕
+    "joint_cyber_sim":      "JS",    # サイバー演習 = 統幕
+    "joint_ccs":            "JS",    # 中央指揮システム = 統幕
+    "joint_xband_kirameki": "JS",    # Xバンド通信衛星きらめき = 統幕
+}
 
 # ─── ATLA agency_id 判定 ────────────────────────────────────────────────────
 def _is_atla_agency(aid: str | None) -> bool:
@@ -140,6 +198,35 @@ def _load_equipment_branch_map(con: sqlite3.Connection) -> dict[int, str]:
     for cid, branch in rows:
         by_cid.setdefault(cid, Counter())[branch] += 1
     return {cid: cnt.most_common(1)[0][0] for cid, cnt in by_cid.items()}
+
+
+def _load_joint_equipment_inferred_map(
+    con: sqlite3.Connection,
+) -> dict[int, str]:
+    """contract_id → org for JOINT equipment_ids with operator-inferred org.
+
+    全て「運用者→要求元」の間接推論。conf=0.50, source='ref_url_inference'。
+    1契約に複数のJOINT equipmentが紐付く場合、全org一致のときのみ採用。
+    """
+    eq_ids = list(JOINT_EQUIPMENT_INFERRED_ORG.keys())
+    if not eq_ids:
+        return {}
+    placeholders = ",".join("?" * len(eq_ids))
+    rows = con.execute(
+        f"SELECT contract_id, equipment_id FROM contract_equipment "
+        f"WHERE equipment_id IN ({placeholders})",
+        eq_ids,
+    ).fetchall()
+    by_cid: dict[int, list[str]] = {}
+    for cid, eq_id in rows:
+        if eq_id in JOINT_EQUIPMENT_INFERRED_ORG:
+            by_cid.setdefault(cid, []).append(JOINT_EQUIPMENT_INFERRED_ORG[eq_id])
+    result: dict[int, str] = {}
+    for cid, orgs_list in by_cid.items():
+        orgs = set(orgs_list)
+        if len(orgs) == 1:
+            result[cid] = next(iter(orgs))
+    return result
 
 
 def _load_atla_contracts(con: sqlite3.Connection) -> list[Contract]:
@@ -247,12 +334,44 @@ def _match_fms(vendor_name: str | None) -> str | None:
     return None
 
 
+def _match_name_explicit(name: str) -> tuple[str, str] | None:
+    """Tier 1: 組織名・部隊名が契約名に明示 → (org, matched_kw)。
+
+    直接証拠。source='name_keyword', conf=0.75。
+    """
+    if not name:
+        return None
+    norm = unicodedata.normalize("NFKC", name)
+    for org, kws in _NAME_EXPLICIT_NORM:
+        for kw in kws:
+            if kw in norm:
+                return (org, kw)
+    return None
+
+
+def _match_name_inferred(name: str) -> tuple[str, str] | None:
+    """Tier 2: システム名→運用者→要求元の間接推論 → (org, matched_kw)。
+
+    source='ref_url_inference', conf=0.50。
+    運用者≠要求元の場合があるため、ダッシュボード等で別途表示推奨。
+    """
+    if not name:
+        return None
+    norm = unicodedata.normalize("NFKC", name)
+    for org, kws in _NAME_INFERRED_NORM:
+        for kw in kws:
+            if kw in norm:
+                return (org, kw)
+    return None
+
+
 # ─── 1契約に対する判定（優先順位ロジック本体） ──────────────────────────────
 def _assign_contract(
     c: Contract,
     chy_idx: dict[str, list[ChyEntry]],
     fuzzy_idx: list[tuple[str, str, tuple[int, ...], int]],
     equipment_branch_map: dict[int, str] | None = None,
+    joint_equipment_inferred_map: dict[int, str] | None = None,
 ) -> tuple[str, str, float, int | None]:
     """1契約に対し優先順位 1→9 を順次評価。
     Returns (org, source, conf, chy_id)。
@@ -306,6 +425,25 @@ def _assign_contract(
     if fms_org is not None:
         return (fms_org, "fms_vendor_heuristic", 0.5, None)
 
+    # 8.5a. name_keyword（契約名に組織名が明示 → 直接証拠, conf=0.75）
+    explicit = _match_name_explicit(c.name)
+    if explicit is not None:
+        org, _kw = explicit
+        return (org, "name_keyword", 0.75, None)
+
+    # 8.5b. ref_url_inference（システム名→運用者→要求元 間接推論, conf=0.50）
+    # 運用者≠要求元の可能性があることを承知の上で適用。
+    inferred = _match_name_inferred(c.name)
+    if inferred is not None:
+        org, _kw = inferred
+        return (org, "ref_url_inference", 0.50, None)
+
+    # 8.5c. joint_equipment_inferred（JOINT装備品IDの運用者→要求元 推論, conf=0.50）
+    if joint_equipment_inferred_map is not None:
+        ji = joint_equipment_inferred_map.get(c.cid)
+        if ji is not None:
+            return (ji, "ref_url_inference", 0.50, None)
+
     # 9. fallback_atla
     return ("ATLA", "fallback_atla", 0.3, None)
 
@@ -321,16 +459,18 @@ def _init_worker(payload_bytes: bytes) -> None:
     _WORKER_STATE["chy_idx"] = payload["chy_idx"]
     _WORKER_STATE["fuzzy_idx"] = payload["fuzzy_idx"]
     _WORKER_STATE["equipment_branch_map"] = payload["equipment_branch_map"]
+    _WORKER_STATE["joint_equipment_inferred_map"] = payload["joint_equipment_inferred_map"]
 
 
 def _worker_assign(chunk: list[Contract]) -> list[tuple]:
     chy_idx = _WORKER_STATE["chy_idx"]
     fuzzy_idx = _WORKER_STATE["fuzzy_idx"]
     equipment_branch_map = _WORKER_STATE["equipment_branch_map"]
+    joint_equipment_inferred_map = _WORKER_STATE["joint_equipment_inferred_map"]
     out = []
     for c in chunk:
         org, source, conf, chy_id = _assign_contract(
-            c, chy_idx, fuzzy_idx, equipment_branch_map,
+            c, chy_idx, fuzzy_idx, equipment_branch_map, joint_equipment_inferred_map,
         )
         out.append((c.cid, org, source, conf, chy_id))
     return out
@@ -427,9 +567,11 @@ def recompute_all(
     chy_idx = _load_chy_global_index(con)
     fuzzy_idx = _build_fuzzy_index(chy_idx)
     equipment_branch_map = _load_equipment_branch_map(con)
+    joint_equipment_inferred_map = _load_joint_equipment_inferred_map(con)
     print(f"  exact候補: {len(chy_idx):,} norm / "
           f"fuzzy候補: {len(fuzzy_idx):,} entries (全FY横断単一org)")
     print(f"  equipment_branch map: {len(equipment_branch_map):,} contracts")
+    print(f"  joint_equipment_inferred map: {len(joint_equipment_inferred_map):,} contracts")
 
     print("[4/6] ATLA契約 ロード...")
     contracts = _load_atla_contracts(con)
@@ -441,6 +583,7 @@ def recompute_all(
             "chy_idx": chy_idx,
             "fuzzy_idx": fuzzy_idx,
             "equipment_branch_map": equipment_branch_map,
+            "joint_equipment_inferred_map": joint_equipment_inferred_map,
         },
         protocol=5,
     )
