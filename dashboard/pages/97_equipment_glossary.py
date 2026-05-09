@@ -130,6 +130,23 @@ if kw:
     )
     filt = filt[mask]
 
+# 行政事業レビュー概要を filt にマージ
+_jr_ids = tuple(filt["jigyou_review_id"].dropna().unique().tolist())
+if _jr_ids:
+    _jr = _load_jigyou_review(_jr_ids)
+    if not _jr.empty:
+        filt = filt.merge(
+            _jr[["id", "overview", "rs_url"]].rename(columns={"id": "jigyou_review_id"}),
+            on="jigyou_review_id",
+            how="left",
+        )
+    else:
+        filt["overview"] = None
+        filt["rs_url"] = None
+else:
+    filt["overview"] = None
+    filt["rs_url"] = None
+
 st.caption(f"{len(filt):,} 件 / 全{len(df_eq):,}件")
 
 # ── カスタム HTML テーブル ────────────────────────────────────────────
@@ -165,9 +182,27 @@ else:
             url_parts.append('<span title="行政事業レビュー照合済み" style="cursor:default">📋</span>')
         url_cell = " ".join(url_parts) if url_parts else "—"
 
+        # 行政事業レビュー概要（インライン）
+        overview_raw = str(row.get("overview", "") or "")
+        rs_url_val   = str(row.get("rs_url", "") or "")
+        if overview_raw:
+            ov_text  = overview_raw[:160] + ("…" if len(overview_raw) > 160 else "")
+            ov_link  = (
+                f' <a href="{rs_url_val}" target="_blank" '
+                f'style="color:#7c83fd;font-size:0.74rem">レビューシート↗</a>'
+                if rs_url_val else ""
+            )
+            overview_html = (
+                f'<div style="font-size:0.76rem;color:{TEXT_DIM};'
+                f'margin-top:3px;line-height:1.45">{ov_text}{ov_link}</div>'
+            )
+        else:
+            overview_html = ""
+
         rows_html.append(
             f'<tr style="border-bottom:1px solid #313244">'
-            f'<td style="padding:5px 8px;font-weight:600">{name_ja}</td>'
+            f'<td style="padding:5px 8px">'
+            f'<span style="font-weight:600">{name_ja}</span>{overview_html}</td>'
             f'<td style="padding:5px 8px;color:{TEXT_DIM};font-size:0.78rem">{name_en}</td>'
             f'<td style="padding:5px 8px;font-size:0.82rem">{branch}</td>'
             f'<td style="padding:5px 8px;font-size:0.82rem">{cat}</td>'
@@ -194,48 +229,10 @@ else:
     st.markdown(html, unsafe_allow_html=True)
 
     st.caption(
-        "🏛️ = 防衛省公式ページ　📖 = Wikipedia　📄 = 防衛白書　📋 = 行政事業レビュー照合済み。"
+        "🏛️ = 防衛省公式ページ　📖 = Wikipedia　📄 = 防衛白書。"
+        "装備品名の下のテキストは行政事業レビュー概要（照合済みのみ）。"
         "リンクのない装備品は未登録（今後追加予定）。"
     )
-
-    # ── 行政事業レビュー 照合済み概要 ────────────────────────────────────
-    jr_ids_in_view = filt["jigyou_review_id"].dropna().unique().tolist()
-    if jr_ids_in_view:
-        with st.expander(f"📋 行政事業レビュー 照合済み概要（{len(jr_ids_in_view)} 件）"):
-            jr_df = _load_jigyou_review(tuple(jr_ids_in_view))
-            if not jr_df.empty:
-                # equipment_master と結合して装備品名を付加
-                eq_jr = filt[filt["jigyou_review_id"].notna()][
-                    ["equipment_id", "name_ja", "jigyou_review_id"]
-                ].merge(
-                    jr_df.rename(columns={"id": "jigyou_review_id"}),
-                    on="jigyou_review_id",
-                    how="left",
-                )
-                for _, r in eq_jr.sort_values("name_ja").iterrows():
-                    proj_name = str(r.get("name", ""))
-                    overview  = str(r.get("overview", "") or "")
-                    purpose   = str(r.get("purpose", "") or "")
-                    rs_url    = str(r.get("rs_url", "") or "")
-                    fy        = int(r.get("fiscal_year", 0) or 0)
-                    eq_name   = str(r.get("name_ja", ""))
-
-                    link = f'　<a href="{rs_url}" target="_blank" style="color:#7c83fd;font-size:0.8rem">行政事業レビューシート →</a>' if rs_url else ""
-                    st.markdown(
-                        f'<div style="margin:4px 0 2px;font-weight:600;color:{TEXT_COLOR}">'
-                        f'{eq_name} '
-                        f'<span style="font-size:0.78rem;color:{TEXT_DIM};font-weight:400">▸ {proj_name}（FY{fy}）</span>'
-                        f'{link}</div>',
-                        unsafe_allow_html=True,
-                    )
-                    if overview:
-                        st.markdown(
-                            f'<div style="font-size:0.82rem;color:{TEXT_DIM};margin-left:8px;margin-bottom:6px">'
-                            f'{overview[:300]}{"…" if len(overview) > 300 else ""}</div>',
-                            unsafe_allow_html=True,
-                        )
-            else:
-                st.info("行政事業レビューデータを読み込めません。")
 
     with st.expander("📊 カテゴリ別内訳"):
         cat_cnt = (
