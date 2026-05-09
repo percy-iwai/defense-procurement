@@ -11,6 +11,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from _db import connect_with_pillar
+
 # ── パス ────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH      = PROJECT_ROOT / "data" / "db" / "procurement.db"
@@ -48,6 +50,8 @@ _FUYOU = {
     2024:  1_200,   # R6決算（朝日新聞/日刊ゲンダイ 2025-11）
     2025:   None,   # 未公表
 }
+
+_ALL_FYS = [2022, 2023, 2024, 2025]  # 収録FY一覧
 
 _BUDGET_FY2024  = _BUDGET[2024]
 _NON_CONTRACT_FY2024 = _NON_CONTRACT[2024]
@@ -319,10 +323,11 @@ _REQ_ORG_LABELS = {
 }
 
 @st.cache_data(ttl=300)
-def _load_requesting_org(fiscal_year: int = 2025) -> pd.DataFrame:
+def _load_requesting_org(fiscal_years: tuple[int, ...]) -> pd.DataFrame:
+    placeholders = ",".join("?" * len(fiscal_years))
     with sqlite3.connect(DB_PATH) as conn:
         df = pd.read_sql_query(
-            """SELECT
+            f"""SELECT
                  CASE
                    WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
                      THEN '要求元未解決（中央調達）'
@@ -334,63 +339,195 @@ def _load_requesting_org(fiscal_year: int = 2025) -> pd.DataFrame:
                  COALESCE(SUM(c.contract_amount), 0) / 1e8 AS oku
                FROM contracts c
                JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
-               WHERE c.fiscal_year = ?
+               WHERE c.fiscal_year IN ({placeholders})
                GROUP BY display_org
                ORDER BY SUM(c.contract_amount) DESC""",
             conn,
-            params=(fiscal_year,),
+            params=fiscal_years,
         )
     df["org_label"] = df["display_org"].map(_REQ_ORG_LABELS).fillna(df["display_org"])
     return df
 
 
-@st.dialog("要求元ドリルダウン", width="large")
-def show_requesting_org_drilldown(fiscal_year: int, requesting_org: str, label: str) -> None:
-    st.subheader(f"要求元: {label}（FY{fiscal_year}）")
+@st.cache_data(ttl=600)
+def _load_pillar_jigyou_names() -> dict[str, list[int]]:
+    """jigyou_name → L1 pillar_id リストのマッピング。defense_pillar.db がない場合は空dict。"""
+    try:
+        with connect_with_pillar() as conn:
+            df = pd.read_sql_query(
+                """
+                SELECT j.jigyou_name,
+                       COALESCE(p.parent_id, j.pillar_id) AS l1_pillar_id
+                FROM pillar.defense_pillar_jigyou j
+                LEFT JOIN pillar.defense_pillar_master p ON p.pillar_id = j.pillar_id
+                WHERE j.jigyou_name IS NOT NULL AND LENGTH(j.jigyou_name) >= 4
+                """,
+                conn,
+            )
+        result: dict[str, list[int]] = {}
+        for _, row in df.iterrows():
+            name = str(row["jigyou_name"]).strip()
+            pid = int(row["l1_pillar_id"])
+            if name not in result:
+                result[name] = []
+            if pid not in result[name]:
+                result[name].append(pid)
+        return result
+    except Exception:
+        return {}
+
+
+def _get_pillar_codes(contract_name: str, pillar_map: dict[str, list[int]]) -> list[int]:
+    if not contract_name or not pillar_map:
+        return []
+    matched: set[int] = set()
+    for jname, pids in pillar_map.items():
+        if jname in contract_name:
+            matched.update(pids)
+    return sorted(matched)
+
+
+@st.cache_data(ttl=300)
+def _load_top20_contracts(fiscal_years: tuple[int, ...], requesting_org: str) -> pd.DataFrame:
+    """要求元別 金額上位TOP20契約（装備品情報込み）。"""
+    placeholders = ",".join("?" * len(fiscal_years))
     with sqlite3.connect(DB_PATH) as conn:
-        sub = pd.read_sql_query(
-            """SELECT c.rowid as id, c.contract_name, c.vendor_name,
-                      c.contract_amount, c.agency_name, c.fiscal_year,
-                      c.contract_date, cro.match_source, cro.confidence
+        return pd.read_sql_query(
+            f"""
+            SELECT c.rowid AS contract_id, c.contract_name, c.vendor_name,
+                   c.contract_amount, c.agency_name, c.contract_date,
+                   cro.match_source, cro.confidence,
+                   em.name_ja AS equipment_name,
+                   COALESCE(em.ref_url_official, em.ref_url_wikipedia, em.ref_url_hakusho) AS ref_url
+            FROM contracts c
+            JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
+            LEFT JOIN (
+                SELECT contract_id, equipment_id, MAX(confidence) AS max_conf
+                FROM contract_equipment
+                GROUP BY contract_id
+            ) best_ce ON c.rowid = best_ce.contract_id
+            LEFT JOIN equipment_master em ON best_ce.equipment_id = em.equipment_id
+            WHERE c.fiscal_year IN ({placeholders})
+              AND CASE
+                    WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
+                      THEN '要求元未解決（中央調達）'
+                    WHEN cro.requesting_org = 'ATLA'
+                      THEN '装備庁（研究所等）'
+                    ELSE cro.requesting_org
+                  END = ?
+            ORDER BY c.contract_amount DESC NULLS LAST
+            LIMIT 20
+            """,
+            conn,
+            params=(*fiscal_years, requesting_org),
+        )
+
+
+@st.dialog("要求元ドリルダウン", width="large")
+def show_requesting_org_drilldown(fiscal_years: tuple[int, ...], requesting_org: str, label: str) -> None:
+    _fys_str = " / ".join(f"FY{y}" for y in fiscal_years)
+    st.subheader(f"要求元: {label}（{_fys_str}） — 金額TOP20")
+
+    placeholders = ",".join("?" * len(fiscal_years))
+    with sqlite3.connect(DB_PATH) as conn:
+        total_row = conn.execute(
+            f"""SELECT COUNT(*), COALESCE(SUM(c.contract_amount), 0)
                FROM contracts c
                JOIN contract_requesting_org cro ON c.rowid = cro.contract_id
-               WHERE c.fiscal_year = ?
+               WHERE c.fiscal_year IN ({placeholders})
                  AND CASE
                        WHEN cro.requesting_org = 'ATLA' AND cro.match_source = 'fallback_atla'
                          THEN '要求元未解決（中央調達）'
                        WHEN cro.requesting_org = 'ATLA'
                          THEN '装備庁（研究所等）'
                        ELSE cro.requesting_org
-                     END = ?
-               ORDER BY c.contract_amount DESC NULLS LAST""",
-            conn,
-            params=(fiscal_year, requesting_org),
-        )
-    if sub.empty:
+                     END = ?""",
+            (*fiscal_years, requesting_org),
+        ).fetchone()
+    total_cnt, total_amt = total_row
+    st.caption(f"全 {total_cnt:,} 件 / 総額 {total_amt / 1e8:,.1f} 億円 — 金額上位TOP20を表示")
+
+    top20 = _load_top20_contracts(fiscal_years, requesting_org)
+    if top20.empty:
         st.info("該当データなし")
         return
-    total_amt = sub["contract_amount"].fillna(0).sum()
-    st.caption(f"{len(sub):,}件 / 総額 {total_amt / 1e8:,.1f}億円")
-    eq_map = _load_equipment_map()
-    sub["装備品"] = sub["id"].map(lambda x: eq_map.get(x, {}).get("name", ""))
-    ref = sub["id"].map(lambda x: eq_map.get(x, {}).get("url", ""))
-    sub["解説"] = ref
-    view = sub[["contract_name", "vendor_name", "contract_amount", "agency_name",
-                "contract_date", "match_source", "confidence", "装備品", "解説"]].copy()
-    view["contract_amount"] = (view["contract_amount"].fillna(0) / 1e8).round(1)
-    view = view.rename(columns={
-        "contract_name": "契約名", "vendor_name": "受注企業",
-        "contract_amount": "金額(億)", "agency_name": "調達機関",
-        "contract_date": "契約日", "match_source": "判定方法",
-        "confidence": "確信度",
-    })
-    st.dataframe(
-        view, use_container_width=True, height=500, hide_index=True,
-        column_config={
-            "金額(億)": st.column_config.NumberColumn(format="%.1f"),
-            "確信度": st.column_config.NumberColumn(format="%.2f"),
-            "解説": st.column_config.LinkColumn("解説", display_text="📖"),
-        },
+
+    pillar_map = _load_pillar_jigyou_names()
+
+    rows_html: list[str] = []
+    for rank, (_, row) in enumerate(top20.iterrows(), 1):
+        cname   = str(row.get("contract_name") or "")
+        vendor  = str(row.get("vendor_name") or "—")
+        amt_val = row.get("contract_amount")
+        amt     = f"{amt_val / 1e8:.1f}" if pd.notna(amt_val) else "—"
+        agency  = str(row.get("agency_name") or "")
+        date_raw = str(row.get("contract_date") or "")
+        date_str = (
+            f"{date_raw[:4]}/{date_raw[4:6]}/{date_raw[6:]}"
+            if len(date_raw) == 8 else date_raw
+        )
+        eq_name = str(row.get("equipment_name") or "")
+        ref_url = str(row.get("ref_url") or "")
+
+        if eq_name and ref_url:
+            eq_cell = (
+                f'<a href="{ref_url}" target="_blank" style="color:#7c83fd">'
+                f'📖 {eq_name[:18]}</a>'
+            )
+        elif ref_url:
+            eq_cell = f'<a href="{ref_url}" target="_blank" style="color:#7c83fd">📖</a>'
+        elif eq_name:
+            eq_cell = eq_name[:20]
+        else:
+            eq_cell = "—"
+
+        pillar_ids = _get_pillar_codes(cname, pillar_map)
+        badge_html = " ".join(
+            f'<span style="background:#313244;padding:1px 6px;border-radius:4px;'
+            f'font-size:0.72rem;color:#cdd6f4">P{pid}</span>'
+            for pid in pillar_ids[:3]
+        )
+
+        cname_disp  = (cname[:50]  + "…") if len(cname)  > 50 else cname
+        vendor_disp = (vendor[:18] + "…") if len(vendor) > 18 else vendor
+        agency_disp = (agency[:16] + "…") if len(agency) > 16 else agency
+
+        rows_html.append(
+            f'<tr style="border-bottom:1px solid #313244">'
+            f'<td style="text-align:center;color:#bac2de;padding:4px 6px">{rank}</td>'
+            f'<td style="padding:4px 6px" title="{cname}">{cname_disp}</td>'
+            f'<td style="padding:4px 6px;color:#bac2de" title="{vendor}">{vendor_disp}</td>'
+            f'<td style="padding:4px 6px;text-align:right;font-weight:600">{amt}</td>'
+            f'<td style="padding:4px 6px;font-size:0.78rem;color:#bac2de" title="{agency}">{agency_disp}</td>'
+            f'<td style="padding:4px 6px;font-size:0.78rem;color:#bac2de">{date_str}</td>'
+            f'<td style="padding:4px 6px;font-size:0.78rem">{eq_cell}</td>'
+            f'<td style="padding:4px 6px">{badge_html}</td>'
+            f'</tr>'
+        )
+
+    html = (
+        '<div style="overflow-x:auto">'
+        '<table style="border-collapse:collapse;width:100%;font-size:0.82rem;color:#cdd6f4">'
+        '<thead>'
+        '<tr style="border-bottom:2px solid #45475a;color:#bac2de;background:#1e1e2e">'
+        '<th style="padding:4px 6px">#</th>'
+        '<th style="padding:4px 6px;text-align:left">契約名</th>'
+        '<th style="padding:4px 6px;text-align:left">受注企業</th>'
+        '<th style="padding:4px 6px;text-align:right">金額(億)</th>'
+        '<th style="padding:4px 6px;text-align:left">機関</th>'
+        '<th style="padding:4px 6px;text-align:left">契約日</th>'
+        '<th style="padding:4px 6px;text-align:left">装備品</th>'
+        '<th style="padding:4px 6px;text-align:left">ピラー</th>'
+        '</tr>'
+        '</thead>'
+        '<tbody>'
+        + "".join(rows_html)
+        + '</tbody></table></div>'
+    )
+    st.markdown(html, unsafe_allow_html=True)
+    st.caption(
+        "📖 リンクは装備品解説（公式・Wikipedia・防衛白書）。"
+        "ピラーはP{n}形式（防衛力強化7本柱）。"
     )
 
 
@@ -457,14 +594,32 @@ def show_vendor_drilldown(sub: pd.DataFrame, title: str) -> None:
 
 
 def main():
+    # ── ダイアログ管理: 1スクリプトラン内で1つだけ開く ──────────────────
+    # 複数ウィジェットが同時にトリガーした場合、後のセクション（最終書き込み）が優先。
+    # 実際の dialog 呼び出しは main() 末尾の dispatch ブロックで一括処理する。
+    _dlg_type: str | None = None
+    _dlg_args: dict = {}
+
+    # ── グローバルFYフィルター読み込み ────────────────────────────────────
+    _active_fys: list[int] = list(st.session_state.get("global_fy") or _ALL_FYS)
+    _is_filtered = set(_active_fys) != set(_ALL_FYS)
+
     # ════════════════════════════════════════════════════════════════════
     # ヘッダー
     # ════════════════════════════════════════════════════════════════════
     st.title("🛡️ 防衛省・自衛隊 調達情報ダッシュボード")
 
     with st.spinner("データ読み込み中..."):
-        df   = _load_contracts()
+        df_all = _load_contracts()
         budget = _load_budget()
+
+    # グローバルFYフィルタを適用（変更がある場合のみコピーして絞り込む）
+    if _is_filtered:
+        df = df_all[df_all["fiscal_year"].isin(_active_fys)].copy()
+        _fy_label = " / ".join(f"FY{y}" for y in sorted(_active_fys))
+        st.info(f"📅 年度フィルター適用中: **{_fy_label}**（サイドバーで変更できます）", icon="📅")
+    else:
+        df = df_all
 
     total_records  = len(df)
 
@@ -477,28 +632,40 @@ def main():
         cov = amt / base * 100 if base else None
         fy_stats[fy] = {"count": cnt, "amount": amt, "base": base, "coverage": cov}
 
-    fy24_count     = fy_stats[2024]["count"]
-    fy24_amount    = fy_stats[2024]["amount"]
-    fy24_cov_pct   = fy_stats[2024]["coverage"] or 0.0
+    # KPI3/4 動的ラベル・数値（グローバルフィルター連動）
+    if len(_active_fys) == 1:
+        _kpi_fy     = _active_fys[0]
+        _kpi_label  = f"FY{_kpi_fy}"
+        _kpi_amount = fy_stats[_kpi_fy]["amount"]
+        _kpi_base   = _effective_base(_kpi_fy) or 0
+        _kpi_cov    = fy_stats[_kpi_fy]["coverage"] or 0.0
+    else:
+        _kpi_label  = "選択期間"
+        _kpi_amount = sum(fy_stats[fy]["amount"] for fy in _active_fys)
+        _kpi_base   = sum((_effective_base(fy) or 0) for fy in _active_fys)
+        _kpi_cov    = _kpi_amount / _kpi_base * 100 if _kpi_base else 0.0
 
+    _period_label = (
+        f"FY{_active_fys[0]}" if len(_active_fys) == 1
+        else f"FY{min(_active_fys)}〜FY{max(_active_fys)}" if _active_fys
+        else "FY2022〜FY2025"
+    )
     st.caption(
         f"出典: 防衛省・自衛隊 各機関 公開調達情報（財計第2017号）"
-        f"　|　収録期間: FY2022〜FY2025　|　総収録: {total_records:,}件 /"
+        f"　|　収録期間: {_period_label}　|　表示: {total_records:,}件 /"
         f" {df['amount_oku'].sum():,.0f}億円"
         f"　|　最終更新: 2026-05-03"
     )
 
-
-
     # ── KPI ─────────────────────────────────────────────────────────
     k1, k2, k3, k4, k5 = st.columns(5)
-    k1.metric("総収録件数",      f"{total_records:,} 件")
-    k2.metric("総収録金額",      f"{df['amount_oku'].sum():,.0f} 億円")
-    k3.metric("FY2024 収録額",   f"{fy24_amount:,.0f} 億円")
-    k4.metric("FY2024 カバレッジ", f"{fy24_cov_pct:.1f}%",
-              delta=f"{fy24_amount:,.0f} / {_EFFECTIVE_BASE:,}億",
+    k1.metric("総収録件数",               f"{total_records:,} 件")
+    k2.metric("総収録金額",               f"{df['amount_oku'].sum():,.0f} 億円")
+    k3.metric(f"{_kpi_label} 収録額",     f"{_kpi_amount:,.0f} 億円")
+    k4.metric(f"{_kpi_label} カバレッジ", f"{_kpi_cov:.1f}%",
+              delta=f"{_kpi_amount:,.0f} / {_kpi_base:,}億",
               help="DB額 ÷ 実質契約対象母数（非契約系・不用額控除後）")
-    k5.metric("収録機関数",      f"{df['agency_id'].nunique():,} 機関")
+    k5.metric("収録機関数",               f"{df['agency_id'].nunique():,} 機関")
 
     st.divider()
 
@@ -506,9 +673,9 @@ def main():
     ch1, ch2 = st.columns([3, 2])
 
     with ch1:
-        st.subheader("📈 年度別トレンド")
+        st.subheader("📈 年度別トレンド（全年度）")
         by_fy = (
-            df.groupby("fiscal_year", as_index=False)
+            df_all.groupby("fiscal_year", as_index=False)
             .agg(件数=("id", "count"), 総額_億円=("amount_oku", "sum"))
             .sort_values("fiscal_year")
         )
@@ -536,7 +703,8 @@ def main():
         st.caption("※FY2025 は3月分が未公開につき未収録（暫定値）。")
 
     with ch2:
-        st.subheader("🏛️ 組織別（全FY）")
+        _sun_fy_label = " / ".join(f"FY{y}" for y in sorted(_active_fys)) if _is_filtered else "全FY"
+        st.subheader(f"🏛️ 組織別（{_sun_fy_label}）")
         sun_df = (
             df.assign(
                 調達区分=df["agency_id"].map(
@@ -590,115 +758,104 @@ def main():
                 filt = filt[filt["機関名"] == parts[2]]
                 title_parts.append(parts[2])
             if not filt.empty:
-                show_sunburst_drilldown(filt, " > ".join(title_parts))
+                _dlg_type = "sunburst"
+                _dlg_args = {"sub": filt, "title": " > ".join(title_parts)}
 
     st.divider()
 
-    # ── 要求元別 調達規模（FY2025）────────────────────────────────────
-    req_h1, req_h2 = st.columns([3, 1])
-    with req_h1:
-        st.subheader("🎯 要求元別 調達規模（試行錯誤中）")
-    with req_h2:
-        req_fy_opts = ["FY2025", "FY2024", "FY2023", "FY2022"]
-        sel_req_fy = st.selectbox(
-            "年度", req_fy_opts, index=0,
-            key="req_org_fy", label_visibility="collapsed",
-        )
+    # ── 要求元別 調達規模 ───────────────────────────────────────────
+    st.subheader("🎯 要求元別 調達規模（簡易分類）")
 
-    target_req_fy = int(sel_req_fy.replace("FY", ""))
-    req_df = _load_requesting_org(target_req_fy)
+    _req_fys = tuple(sorted(_active_fys))
+    req_df = _load_requesting_org(_req_fys)
     if req_df.empty:
         st.info("要求元データがありません。")
     else:
-        req_c1, req_c2 = st.columns([3, 2])
-        with req_c1:
-            req_sorted = req_df.sort_values("oku", ascending=True)
-            fig_req = px.bar(
-                req_sorted,
-                x="oku", y="org_label", orientation="h",
-                text="oku",
-                color="oku", color_continuous_scale="Blues",
-                template=PLOT_TEMPLATE, height=420,
-                labels={"org_label": "要求元", "oku": "総額（億円）"},
-                custom_data=["display_org", "cnt"],
-                hover_data={"oku": ":,.0f", "cnt": ":,", "org_label": False},
-                hover_name="org_label",
-            )
-            fig_req.update_traces(
-                texttemplate="%{text:,.0f}",
-                textposition="outside",
-                cliponaxis=False,
-            )
-            fig_req.update_layout(
-                coloraxis_showscale=False,
-                margin=dict(l=10, r=100, t=20, b=10),
-                yaxis=dict(categoryorder="total ascending"),
-                xaxis=dict(title="総額（億円）", fixedrange=True),
-                yaxis_fixedrange=True,
-            )
-            st.plotly_chart(fig_req, use_container_width=True, config={"displayModeBar": False})
+        label_to_display  = dict(zip(req_df["org_label"], req_df["display_org"]))
+        display_to_label  = dict(zip(req_df["display_org"], req_df["org_label"]))
+        cnt_by_display    = dict(zip(req_df["display_org"], req_df["cnt"]))
 
-        with req_c2:
-            fig_pie = px.pie(
-                req_df,
-                values="oku", names="org_label",
-                template=PLOT_TEMPLATE, height=420,
-                color_discrete_sequence=COLOR_SEQ,
-                hole=0.35,
-            )
-            fig_pie.update_traces(
-                texttemplate="%{label}<br>%{percent:.0%}",
-                hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
-                textposition="inside",
-            )
-            fig_pie.update_layout(
-                showlegend=False,
-                margin=dict(l=0, r=0, t=20, b=0),
-            )
-            st.plotly_chart(fig_pie, use_container_width=True, config={"displayModeBar": False})
+        # 円グラフ（全幅）
+        fig_pie = px.pie(
+            req_df,
+            values="oku", names="org_label",
+            template=PLOT_TEMPLATE, height=440,
+            color_discrete_sequence=COLOR_SEQ,
+            hole=0.35,
+        )
+        fig_pie.update_traces(
+            texttemplate="%{label}<br>%{percent:.0%}",
+            hovertemplate="%{label}<br>%{value:,.0f}億円 (%{percent:.1%})<extra></extra>",
+            textposition="inside",
+        )
+        fig_pie.update_layout(
+            showlegend=True,
+            legend=dict(orientation="v", yanchor="middle", y=0.5, x=1.02),
+            margin=dict(l=0, r=0, t=20, b=0),
+        )
+        sel_pie = st.plotly_chart(
+            fig_pie, use_container_width=True,
+            on_select="rerun", key="req_pie_chart",
+            config={"displayModeBar": False},
+        )
 
-        # ドリルダウンボタン
-        st.markdown("**要求元をクリックして契約一覧を表示:**")
-        btn_cols = st.columns(min(len(req_df), 6))
-        for i, (_, row) in enumerate(req_df.iterrows()):
-            col_idx = i % len(btn_cols)
-            with btn_cols[col_idx]:
-                if st.button(f"{row['org_label']} ({row['cnt']:,}件)", key=f"req_dd_{i}"):
-                    show_requesting_org_drilldown(target_req_fy, row["display_org"], row["org_label"])
+        # セレクトボックス（円グラフクリックの代替）
+        st.caption("下のセレクトボックスで要求元を選択するとTOP20を表示します。")
+        org_box_opts = [""] + req_df["display_org"].tolist()
+        sel_box = st.selectbox(
+            "要求元を選択（TOP20表示）",
+            org_box_opts,
+            key="req_org_box",
+            format_func=lambda x: (
+                "（選択してください）" if x == ""
+                else f"{display_to_label.get(x, x)} （{cnt_by_display.get(x, 0):,}件）"
+            ),
+        )
+
+        # ドリルダウン検出（ダイアログは main() 末尾で一括 dispatch）
+        # selectbox は一度表示した値を _req_box_acked に記録し、再トリガーを防ぐ
+        _req_box_acked = st.session_state.get("_req_box_acked", "")
+        _box_is_new = bool(sel_box) and sel_box != _req_box_acked
+        if not sel_box:
+            st.session_state["_req_box_acked"] = ""
+
+        pts_pie = sel_pie.get("selection", {}).get("points", []) if sel_pie else []
+        _last_pie_sel = st.session_state.get("_req_org_selected", "")
+        if pts_pie:
+            clicked_label   = pts_pie[0].get("label", "")
+            clicked_display = label_to_display.get(clicked_label, "")
+            if clicked_display and clicked_display != _last_pie_sel:
+                st.session_state["_req_org_selected"] = clicked_display
+                _dlg_type = "requesting_org"
+                _dlg_args = {"fys": _req_fys, "org": clicked_display, "label": clicked_label}
+        else:
+            if _last_pie_sel:
+                st.session_state["_req_org_selected"] = ""
+        if _box_is_new:
+            st.session_state["_req_box_acked"] = sel_box
+            _dlg_type = "requesting_org"
+            _dlg_args = {
+                "fys": _req_fys, "org": sel_box,
+                "label": display_to_label.get(sel_box, sel_box),
+            }
 
     total_req = int(req_df["cnt"].sum()) if not req_df.empty else 0
     total_oku = float(req_df["oku"].sum()) if not req_df.empty else 0.0
-    fy_label = f"令和{target_req_fy - 2018}年度" if target_req_fy >= 2019 else f"FY{target_req_fy}"
+    _req_fys_label = " / ".join(f"FY{y}" for y in sorted(_req_fys))
     st.caption(
-        f"FY{target_req_fy} 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
+        f"{_req_fys_label} 収録 {total_req:,}件 / {total_oku:,.0f}億円のマッピング結果。"
         f"※ 要求元の分類方法: "
         f"地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
-        f"中央調達（防衛装備庁）は{fy_label}調達予定品目表の品目名と契約名を突合して要求元を特定。"
+        f"中央調達（防衛装備庁）は調達予定品目表の品目名と契約名を突合して要求元を特定。"
         f"突合不能分は担当官室・契約月・ベンダー実績・装備品辞書から推定（confidence=0.3〜0.7）。"
     )
 
     st.divider()
 
-    # ── 受注企業 Top30（年度セレクタ + クリックでドリルダウン）─────
-    ven_h1, ven_h2 = st.columns([3, 1])
-    with ven_h1:
-        st.subheader("🏭 受注企業 Top30")
-    with ven_h2:
-        fy_options = ["全年度", "FY2025", "FY2024", "FY2023", "FY2022"]
-        sel_fy = st.selectbox(
-            "年度", fy_options,
-            index=fy_options.index("FY2024"),
-            key="vendor_top30_fy",
-            label_visibility="collapsed",
-        )
-
-    if sel_fy == "全年度":
-        df_v = df.copy()
-        scope_label = "全年度"
-    else:
-        target_fy = int(sel_fy.replace("FY", ""))
-        df_v = df[df["fiscal_year"] == target_fy].copy()
-        scope_label = sel_fy
+    # ── 受注企業 Top30 ──────────────────────────────────────────────
+    st.subheader("🏭 受注企業 Top30")
+    df_v = df
+    scope_label = " / ".join(f"FY{y}" for y in sorted(_active_fys)) if _is_filtered else "全年度"
 
     top_vendors = (
         df_v.dropna(subset=["vendor_norm"])
@@ -730,39 +887,24 @@ def main():
         )
         sel = st.plotly_chart(
             fig_vendor, use_container_width=True,
-            on_select="rerun", key=f"vendor_chart_{sel_fy}",
+            on_select="rerun", key="vendor_chart",
         )
         pts = sel.get("selection", {}).get("points", []) if sel else []
         if pts:
             vendor = pts[0].get("y") or (pts[0].get("customdata") or [None])[0]
             if vendor:
-                sub = df_v[df_v["vendor_norm"] == vendor]
-                show_vendor_drilldown(sub, f"受注企業: {vendor}（{scope_label}）")
-        vendor_caption = "バー（または企業名）をクリックすると、その企業の契約一覧をモーダル表示します。"
-        if sel_fy == "FY2025":
-            vendor_caption += " ※FY2025 は3月分が未公開につき未収録。"
-        st.caption(vendor_caption)
+                _dlg_type = "vendor"
+                _dlg_args = {
+                    "sub": df_v[df_v["vendor_norm"] == vendor],
+                    "title": f"受注企業: {vendor}（{scope_label}）",
+                }
+        st.caption("バー（または企業名）をクリックすると、その企業の契約一覧をモーダル表示します。")
 
     st.divider()
 
     # ── 大型契約 Top30（金額順）────────────────────────────────────────
-    big_h1, big_h2 = st.columns([3, 1])
-    with big_h1:
-        st.subheader("🏆 大型契約 Top30")
-    with big_h2:
-        big_fy_options = ["全年度", "FY2025", "FY2024", "FY2023", "FY2022"]
-        sel_big_fy = st.selectbox(
-            "年度", big_fy_options,
-            index=big_fy_options.index("FY2024"),
-            key="big_contracts_fy",
-            label_visibility="collapsed",
-        )
-
-    if sel_big_fy == "全年度":
-        df_big = df.copy()
-    else:
-        target_big_fy = int(sel_big_fy.replace("FY", ""))
-        df_big = df[df["fiscal_year"] == target_big_fy].copy()
+    st.subheader("🏆 大型契約 Top30")
+    df_big = df
 
     big_top = (
         df_big.dropna(subset=["contract_amount"])
@@ -788,7 +930,7 @@ def main():
     )
 
     if big_top.empty:
-        st.info(f"{sel_big_fy} の大型契約データがありません。")
+        st.info("大型契約データがありません。")
     else:
         big_top.insert(0, "順位", range(1, len(big_top) + 1))
         st.dataframe(
@@ -806,224 +948,52 @@ def main():
                 "解説":      st.column_config.LinkColumn(width="small", display_text="📖"),
             },
         )
-        big_caption = "契約金額（円）降順。NULL（単価契約等）は除外。"
-        if sel_big_fy == "FY2025":
-            big_caption += " ※FY2025 は3月分が未公開につき未収録。"
-        st.caption(big_caption)
+        st.caption("契約金額（円）降順。NULL（単価契約等）は除外。")
 
+
+    # ── ダイアログ dispatch（1ラン1つ保証） ──────────────────────────────
+    if _dlg_type == "sunburst":
+        show_sunburst_drilldown(_dlg_args["sub"], _dlg_args["title"])
+    elif _dlg_type == "requesting_org":
+        show_requesting_org_drilldown(_dlg_args["fys"], _dlg_args["org"], _dlg_args["label"])
+    elif _dlg_type == "vendor":
+        show_vendor_drilldown(_dlg_args["sub"], _dlg_args["title"])
+
+
+# ── グローバル年度フィルター（全ページ共通サイドバー）──────────────────────
+with st.sidebar:
     st.divider()
-
-    # ── FY横断カバレッジ比較 ──────────────────────────────────────────
-    st.subheader("📊 FY別 収録状況・カバレッジ比較")
-
-    fy_rows = []
-    for fy in [2022, 2023, 2024, 2025]:
-        s = fy_stats[fy]
-        budget_val = _BUDGET.get(fy)
-        base_val = s["base"]
-        cov = s["coverage"]
-        fy_rows.append({
-            "年度": f"FY{fy}",
-            "収録件数": s["count"],
-            "収録額(億円)": round(s["amount"], 0),
-            "予算(億円)": budget_val,
-            "実質母数(億円)": base_val,
-            "カバレッジ率": f"{cov:.1f}%" if cov is not None else "—",
-        })
-    fy_comp_df = pd.DataFrame(fy_rows)
-
-    cov_c1, cov_c2 = st.columns([2, 3])
-    with cov_c1:
-        st.dataframe(
-            fy_comp_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "収録件数":    st.column_config.NumberColumn(format="%d"),
-                "収録額(億円)": st.column_config.NumberColumn(format="%.0f"),
-                "予算(億円)":  st.column_config.NumberColumn(format="%d"),
-                "実質母数(億円)": st.column_config.NumberColumn(format="%d"),
-            },
-        )
-    with cov_c2:
-        # 収録額 vs 実質母数の積み上げ棒グラフ
-        cov_fig_df = pd.DataFrame({
-            "年度": [f"FY{fy}" for fy in [2022, 2023, 2024, 2025]],
-            "収録額": [fy_stats[fy]["amount"] for fy in [2022, 2023, 2024, 2025]],
-            "未収録推定": [
-                max(0, (s["base"] or 0) - fy_stats[fy]["amount"])
-                for fy, s in [(fy, fy_stats[fy]) for fy in [2022, 2023, 2024, 2025]]
-            ],
-        })
-        fig_cov = go.Figure()
-        fig_cov.add_bar(
-            x=cov_fig_df["年度"], y=cov_fig_df["収録額"],
-            name="収録額", marker_color=ACCENT_3,
-            text=cov_fig_df["収録額"].map(lambda v: f"{v:,.0f}億"),
-            textposition="inside",
-        )
-        fig_cov.add_bar(
-            x=cov_fig_df["年度"], y=cov_fig_df["未収録推定"],
-            name="未収録推定", marker_color="#45475a",
-            text=cov_fig_df["未収録推定"].map(lambda v: f"{v:,.0f}億" if v > 0 else ""),
-            textposition="inside",
-        )
-        # カバレッジ率ライン（第2軸）
-        cov_vals = [fy_stats[fy]["coverage"] for fy in [2022, 2023, 2024, 2025]]
-        fig_cov.add_scatter(
-            x=[f"FY{fy}" for fy in [2022, 2023, 2024, 2025]],
-            y=cov_vals,
-            name="カバレッジ率(%)", mode="lines+markers+text",
-            line=dict(color=ACCENT_2, width=3), marker=dict(size=10),
-            text=[f"{v:.1f}%" if v else "—" for v in cov_vals],
-            textposition="top center",
-            yaxis="y2",
-        )
-        fig_cov.update_layout(
-            template=PLOT_TEMPLATE, height=320, barmode="stack",
-            yaxis=dict(title="億円"),
-            yaxis2=dict(title="カバレッジ率(%)", overlaying="y", side="right",
-                        showgrid=False, range=[0, 120]),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-            margin=dict(l=10, r=10, t=30, b=10),
-        )
-        st.plotly_chart(fig_cov, use_container_width=True)
-    st.caption(
-        "実質母数 = 物件費（契約ベース）− 非契約系（光熱水・補助金等）− 不用額。"
-        "FY2025不用額は未公表のため0として計算。"
-        "FY2025は3月分が未公開につき未収録のため、収録額・カバレッジ率は暫定値。"
-        "出典: 防衛省予算概要各年度版。"
+    st.markdown("**📅 年度フィルター**")
+    st.multiselect(
+        "表示年度",
+        options=_ALL_FYS,
+        default=[2024],
+        format_func=lambda y: f"FY{y}",
+        key="global_fy",
+        label_visibility="collapsed",
     )
-
-    st.divider()
-
-    # ── カバレッジ分析（FY選択対応）────────────────────────────────────────
-    cov_h1, cov_h2 = st.columns([4, 1])
-    with cov_h1:
-        st.subheader("📐 カバレッジ分析")
-    with cov_h2:
-        sel_cov_fy = st.selectbox(
-            "年度", [2025, 2024, 2023, 2022], index=1,
-            format_func=lambda x: f"FY{x}",
-            key="cov_wf_fy", label_visibility="collapsed",
-        )
-
-    _sel_budget = _BUDGET.get(sel_cov_fy, 0)
-    _sel_nc     = _NON_CONTRACT.get(sel_cov_fy, 0)
-    _sel_fu     = _FUYOU.get(sel_cov_fy) or 0
-    _sel_base   = _effective_base(sel_cov_fy) or 0
-    _sel_amount = fy_stats.get(sel_cov_fy, {}).get("amount", 0.0)
-    _sel_count  = fy_stats.get(sel_cov_fy, {}).get("count", 0)
-    _sel_cov    = fy_stats.get(sel_cov_fy, {}).get("coverage") or 0.0
-
-    col_waterfall, col_gap = st.columns([3, 2])
-
-    with col_waterfall:
-        wf_labels   = ["物件費（契約ベース）", "△非契約系", "△不用額", "実質契約母数", "DB収録額"]
-        wf_measures = ["absolute", "relative", "relative", "total", "absolute"]
-        wf_values   = [_sel_budget, -_sel_nc, -_sel_fu, 0, _sel_amount]
-
-        fig_wf = go.Figure(go.Waterfall(
-            name="億円",
-            orientation="v",
-            measure=wf_measures,
-            x=wf_labels,
-            y=wf_values,
-            connector={"line": {"color": "#45475a", "width": 1}},
-            decreasing={"marker": {"color": "#f38ba8"}},
-            increasing={"marker": {"color": "#a6e3a1"}},
-            totals={"marker": {"color": "#89dceb"}},
-            texttemplate="%{y:,.0f}億",
-            textposition="outside",
-        ))
-        fig_wf.update_layout(
-            template=PLOT_TEMPLATE, height=380,
-            title=dict(text=f"FY{sel_cov_fy} カバレッジ計算", font=dict(size=13)),
-            yaxis=dict(title="億円"),
-            margin=dict(l=10, r=10, t=50, b=10),
-            showlegend=False,
-        )
-        st.plotly_chart(fig_wf, use_container_width=True)
-        if sel_cov_fy == 2025:
-            st.caption("※FY2025 は3月分が未公開につき未収録のため、DB収録額・カバレッジ率は暫定値。")
-
-    with col_gap:
-        st.markdown("**差し引き一覧**")
-        cov_detail = [
-            ("物件費（契約ベース）", f"{_sel_budget:,}億", TEXT_COLOR),
-            ("△ 非契約系",          f"▲{_sel_nc:,}億", "#f38ba8"),
-        ]
-        if sel_cov_fy == 2024:
-            cov_detail += [
-                ("　光熱水料等（電力・水道）", "　~1,624億", TEXT_DIM),
-                ("　基地対策等（HNS・交付金）","　~3,300億", TEXT_DIM),
-                ("　借料（施設用地地代・漁業補償）", "　~1,345億", TEXT_DIM),
-                ("　教育訓練費",               "　  ~390億", TEXT_DIM),
-                ("　医療費等",                 "　  ~320億", TEXT_DIM),
-                ("　補助金①装備移転等",        "　  ~400億", TEXT_DIM),
-                ("　補助金②サイバー防衛",      "　   ~71億", TEXT_DIM),
-                ("　補助金③GIGO",             "　   ~42億", TEXT_DIM),
-            ]
-        elif sel_cov_fy == 2023:
-            cov_detail += [
-                ("　HNS（在日米軍駐留経費）",      "　~2,000億", TEXT_DIM),
-                ("　光熱水料等（営舎費中）",        "　~1,600億", TEXT_DIM),
-                ("　基地借料・漁業補償",            "　~1,500億", TEXT_DIM),
-                ("　補助金①装備移転（P.37）",      "　  ~400億", TEXT_DIM),
-                ("　補助金②基地周辺対策等",        "　~1,100億", TEXT_DIM),
-                ("　教育訓練費・医療費等",          "　  ~700億", TEXT_DIM),
-            ]
-        _fu_disp = f"▲{_sel_fu:,}億" if _sel_fu else "—（未公表）"
-        cov_detail += [
-            ("△ 不用額（未執行残）", _fu_disp, "#f38ba8"),
-            ("＝ 実質契約対象母数", f"≈{_sel_base:,}億", "#89dceb"),
-            (f"DB収録額（FY{sel_cov_fy}）", f"{_sel_amount:,.0f}億", "#a6e3a1"),
-            ("カバレッジ率", f"{_sel_cov:.1f}%", "#a6e3a1"),
-        ]
-        for label, val, color in cov_detail:
-            is_header = label.startswith("＝") or label.startswith("DB") or label.startswith("カバレッジ") or label.startswith("物件費")
-            border_top = "border-top: 2px solid #45475a;" if is_header else ""
-            st.markdown(
-                f'<div style="display:flex; justify-content:space-between; '
-                f'padding:2px 4px; {border_top}">'
-                f'<span style="color:{color}; font-size:0.83rem">{label}</span>'
-                f'<span style="color:{color}; font-size:0.83rem; font-weight:600">{val}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-        st.caption("出典: structural_db_exclusions.md")
-
-    _budget_src = {
-        2022: "令和4年度予算概要 P.62",
-        2023: "会計検査院 令和5年度決算検査報告",
-        2024: "令和6年度予算概要 yosan_20240328.pdf P.58",
-        2025: "令和7年度予算概要 yosan_20250402.pdf P.66",
-    }
-    with st.expander("📚 出典・参考資料"):
-        _fu_src = (
-            "R6年度決算 官房長官会見（朝日新聞/日刊ゲンダイ 2025-11-18〜20）" if sel_cov_fy == 2024
-            else "会計検査院R5決算検査報告（計画対象経費の不用額1,294億円）" if sel_cov_fy == 2023
-            else "概算値"
-        )
-        _nc_src = "行政事業レビューDB330事業突合 + 費目別vendor検証" if sel_cov_fy == 2024 else "FY2024実績から予算規模比例推定"
-        st.markdown(f"""
-- **物件費（契約ベース）{_sel_budget:,}億**: {_budget_src.get(sel_cov_fy, "")}
-- **不用額{_sel_fu:,}億**: {_fu_src}
-- **非契約系{_sel_nc:,}億**: {_nc_src}
-- **DB収録額（FY{sel_cov_fy}）**: `data/db/procurement.db` より動的取得（{_sel_amount:,.0f}億 / {_sel_count:,}件）
-- 詳細: `data/manual/coverage_budget_breakdown.md`
-        """)
+    _gfy_state = st.session_state.get("global_fy", _ALL_FYS)
+    if not _gfy_state or set(_gfy_state) == set(_ALL_FYS):
+        st.caption("全年度（フィルタなし）")
+    else:
+        st.caption(f"選択中: {' / '.join(f'FY{y}' for y in sorted(_gfy_state))}")
 
 pg = st.navigation(
     {
         "": [
             st.Page(main, title="トップページ", icon="🏠", default=True),
-            st.Page("pages/1_url_matrix.py", title="URLマトリクス", icon="📊"),
             st.Page("pages/4_search.py", title="検索", icon="🔎"),
+        ],
+        "分析": [
+            st.Page("pages/96_low_price_bid.py", title="低価格入札分析", icon="⚠️"),
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
             st.Page("pages/5_requesting_org_methodology.py", title="要求元判定ロジック", icon="🔬"),
+            st.Page("pages/6_pillar_breakdown.py", title="7本柱ブレークダウン", icon="🏛️"),
+            st.Page("pages/97_equipment_glossary.py", title="装備品解説図鑑", icon="🔭"),
+            st.Page("pages/98_coverage.py", title="収録状況・カバレッジ", icon="📊"),
+            st.Page("pages/99_url_matrix.py", title="URLマトリクス", icon="🗂️"),
         ],
     }
 )
