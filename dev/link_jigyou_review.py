@@ -76,6 +76,15 @@ MANUAL_MAP = {
     # 追加
     "asdf_f2ab":    "Ｆ－２能力向上改修",
     "gsdf_uh2":     "多用途ヘリコプターの取得",
+    # Phase 3 続き
+    "msdf_12torpedo":       "１２式魚雷（魚雷防御機能等付与型）の開発",
+    "msdf_lrasm":           "島嶼防衛用新対艦誘導弾の研究",
+    "gsdf_cat_tank":        "甲類（戦車）",
+    "gsdf_cat_arty":        "甲類（火砲）",
+    "gsdf_cat_armored":     "次期装輪装甲車（人員輸送型）の取得",
+    "joint_ccs":            "中央指揮システムの個別維持（中央システム）",
+    "msdf_maccs":           "海上航空作戦指揮統制システムの整備",
+    "gsdf_cat_ssm_regiment":"１２式地対艦誘導弾能力向上型（地発型・艦発型・空発型）の開発",
 }
 
 # JADGE は2行に結合されているので別処理
