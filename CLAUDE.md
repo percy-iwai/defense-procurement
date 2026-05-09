@@ -348,6 +348,263 @@ python dev/recompute_atla_requesting_org.py --workers 14
 
 ---
 
+## Phase 8: 政策評価書 fallback 解決（2026-05-09）
+
+総務省「政策評価ポータル」掲載の防衛省 政策評価書（事前・事後評価, H27以降）を収集し、
+`kenkyuu_hyouka` テーブルに格納。ATLA 中央調達 fallback_atla 契約への追加適用を試みた。
+
+### 収集結果（Phase 1: pipeline/load_kenkyuu_hyouka.py）
+
+- **ポータルエントリ数**: 480件（FY2015–FY2025）
+- **kenkyuu_hyouka テーブル挿入**: 432件（48件重複スキップ）→ **現在349件**（btreeページ損失により83件喪失、再収集要）
+- **PDF取得失敗**: 0件
+- **担当部局抽出失敗**: 0件
+- **org_key マッピング**: ATLA 394件 / MSDF 17件 / GSDF 10件 / ASDF 8件 / NAIKYOKU 3件
+
+FY別: FY2015:6 / FY2016:8 / FY2017:13 / FY2018:9 / FY2019:9 / FY2020:8 / FY2021:8 /
+FY2022:14 / FY2023:17 / FY2024:17 / FY2025:371
+
+#### BUREAU_TO_ORG 拡充（事業監理官サブユニット）
+
+括弧内サブユニット「(艦船担当)」等を優先マッチする括弧内先行検査ロジックを追加。
+サブユニットは本文の「プロジェクト管理部」（ATLA、9文字）よりキーワードが短いため
+longest-first だけでは解決できず、括弧内を先にチェックする実装に変更。
+
+| サブユニット | org | 件数 | 根拠 |
+|---|---|---|---|
+| 艦船担当 | MSDF | 17 | 潜水艦/UUV/機雷/魚雷/ソーナー 全件MSDF |
+| 航空機担当 | ASDF | 8 | 次期戦闘機/スタンドオフ電子戦機 全件ASDF |
+| 情報・武器・車両担当 | GSDF | 10 | 92式信管/NBC偵察車/水陸両用 |
+| 経理装備局 | ATLA | (前身組織) | |
+| 防衛局 | NAIKYOKU | | |
+| 管理局 | ATLA | (旧防衛庁) | |
+
+除外（混在のため ATLA のまま）: 艦船武器課・航空機課・誘導武器・統合装備担当
+
+### 突合結果（Phase 2: dev/match_kenkyuu_hyouka_fallback.py）
+
+- **対象 fallback_atla 件数**: 1,771件
+- **解決件数**: **15件** (MSDF 8 / ASDF 7)
+- **残存 fallback_atla**: 1,756件
+- **解決金額**: 約40億円
+- **手法**: kw_match のみ（ネットワーク→MSDF、スタンド→ASDF）
+- **信頼度**: 0.70
+
+### 設計上の教訓
+
+- tantou_org を DB から直接使用するよう変更（`_infer_org_from_project` は事業名推定のため ATLA R&D事業に対し non-ATLA を返せない）
+- 括弧内サブユニット優先ロジックが `map_bureau_to_org()` に必要（longest-first だと「プロジェクト管理部」が「艦船担当」に勝つ）
+- 解決数 15件は計画目標（250件+）を大きく下回る。理由: fallback_atla の大半は燃料・消耗品・汎用機器で、政策評価書の R&D 事業名との共通キーワードが極めて少ない
+
+### 実行コマンド
+
+```bash
+python -m pipeline.load_kenkyuu_hyouka --dry-run --limit 5  # 動作確認
+python -m pipeline.load_kenkyuu_hyouka                       # 全件収集
+python dev/match_kenkyuu_hyouka_fallback.py --dry-run        # 突合確認
+python dev/match_kenkyuu_hyouka_fallback.py                  # 本番実行
+```
+
+ログ: `logs/load_kenkyuu_hyouka_<ts>.json` / `logs/match_kenkyuu_hyouka_<ts>.json`
+
+---
+
+## Phase 9: fallback_atla 50億円以上 大型案件の解決（2026-05-09）
+
+Phase 8 後の `fallback_atla` 1,756件のうち、**金額50億円以上の大型案件 17件
+（合計 2,037億円）** に対し、追加調査で解決を試みた。
+
+小額（燃料・消耗品等）は対象外。「金額が大きく単価あたりの分類影響度が
+高いもの」のみ手当する方針。
+
+### 手法
+
+1. **bigram Jaccard fuzzy（閾値 J≥0.20）**
+   `dev/null/fuzzy_low_threshold_50oku.py` で choutatsuyotei 49,075件と
+   character-bigram Jaccard 類似度を計算。既存 `_match_chy_fuzzy`（substring）
+   よりさらに緩い閾値で候補抽出。
+2. **mod.go.jp / Web 検索による確証取得**
+   検索＋選別 PDF 確認で、装備品の運用部隊（要求元）を確定。
+
+### 適用結果（17件中 12件解決、5件 fallback 維持）
+
+`dev/apply_fallback_50oku.py` で適用。新 match_source: `fuzzy_lowthreshold` /
+`mod_search`。
+
+| match_source | 件数 | 内訳 |
+|---|---:|---|
+| fuzzy_lowthreshold | 7 | ATLA→ATLA×5 / ATLA→JS×1 / ATLA→ASDF×1 |
+| mod_search | 5 | ATLA→ASDF×5（PW4062×3, ACI, J/ASN-12 EGI） |
+| **合計** | **12** | |
+
+| 区分 | 解決件数 | 金額（億） |
+|---|---:|---:|
+| ATLA → ASDF | 6 | 511 |
+| ATLA → JS | 1 | 304 |
+| ATLA → ATLA（match_source強化のみ）| 5 | 967 |
+| **合計** | **12** | **1,782** |
+
+### 解決の根拠（mod_search 5件）
+
+| #ID | 契約名 | 旧 | 新 | 根拠 |
+|---|---|---|---|---|
+| 23133/17889/17885 | PW4062推進システム | ATLA | ASDF | mod.go.jp/asdf/equipment/kc-46a.html — KC-46A空中給油機 = 航空自衛隊 |
+| 10063 | ACIマルチレベルセキュリティ | ATLA | ASDF | NJSS入札要件「空自クラウドの機能・構成等」 |
+| 17120 | GPS/INS統合航法装置 J/ASN-12 | ATLA | ASDF | choutatsuyotei chy#38912 FY2024 ASDF「F-15能力向上用EGI」と同シリーズ |
+
+### Fallback 維持（5件、合計 361億円）— 正当な ATLA 内研究開発
+
+| #ID | 契約名 | 業者 | 理由 |
+|---|---|---|---|
+| 8736 | アッパーステージ能力向上に関する研究 | スペースワン | ATLAスタートアップR&D、軍種要求元なし |
+| 5438 | 即応型マルチミッション実証衛星の製造・試験 | 川崎重工 | 防衛省全体R&D、SDA技術実証 |
+| 16182 | 機動対応宇宙システム実証機の試作 | アストロスケール | SDA研究、単一軍種要求元なし |
+| 8620 | 宇宙領域...共通キー技術の先行実証に向けた衛星の試作 | QPS研究所 | NAIKYOKU候補は J=0.33 で弱、適用見送り |
+| 17605 | 製造工程効率化に係る特定取組 | 三菱重工 | ATLA「特定取組」費用低減プログラム |
+
+### バックアップ・ログ
+
+- バックアップ: `data/db/backup/procurement_pre_fallback50_20260509_080352.db`
+- 適用ログ: `logs/apply_fallback50_20260509_080352.json`
+- 候補ダンプ: `dev/null/fuzzy_low_threshold_50oku.json`
+
+### 全体集計（Phase 9 完了後）
+
+| match_source | 件数 |
+|---|---:|
+| choutatsuyotei_exact | 14,278 |
+| agency_subrule | 5,123 |
+| choutatsuyotei_fuzzy | 4,888 |
+| collision_majority | 2,830 |
+| **fallback_atla** | **1,752** |
+| equipment_master_branch | 677 |
+| collision_month | 589 |
+| fms_vendor_heuristic | 378 |
+| ref_url_inference | 53 |
+| name_keyword | 39 |
+| jigyou_review | 21 |
+| kenkyuu_hyouka | 15 |
+| manual_analysis | 12 |
+| **fuzzy_lowthreshold** | **7** |
+| **mod_research** | **4** |
+| **mod_search** | **4** |
+
+要求元別: GSDF 8,170 / ATLA 8,075 / MSDF 7,893 / ASDF 4,666 / NDMC 716 /
+NDA 576 / JS 259 / NAIKYOKU 129 / DIH 119 / RDB 7 / KANSATSU 4 / NIDS 2
+
+> **注**: Phase 9 完了後の実際の fallback_atla DB件数は 1,752件（Phase 9 集計表の 1,744 は中間推計）。
+
+### 実行コマンド
+
+```bash
+python dev/null/fuzzy_low_threshold_50oku.py             # 候補抽出
+python dev/apply_fallback_50oku.py --dry-run             # 適用シミュレーション
+python dev/apply_fallback_50oku.py                       # 本番適用（/tmp 経由）
+```
+
+---
+
+## Phase 10: 7本柱DB構築・defense_pillar.db分離（2026-05-09）
+
+防衛力整備計画の7本柱マスター・事業マッピング・マッピング根拠を専用DBに分離。
+
+### defense_pillar.db（新規作成）
+
+| テーブル | 件数 | 内容 |
+|---------|-----:|------|
+| defense_pillar_master | 18件 | 防衛力整備7本柱マスター |
+| defense_pillar_jigyou | 830件 | 7本柱×事業マッピング（Phase 11でP4/P7サブ分類済み） |
+| pillar_mapping_sources | 2,548件 | マッピング根拠ソース（Phase 11でbukai+5、hakusho+6） |
+
+- `procurement.db` から `defense_pillar_jigyou` / `pillar_mapping_sources` テーブルを削除済み
+- `kenkyuu_hyouka` テーブル: btreeページ損失により432件→**349件**（再収集で回復予定）
+
+### DB接続
+
+- `dashboard/_db.py` 新設：`connect_with_pillar()` ヘルパー（`ATTACH DATABASE 'data/db/defense_pillar.db' AS pillar` で接続）
+- ダッシュボード `pages/6_pillar_breakdown.py` 追加（7本柱別調達内訳）
+
+### fallback_atla 推移まとめ（全Phase）
+
+| Phase | 処理 | fallback_atla |
+|-------|------|-------------:|
+| Phase 7前 | — | 4,692 |
+| Phase 7（choutatsuyotei FY2015-2026拡充） | choutatsuyotei_exact +3,591 | **1,792** |
+| Phase 7→8間（jigyou_review 21件） | jigyou_review | 1,771 |
+| Phase 8（kenkyuu_hyouka 突合） | kenkyuu_hyouka 15件 | 1,756 |
+| Phase 9（50億超大型案件手動解決） | mod_search 4件 + mod_research 4件 + fuzzy_lowthreshold 7件 | **1,752** |
+
+---
+
+## Phase 11: P4/P7 中項目分類 & pillar_mapping_sources 追加収集（2026-05-09）
+
+### P4/P7 サブピラー分類（dev/reclassify_p4_p7.py）
+
+`defense_pillar_jigyou` に残存していた pillar_id=4（67件）および pillar_id=7（12件）を
+中項目サブピラーに再分類。合計72件を `dev/reclassify_p4_p7.py` で処理。
+
+**pillar_id=4（領域横断作戦能力）→ 3サブピラー:**
+
+| sub-pillar | id | 件数（分類後） |
+|---|---|---:|
+| 宇宙領域把握 | P41 | 33 |
+| サイバー | P42 | 46 |
+| 電磁波 | P43 | 98 |
+| 親（未分類残存） | P4 | 6 |
+
+**pillar_id=7（持続性・強靱性）→ 3サブピラー:**
+
+| sub-pillar | id | 件数（分類後） |
+|---|---|---:|
+| 弾薬・誘導弾の確保 | P71 | 21 |
+| 装備品等の可動率向上 | P72 | 19 |
+| 施設強靱化・後方 | P73 | 16 |
+| 親（未分類残存） | P7 | 1 |
+
+分類ロジック: contract_name/jigyou_name の正規表現マッチング（宇宙→P41, サイバー→P42,
+電磁波/EW→P43 / 弾薬→P71, 可動率/整備→P72, 強靱化/後方→P73）
+
+### pillar_mapping_sources 追加収集
+
+**A: 分科会PDF（bukai）**
+
+- 37ローカルPDF（siryo07_02.pdf, siryo07_03.pdf 新規DL含む）を再スキャン
+- 新規5件追加（合計 107 → **112件**）
+
+**B: 防衛白書HTML（hakusho）**
+
+- URL: `https://www.clearing.mod.go.jp/hakusho_data/{year}/html/n240103000.html`
+  - FY2023のみ 200 OK（「3 自衛隊の能力などに関する主要事業」ページ）
+  - FY2022/2024/2025 → 404（年ごとにURL体系が異なる）
+- FY2024白書: 9桁ページ番号体系（`n100000000.html` 形式、年プレフィックスなし）で全100ページ
+  - 主要事業の構造化リストは図表GIF画像のため本文テキスト抽出不可
+- 収集方法: Pass 1（○●箇条書き） + **Pass 2（ナレーティブ本文の正規表現キーワード抽出）**
+  - `_NARRATIVE_KEYWORDS` / `_SECTION_HEADS` 定数を追加
+  - confidence=0.75, notes="hakusho_narrative" で保存
+- 新規6件追加（FY2023）: 目標観測弾, 新型レーダー（LTAMDS）, 指向性エネルギー兵器（小型UAV対処）,
+  揚陸支援システム（研究）, 輸送車両（コンテナトレーラー）, 荷役器材（大型クレーン・フォークリフト等）
+- 合計 267 → **273件**
+
+**pillar_mapping_sources 最終集計（Phase 11後）:**
+
+| source_type | 件数 |
+|---|---:|
+| bukai | 112 |
+| hakusho | 273 |
+| hyouka | 28 |
+| jigyou_review | 1,305 |
+| yosan | 830 |
+| **合計** | **2,548** |
+
+### 新規スクリプト
+
+| ファイル | 内容 |
+|---|---|
+| `dev/reclassify_p4_p7.py` | P4/P7 サブピラー再分類（一回限り実行済み） |
+| `dev/load_pillar_sources.py` | bukai PDF + hakusho HTML収集（Pass2追加） |
+
+---
+
 ## アーキテクチャ
 
 ```
@@ -358,47 +615,140 @@ collectors/
 parsers/
   excel_parser.py     # parse_excel_bytes(), iter_records()
   pdf_table.py        # parse_pdf_records(), _to_date_str(), _to_amount()（text_nospace修正済）
-  ocr_parser.py       # parse_ocr_records()（easyocr、三沢等画像PDF用）★NEW
+  ocr_parser.py       # parse_ocr_records()（easyocr、三沢等画像PDF用）
 
 pipeline/
   asdf_config.py      # ASDF 29機関 + gifu WARP設定
   load_asdf.py        # ASDF収集
-  load_misawa_ocr.py  # 三沢基地FY2024 OCR収集 ★NEW
+  load_misawa_ocr.py  # 三沢基地FY2024 OCR収集
   gsdf_config.py      # GSDF 25機関（aasch, akeno, nadep等追加済）
   load_gsdf.py        # GSDF収集
-  load_atla_sub.py    # 防衛装備庁サブ機関（長官官房・研究所等）★NEW
-  load_misc.py        # 内局・統幕・防衛医科大・防衛研究所・防衛大学校 ★NEW
+  load_atla_sub.py    # 防衛装備庁サブ機関（長官官房・研究所等）
+  load_misc.py        # 内局・統幕・防衛医科大・防衛研究所・防衛大学校
+  load_kenkyuu_hyouka.py  # 政策評価書収集（Phase 8）★NEW
   msdf_config.py      # MSDF（一部機関にWARP URL追加）
   load_msdf.py        # MSDF収集（PDF処理機能追加）
   [atla|rdb]_config.py, load_*.py  # 防衛装備庁・地方防衛局
+
+dev/
+  recompute_atla_requesting_org.py   # ATLA要求元再計算（Phase 7）
+  match_kenkyuu_hyouka_fallback.py   # 政策評価書×fallback突合（Phase 8）★NEW
+  apply_fallback_50oku.py            # 50億超大型案件手動適用（Phase 9）★NEW
+  reclassify_p4_p7.py               # P4/P7サブピラー再分類（Phase 11、実行済）★NEW
+  load_pillar_sources.py            # bukai PDF + hakusho HTML収集（Phase 11更新）★NEW
+  null/
+    fuzzy_low_threshold_50oku.py     # bigram Jaccard候補抽出（Phase 9補助）
 
 db/
   init_db.py          # SQLiteスキーマ初期化
 
 dashboard/
-  app.py              # Streamlit可視化（多タブ版）★更新
+  app.py              # Streamlit可視化（多タブ版）
+  _db.py              # DB接続ヘルパー（connect_with_pillar()）★NEW
   pages/
-    coverage.py       # カバレッジ分析 ★NEW
-    jigyou_review.py  # 行政事業レビュー ★NEW
-    source_urls.py    # ソースURL一覧 ★NEW
-    url_matrix.py     # URLマトリクス ★NEW
+    coverage.py       # カバレッジ分析
+    jigyou_review.py  # 行政事業レビュー
+    source_urls.py    # ソースURL一覧
+    url_matrix.py     # URLマトリクス
+    5_requesting_org_methodology.py  # 要求元判定ロジック（Phase 7）
+    6_pillar_breakdown.py  # 7本柱別調達内訳（Phase 10）★NEW
 
 data/
   db/
-    procurement.db    # 主DB（≥120,631件、Phase 6まで）
-    url_matrix.db     # URLマトリクス（4,272行）★NEW
-    jigyou_review.db  # 行政事業レビューDB ★NEW
+    procurement.db    # 主DB（≥120,631件）
+    defense_pillar.db # 7本柱DB（master 18件、jigyou 830件、sources 2,548件）★NEW
+    url_matrix.db     # URLマトリクス（4,272行）
+    jigyou_review.db  # 行政事業レビューDB
   manual/
-    url_matrix_FY2024_UPDATED5.xlsx  # URLマトリクス Excel ★NEW
-    coverage_budget_breakdown.md     # カバレッジ分析 ★NEW
-    defense_procurement_patterns.md  # 収集パターン辞書 ★NEW
+    url_matrix_FY2024_UPDATED5.xlsx  # URLマトリクス Excel
+    coverage_budget_breakdown.md     # カバレッジ分析
+    defense_procurement_patterns.md  # 収集パターン辞書
 ```
 
-## 積み残し（2026-05-05現在）
+## Phase 12: defense_pillar.db 整備計画概要取込（2026-05-09）
+
+### 防衛力整備計画の概要 (plan_outline.pdf) 取込
+
+| 項目 | 内容 |
+|------|------|
+| ソース | `https://www.mod.go.jp/j/policy/agenda/guideline/plan/pdf/plan_outline.pdf` |
+| source_type | `seibi_keikaku_gaiyou` |
+| 抽出件数 | 101件 |
+| 挿入件数 | 101件 |
+| キャッシュ | `data/raw/seibi_keikaku/plan_outline.pdf` |
+| スクリプト | `dev/load_seibi_keikaku_gaiyou.py` |
+| DBカラム追加 | `pillar_mapping_sources.amount_hyoku_yen REAL` |
+| 金額単位 | 兆円 → 億円 変換（×10000）、5年間計（FY2023-2027）totals |
+| fiscal_year | NULL（5カ年計画総額のため年度未分離） |
+
+### 柱別内訳
+
+| pillar_id | L2 | 件数 | 金額合計（億円） |
+|-----------|-----|-----:|----------------:|
+| P1 スタンド・オフ | — | 12 | 39,200 |
+| P2 統合防空 | — | 8 | 19,200 |
+| P3 無人アセット | — | 5 | 3,900 |
+| P4 領域横断 | — (電磁波) | 7 | 11,200 |
+| P4 領域横断 | 宇宙 (41) | 8 | 8,000 |
+| P4 領域横断 | サイバー (42) | 4 | 7,300 |
+| P4 領域横断 | 車両・艦船・航空機等 (43) | 11 | 32,800 |
+| P5 指揮統制 | — | 8 | 6,500 |
+| P6 機動展開 | — | 8 | 15,700 |
+| P7 持続性 | 弾薬・誘導弾 (71) | 9 | 12,100 |
+| P7 持続性 | 装備品維持整備費 (72) | 1 | — |
+| P8 防衛生産 | 防衛生産基盤 (81) | 5 | 2,100 |
+| P8 防衛生産 | 研究開発 (82) | 14 | 20,300 |
+| P8 防衛生産 | 教育訓練費等 (84) | 1 | — |
+| **合計** | | **101** | |
+
+**実行コマンド（再収集用）:**
+```bash
+python dev/load_seibi_keikaku_gaiyou.py --dry-run  # 確認
+python dev/load_seibi_keikaku_gaiyou.py             # 本番
+```
+
+---
+
+## 積み残し（2026-05-09現在）
+
+**完了（2026-05-09）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13: 16,189件/52,285億円を分類済み）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14: 6,709件追加分類・unclassified 25,364→18,655件）**
+
+### Phase 14: セマンティック埋め込みマッチング（2026-05-09）
+
+`dev/assign_pillar_semantic.py` を新規作成。`intfloat/multilingual-e5-large`（RTX 5060 Ti / CUDA 12.9）で
+FY2023 未分類25,364件に対してコサイン類似度マッチングを実施。
+
+| 閾値 | 割り当て件数 | 未分類残存 |
+|------|------------|----------|
+| 0.75（dry-run）| 23,765件(93.7%) | 1,599件 | ← 誤分類多数
+| **0.80（本番）** | **6,709件(26.5%)** | **18,655件** | ← 採用
+
+**閾値0.80での柱別割り当て:**
+P43（電磁波・艦船）1,115件 / P72（維持整備）1,409件 / P84（燃料）1,065件 /
+P73（施設）525件 / P83（基地対策）575件 / P82（研究開発）337件 /
+P71（弾薬）764件 / P5（指揮統制）241件 / P6（機動展開）203件 /
+P1（スタンドオフ）170件 / P3（無人アセット）121件 / P81（防衛生産）84件 /
+P41（宇宙）45件 / P2（統合防空）50件 / P42（サイバー）5件
+
+**既知の残存ノイズ（0.80閾値でも）:**
+- P43にNDMC医療器材（超音波診断装置・電気手術装置等）が混入
+- P82にNDMC研究分析装置が混入
+- サニティチェック: keyword_rule 500件中485件一致（97.0%）
+
+**実行コマンド:**
+```bash
+python dev/assign_pillar_semantic.py --dry-run            # 確認
+python dev/assign_pillar_semantic.py --threshold 0.80     # 本番（0.80推奨）
+python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類注意）
+```
 
 | 優先度 | タスク | 理由 |
 |--------|--------|------|
+| 高 | FY2024・FY2025への7本柱コード展開 | `TARGET_FY` 変更するだけで `dev/assign_pillar_fy2023.py` + `assign_pillar_semantic.py` 再利用可 |
+| 高 | FY2023 残存unclassified 18,655件の精度向上 | NDMCを除外フィルター追加・P43 passage改善検討 |
 | 高 | FY2025 3月（202603）定期収集 | 各機関が4-5月に順次公表中 |
+| 中 | `kenkyuu_hyouka` 再収集（349→432件） | btreeページ損失で83件喪失、`python -m pipeline.load_kenkyuu_hyouka` で回復可 |
+| 中 | P4/P7 親残存（P4=6件、P7=1件）の手動分類 | 正規表現でマッチしない7件が未分類で残存 |
 | 中 | `gsdf_hokyuu_honbu` 10,374件 | source_urlなしのため直接移行不可 |
 | 中 | `msdf_d2` 92件 | ローリングXLSがFY2021に後退、回収不可 |
 | 中 | url_matrix filled_new 85件 | 特定月PDFが未収集（atla_gifu等）|
@@ -408,6 +758,17 @@ data/
 ## 実行方法
 
 ```bash
+# Phase 13: 7本柱コード付与（contract_pillarテーブルへ）
+python dev/assign_pillar_fy2023.py --dry-run   # ドライラン確認
+python dev/assign_pillar_fy2023.py              # FY2023本番実行
+# FY2024・FY2025へ展開するには assign_pillar_fy2023.py の TARGET_FY を変更して再実行
+
+# Phase 14: セマンティック埋め込みマッチング（未分類→7本柱）
+# 依存: torch>=2.11.0+cu128, sentence-transformers>=5.4.1, intfloat/multilingual-e5-large
+python dev/assign_pillar_semantic.py --dry-run               # DB書き込みなし
+python dev/assign_pillar_semantic.py --threshold 0.80        # 推奨（0.80）
+python dev/assign_pillar_semantic.py --threshold 0.75        # 緩め（誤分類注意）
+
 # 全ASDF機関を収集してDB投入
 python -m pipeline.load_asdf
 
