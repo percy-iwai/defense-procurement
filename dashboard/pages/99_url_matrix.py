@@ -23,7 +23,7 @@ require_password()
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 URL_DB = PROJECT_ROOT / "data" / "db" / "url_matrix.db"
-PROC_DB = PROJECT_ROOT / "data" / "db" / "procurement.db"
+from _db import PROC_DB  # noqa: E402
 
 CAT_LARGE_ORDER: dict[str, int] = {
     "内部部局": 0, "統合幕僚監部": 1, "情報本部": 2,

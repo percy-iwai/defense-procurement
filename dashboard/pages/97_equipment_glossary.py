@@ -21,7 +21,7 @@ from _auth import require_password  # noqa: E402
 require_password()
 
 # ── パス ────────────────────────────────────────────────────────────
-PROC_DB = DASHBOARD_DIR.parent / "data" / "db" / "procurement.db"
+from _db import PROC_DB  # noqa: E402
 JR_DB   = DASHBOARD_DIR.parent / "data" / "db" / "jigyou_review.db"
 
 # ── スタイル ─────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ from _auth import require_password
 require_password()
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-DB_PATH      = PROJECT_ROOT / "data" / "db" / "procurement.db"
+from _db import PROC_DB as DB_PATH  # noqa: E402
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"

@@ -26,7 +26,7 @@ require_password()
 
 PROJECT_ROOT      = DASHBOARD_DIR.parent
 PILLAR_DB_PATH    = PROJECT_ROOT / "data" / "db" / "defense_pillar.db"
-PROC_DB_PATH      = PROJECT_ROOT / "data" / "db" / "procurement.db"
+from _db import PROC_DB as PROC_DB_PATH  # noqa: E402
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"

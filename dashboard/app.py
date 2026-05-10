@@ -11,11 +11,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from _db import connect_with_pillar
+from _db import connect_with_pillar, PROC_DB as DB_PATH
 
 # ── パス ────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH      = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
 # ── カラーテーマ ─────────────────────────────────────────────────────
 PLOT_TEMPLATE = "plotly_dark"

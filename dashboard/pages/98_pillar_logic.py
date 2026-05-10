@@ -22,7 +22,7 @@ from _auth import require_password  # noqa: E402
 require_password()
 
 PROJECT_ROOT   = DASHBOARD_DIR.parent
-DB_PATH        = PROJECT_ROOT / "data" / "db" / "procurement.db"
+from _db import PROC_DB as DB_PATH  # noqa: E402
 CORRECTIONS_CSV = PROJECT_ROOT / "data" / "manual" / "pillar_corrections_pending.csv"
 
 # ── KEYWORD_RULES の読み込み ─────────────────────────────────────────────────
