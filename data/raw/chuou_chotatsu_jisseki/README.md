@@ -13,20 +13,20 @@
 
 | ファイル名 | 実績年度 | 見込年度 | 発行機関 | 掲載元 URL |
 |---|---|---|---|---|
-| h19_chotatsu_jisseki.pdf | 平成19年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h20_chotatsu_jisseki.pdf | 平成20年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h21_chotatsu_jisseki.pdf | 平成21年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h22_chotatsu_jisseki.pdf | 平成22年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h23_chotatsu_jisseki.pdf | 平成23年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h24_chotatsu_jisseki.pdf | 平成24年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h25_chotatsu_jisseki.pdf | 平成25年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h26_chotatsu_jisseki.pdf | 平成26年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
-| h29_jisseki_mikomi.pdf | **平成29年度** | 平成30年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
-| h30_jisseki_mikomi.pdf | **平成30年度** | 令和元年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
-| r01_jisseki_mikomi.pdf | **令和元年度** | 令和2年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
-| r02_jisseki_mikomi.pdf | **令和2年度** | 令和3年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
-| r03_jisseki_r04_mikomi.pdf | **令和3年度** | 令和4年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
-| r04_jisseki_r05_mikomi.pdf | **令和4年度** | 令和5年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
+| h19_chotatsu_jisseki.pdf | 平成19年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h20_chotatsu_jisseki.pdf | 平成20年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h21_chotatsu_jisseki.pdf | 平成21年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h22_chotatsu_jisseki.pdf | 平成22年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h23_chotatsu_jisseki.pdf | 平成23年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h24_chotatsu_jisseki.pdf | 平成24年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h25_chotatsu_jisseki.pdf | 平成25年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h26_chotatsu_jisseki.pdf | 平成26年度 | — | 旧・防衛省装備施設本部 | WARP未収録（調査済）※1 |
+| h29_jisseki_mikomi.pdf | **平成29年度** | 平成30年度 | 防衛装備庁 | WARP未収録（調査済）※2 |
+| h30_jisseki_mikomi.pdf | **平成30年度** | 令和元年度 | 防衛装備庁 | WARP未収録（調査済）※2 |
+| r01_jisseki_mikomi.pdf | **令和元年度** | 令和2年度 | 防衛装備庁 | `https://warp.ndl.go.jp/web/20210601000000/https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r01_jisseki_mikomi.pdf` ✅ |
+| r02_jisseki_mikomi.pdf | **令和2年度** | 令和3年度 | 防衛装備庁 | `https://warp.ndl.go.jp/web/20220601000000/https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r02_jisseki_mikomi.pdf` ✅ |
+| r03_jisseki_r04_mikomi.pdf | **令和3年度** | 令和4年度 | 防衛装備庁 | `https://warp.ndl.go.jp/web/20230601000000/https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r03_jisseki_r04_mikomi.pdf` ✅ |
+| r04_jisseki_r05_mikomi.pdf | **令和4年度** | 令和5年度 | 防衛装備庁 | `https://warp.ndl.go.jp/web/20240701000000/https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r04_jisseki_r05_mikomi.pdf` ✅ |
 | r05_chotatsu_jisseki.pdf | **令和5年度** | — | 防衛装備庁 | `https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r05_chotatsu_jisseki.pdf` ✅ |
 | r06_chotatsu_jisseki.pdf | **令和6年度** | — | 防衛装備庁 | `https://www.mod.go.jp/atla/souhon/supply/jisseki/pdf/r06_chotatsu_jisseki.pdf` ✅ |
 
@@ -83,11 +83,15 @@ r0#_chotatsu_jisseki.pdf      ... 令和#年度の実績のみ（単年、最近
 **命名規則と取得元 URL の関係:**
 本ディレクトリのファイルは DL 時のファイル名を保持している。H19〜H26 を含む全ファイルが
 `h##_chotatsu_jisseki.pdf` / `h##_jisseki_mikomi.pdf` 形式であることは、
-取得時に ATLA の `/atla/souhon/supply/jisseki/pdf/` パスが使われたことを示す（※1）。
+取得時に ATLA の `/atla/souhon/supply/jisseki/pdf/` パスが使われたことを示す。
 ATLA は H27.10 設立後、旧 DFAB 時代のファイルも同パスに置いていた時期があったと推定される。
+ただし WARP（国立国会図書館）には H26 以前の当該 PDF のアーカイブは収録されておらず、
+入手経路の詳細は不明（※1）。
 
-※1: 現行サイトでは R05/R06 以外はすべて 404。H29〜R04 については掲載歴が明確。
-H19〜H26 の ATLA パス掲載期間は不明だが、ファイル名の一致から同一パス由来と推定。
+※1: H19〜H26 は ATLA パス（`/atla/souhon/supply/jisseki/pdf/`）・旧 DFAB パス（`/dfab/supply/jisseki/pdf/`）ともに
+WARP へのアーカイブが確認できなかった（2026-05-10 調査済）。ファイル自体は当時の別経路で入手済み。
+
+※2: H29・H30 は ATLA パスで公開されていたが、WARP スナップショットは収録されていない（2026-05-10 調査済）。
 
 ---
 
