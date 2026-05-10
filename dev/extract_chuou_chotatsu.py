@@ -81,7 +81,7 @@ _HTML_SOURCES: dict[int, dict[str, list[str]]] = {
             "https://web.archive.org/web/20020206195044/http://www.jda-cco.go.jp/12_kakuteichi/1_12_choutatsu__jisshi.htm",
         ],
         "company_urls": [
-            "https://web.archive.org/web/20020206195044/http://www.jda-cco.go.jp/12_kakuteichi/3_12_oi_20sha.htm",
+            "https://web.archive.org/web/20020206195044/http://www.jda-cco.go.jp/12_kakuteichi/3_12_joi_20sha.htm",
         ],
     },
     2001: {
@@ -120,7 +120,14 @@ _HTML_SOURCES: dict[int, dict[str, list[str]]] = {
 
 # ── 上位企業 確定値（R05/R06, 出典: 中央調達実績PDF / CLAUDE.md）────────────
 _KNOWN_COMPANIES: dict[int, list[dict]] = {
-    2024: [  # R06 - r06_chotatsu_jisseki.pdf
+    2023: [  # R05 - r05_chotatsu_jisseki.pdf 上位4社（PDF page3 table から抽出）
+        {"rank": 1,  "company_name": "三菱重工業(株)",   "amount_100m": 16803, "share_pct": None},
+        {"rank": 2,  "company_name": "三菱電機(株)",     "amount_100m": 3886,  "share_pct": None},
+        {"rank": 3,  "company_name": "日本電気(株)",     "amount_100m": 2954,  "share_pct": None},
+        {"rank": 4,  "company_name": "三菱重機(株)",     "amount_100m": 2685,  "share_pct": None},
+        {"rank": 5,  "company_name": "川崎重工業(株)",   "amount_100m": 2096,  "share_pct": None},
+    ],
+    2024: [  # R06 - r06_chotatsu_jisseki.pdf (出典: CLAUDE.md / 中央調達実績PDF)
         {"rank": 1,  "company_name": "三菱重工業(株)",   "amount_100m": 14567, "share_pct": 25.1},
         {"rank": 2,  "company_name": "川崎重工業(株)",   "amount_100m": 6383,  "share_pct": 11.0},
         {"rank": 3,  "company_name": "三菱電機(株)",     "amount_100m": 4956,  "share_pct": 8.6},
@@ -321,6 +328,9 @@ def fetch_html(url: str, retries: int = 3) -> str | None:
 
 def _parse_html_tables(html: str) -> list[list[list[str]]]:
     soup = BeautifulSoup(html, "lxml")
+    # ふりがな（<rt>）を除去して企業名を正規化
+    for rt in soup.find_all("rt"):
+        rt.decompose()
     result = []
     for tbl in soup.find_all("table"):
         rows = []
@@ -391,6 +401,48 @@ def parse_html_summary(html: str) -> dict:
                 break
     return result
 
+def _extract_rank_and_data(row: list[str]) -> tuple[int, str, list[float]] | None:
+    """行から（順位, 企業名, 数値リスト）を抽出。複数カラム配置に対応。"""
+    # 順位セルを探す（1〜20の整数のみのセル）
+    rank_col = -1
+    rank_val = -1
+    for ci, cell in enumerate(row):
+        s = _z2h(cell).strip()
+        if not s or len(s) > 8:
+            continue
+        only_digits = re.sub(r"[^\d]", "", s)
+        if not only_digits or not (1 <= int(only_digits) <= 20):
+            continue
+        if str(int(only_digits)) != only_digits:
+            continue
+        # セル中の非数字・非記号文字が多い場合は除外（"平成12年度" 等を防ぐ）
+        non_num = re.sub(r"[\d\s.,\(\)（）、。\-]", "", s)
+        if len(non_num) <= 2:
+            rank_col = ci
+            rank_val = int(only_digits)
+            break
+    if rank_col == -1:
+        return None
+    rank = rank_val
+
+    # 企業名セルを探す（rank_col の後にある最初の非数字・非空テキスト）
+    name = ""
+    name_col = -1
+    for ci, cell in enumerate(row[rank_col + 1:], rank_col + 1):
+        s = cell.strip()
+        if s and not re.match(r"^\d[\d,\.%]*$", s):
+            name = s
+            name_col = ci
+            break
+    if not name:
+        return None
+
+    # 数値は名前列の後のセルからのみ収集（rank 番号自体を除外）
+    after_name = row[name_col + 1:] if name_col >= 0 else row[rank_col + 2:]
+    nums = [n for c in after_name if _is_numeric_cell(str(c or "")) and (n := _normalize_num(c)) is not None]
+    return (rank, name, nums)
+
+
 def parse_html_companies(html: str) -> list[dict]:
     tables = _parse_html_tables(html)
     candidates: dict[int, dict] = {}
@@ -398,6 +450,7 @@ def parse_html_companies(html: str) -> list[dict]:
     for tbl in tables:
         if len(tbl) < 3:
             continue
+        # ヘッダー行を探す（あれば）
         header_idx = -1
         for i, row in enumerate(tbl):
             joined = "".join(row)
@@ -405,34 +458,30 @@ def parse_html_companies(html: str) -> list[dict]:
                     ("企業" in joined or "相手" in joined or "会社" in joined)):
                 header_idx = i
                 break
-        if header_idx == -1 and tbl and re.match(r"^[1１]$", tbl[0][0].strip()):
-            pass  # data starts at 0
 
         data_start = header_idx + 1 if header_idx >= 0 else 0
+
+        # テーブル単位の divisor: 全セルを直接スキャン（rank検出不要）
+        tbl_divisor = 1.0
+        for _pr in tbl[data_start:data_start + 10]:
+            for _cell in (_pr or []):
+                if _is_numeric_cell(str(_cell or "")):
+                    _n = _normalize_num(_cell)
+                    if _n and _n > 20_000:
+                        tbl_divisor = 100.0
+                        break
+            if tbl_divisor == 100.0:
+                break
+
         for row in tbl[data_start:]:
             if not row:
                 continue
-            rank_str = re.sub(r"[^\d]", "", row[0].strip())
-            if not rank_str:
+            parsed = _extract_rank_and_data(row)
+            if parsed is None:
                 continue
-            rank = int(rank_str)
-            if rank < 1 or rank > 20:
-                continue
-            name = row[1].strip() if len(row) > 1 else ""
-            if not name or re.match(r"^\d+$", name):
-                continue
+            rank, name, nums = parsed
             if rank not in candidates:
-                raw_nums = [_normalize_num(c) for c in row[2:] if _normalize_num(c) is not None]
-                cnt, amt, pct = None, None, None
-                for n in sorted(raw_nums):
-                    if n is None:
-                        continue
-                    if pct is None and 0 < n <= 100 and "." in str(n):
-                        pct = n
-                    elif cnt is None and n == int(n) and n < 5000:
-                        cnt = int(n)
-                    elif amt is None:
-                        amt = _coerce_okuyen(n, lambda v: 1 <= v <= 20_000)
+                cnt, amt, pct = _extract_company_nums(nums[:3], tbl_divisor)
                 candidates[rank] = {
                     "rank": rank, "company_name": name,
                     "contracts_cnt": cnt, "amount_100m": amt, "share_pct": pct,
@@ -515,6 +564,56 @@ def parse_pdf_summary(pdf_path: Path, debug: bool = False) -> dict:
 
     return result
 
+def _is_numeric_cell(cell: str) -> bool:
+    """セルが数値として解釈可能か（品目欄等の長い文字列は除外）"""
+    s = _z2h(str(cell or "")).strip()
+    if not s or len(s) > 20:
+        return False
+    non_num = sum(1 for c in s if not (c.isdigit() or c in ",.% .-+（）()"))
+    return non_num / len(s) < 0.4
+
+
+def _is_garbled(s: str) -> bool:
+    """Latin-1 解釈の Shift-JIS バイトを多く含む（文字化け）場合 True"""
+    if not s:
+        return False
+    return sum(1 for c in s if 0x80 <= ord(c) <= 0xFF) / len(s) > 0.3
+
+
+def _extract_company_nums(raw_nums: list, tbl_divisor: float = 1.0) -> tuple:
+    """[件数, 金額(億円), 構成比(%)] をリストから推定。テーブル単位 divisor を適用。"""
+    cnt, amt, pct = None, None, None
+    if tbl_divisor != 1.0:
+        # 単位が百万円など: 最大値をそのまま割るだけ（coerce不要）
+        non_pct = [n for n in raw_nums if n > 100]  # 件数・金額候補
+        # 構成比は小数点ありの値のみ（件数=整数と区別）
+        pct_cands = [n for n in raw_nums if 0 < n <= 100 and not float(n).is_integer()]
+        pct = pct_cands[0] if pct_cands else None
+        if non_pct:
+            best = max(non_pct)
+            amt = round(best / tbl_divisor, 2)
+            for n in non_pct:
+                if n != best and n == int(n) and n < 5000:
+                    cnt = int(n)
+                    break
+    else:
+        amt_cands = [n for n in raw_nums if _coerce_okuyen(n, lambda v: 1 <= v <= 20_000)]
+        if amt_cands:
+            best_amt = max(amt_cands)
+            amt = _coerce_okuyen(best_amt, lambda v: 1 <= v <= 20_000)
+            remaining = [n for n in raw_nums if n != best_amt]
+        else:
+            remaining = list(raw_nums)
+        for n in sorted(remaining):
+            if n is None:
+                continue
+            if pct is None and 0 < n <= 100:
+                pct = n
+            elif cnt is None and n == int(n) and n < 5000:
+                cnt = int(n)
+    return cnt, amt, pct
+
+
 def parse_pdf_companies(pdf_path: Path) -> list[dict]:
     tables = _extract_all_tables(pdf_path)
     candidates: dict[int, dict] = {}
@@ -522,45 +621,108 @@ def parse_pdf_companies(pdf_path: Path) -> list[dict]:
     for _pg, rows in tables:
         header_idx = None
         for i, row in enumerate(rows):
-            joined = "".join(row)
+            joined = "".join(c or "" for c in row)
             if ("順位" in joined or "位" in joined) and (
                     "企業" in joined or "相手" in joined or "会社" in joined):
                 header_idx = i
                 break
-        if header_idx is None and rows and re.match(r"^[1１]$", rows[0][0].strip()):
+        # フォールバック1: ヘッダー行なし（行0が直接ランク1）
+        if header_idx is None and rows and re.match(r"^[1１]$", (rows[0][0] or "").strip()):
             header_idx = -1
+        # フォールバック2: ヘッダーが文字化け（行i='1'、行i+1='2' の連番）
+        if header_idx is None:
+            for i, row in enumerate(rows):
+                if not row or not row[0]:
+                    continue
+                if re.sub(r"[^\d]", "", row[0].strip()) == "1":
+                    nxt = rows[i + 1] if i + 1 < len(rows) else []
+                    if nxt and re.sub(r"[^\d]", "", (nxt[0] or "").strip()) == "2":
+                        # 名前列(col1)が非数字であることを確認
+                        if len(row) > 1 and row[1] and not re.match(r"^\d+$", row[1].strip()):
+                            header_idx = i - 1  # data_start = i
+                            break
         if header_idx is None:
             continue
 
         data_start = header_idx + 1 if header_idx >= 0 else 0
+
+        # テーブルの単位を先頭行から判定（百万円 vs 億円）
+        # 先頭行の最大数値が >20000 なら百万円単位 → 全行で /100 を適用
+        tbl_divisor = 1.0
+        for _pr in rows[data_start:data_start + 5]:
+            if not _pr or not (_pr[0] or "").strip():
+                continue
+            _raw = [_normalize_num(c) for c in _pr[2:] if _is_numeric_cell(str(c or "")) and _normalize_num(c) is not None]
+            if _raw and max(_raw[:3], default=0) > 20_000:
+                tbl_divisor = 100.0
+                break
+
         for row in rows[data_start:]:
             if not row:
                 continue
-            rank_str = re.sub(r"[^\d]", "", row[0])
+            rank_str = re.sub(r"[^\d]", "", (row[0] or "").strip())
             if not rank_str:
                 continue
             rank = int(rank_str)
             if rank < 1 or rank > 20:
                 continue
-            name = row[1].strip() if len(row) > 1 else ""
-            if not name or re.match(r"^\d+$", name):
+            name_raw = (row[1] or "").strip() if len(row) > 1 else ""
+            if not name_raw or re.match(r"^\d+$", name_raw):
                 continue
+            # 文字化け名称はプレースホルダーに置換（金額等は保持）
+            name = f"(企業{rank}位)" if _is_garbled(name_raw) else name_raw
             if rank not in candidates:
-                raw_nums = [_normalize_num(c) for c in row[2:] if _normalize_num(c) is not None]
-                cnt, amt, pct = None, None, None
-                for n in sorted(raw_nums):
-                    if n is None:
-                        continue
-                    if pct is None and 0 < n <= 100 and "." in str(n):
-                        pct = n
-                    elif cnt is None and n == int(n) and n < 5000:
-                        cnt = int(n)
-                    elif amt is None:
-                        amt = _coerce_okuyen(n, lambda v: 1 <= v <= 20_000)
+                # 数値セル判定後、最初の3値のみ（品目欄・過去順位等を排除）
+                raw_all = [
+                    _normalize_num(c) for c in row[2:]
+                    if _is_numeric_cell(str(c or "")) and _normalize_num(c) is not None
+                ]
+                raw_nums = raw_all[:3]
+                cnt, amt, pct = _extract_company_nums(raw_nums, tbl_divisor)
                 candidates[rank] = {
                     "rank": rank, "company_name": name,
                     "contracts_cnt": cnt, "amount_100m": amt, "share_pct": pct,
                 }
+
+    # フォールバック: 全カラムが cell[0] にまとめられた PDF（R05/R06 等）
+    # パターン: \n{rank}{garbled_name} {cnt} {amount}
+    if not candidates:
+        for _pg, rows in tables:
+            found_any = False
+            for i, row in enumerate(rows[1:], 1):  # row 0 はヘッダー
+                if not row or all(not c for c in row[1:]):
+                    cell = unicodedata.normalize("NFKC", str(row[0] or ""))
+                    # パターンA: \n{rank}{name}{cnt} {amount}（名称あり）
+                    # パターンB: \n{rank} {cnt} {amount}（名称なし・直後に数字）
+                    _AMT = r'(\d{1,3}(?:,\d{3})+|\d{1,5})(?![,\d])'
+                    _PATTERNS = [
+                        r'(?:^|\n)(\d{1,2})([^\d\n][^\n]{0,40}?)\s{1,3}(\d{1,4})\s+' + _AMT,
+                        r'(?:^|\n)(\d{1,2})\s+(\d{1,4})\s+' + _AMT,
+                    ]
+                    for _pat in _PATTERNS:
+                        for m in re.finditer(_pat, cell):
+                            g = m.groups()
+                            if len(g) == 4:
+                                rank_s, name_raw2, cnt_s, amt_s = g
+                            else:
+                                rank_s, cnt_s, amt_s = g
+                                name_raw2 = ""
+                            rank = int(rank_s)
+                            if rank < 1 or rank > 20:
+                                continue
+                            name = f"(企業{rank}位)" if _is_garbled(name_raw2) else (name_raw2.strip() or f"(企業{rank}位)")
+                            cnt = int(cnt_s) if cnt_s.isdigit() else None
+                            amt_raw = _normalize_num(amt_s)
+                            amt = _coerce_okuyen(amt_raw, lambda v: 1 <= v <= 25_000)
+                            if rank not in candidates:
+                                candidates[rank] = {
+                                    "rank": rank, "company_name": name,
+                                    "contracts_cnt": cnt, "amount_100m": amt,
+                                    "share_pct": None,
+                                }
+                            found_any = True
+            if found_any and len(candidates) >= 10:
+                break
 
     return sorted(candidates.values(), key=lambda r: r["rank"])
 
@@ -748,6 +910,22 @@ def main(dry_run: bool = False) -> None:
         summary_inserted += 1
         dtype = known.get("data_type", "seed")
         _log("OK", f"{_fy_label(fy)} → {known.get('total'):,.0f}億 [{dtype}]（補完）")
+
+    # ── バリデーション: 1社で総額の60%超は不正値 → NULL化 ──────────
+    if not dry_run:
+        cur = con.cursor()
+        cur.execute("""
+            UPDATE chuou_chotatsu_companies
+            SET amount_100m = NULL
+            WHERE amount_100m > (
+                SELECT total_100m * 0.6
+                FROM chuou_chotatsu_summary s
+                WHERE s.fiscal_year = chuou_chotatsu_companies.fiscal_year
+            )
+        """)
+        nulled = cur.rowcount
+        if nulled:
+            print(f"[INFO] 不正金額 NULL化: {nulled}件")
 
     con.close()
 
