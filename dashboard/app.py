@@ -53,6 +53,23 @@ _FUYOU = {
 
 _ALL_FYS = [2022, 2023, 2024, 2025]  # 収録FY一覧
 
+# 7本柱 ピラー別予算（契約ベース、単位：億円）
+_PILLAR_BUDGET_BY_FY: dict[int, dict[int, float]] = {
+    2023: {1:14207,2:9867,3:1827,4:16250,5:4588,6:2696,7:33687,8:21795},
+    2024: {1:7127,2:12284,3:1146,4:16401,5:4248,6:5653,7:29422,8:17336},
+    2025: {1:9390,2:5331,3:1110,4:16119,5:3852,6:4545,7:27525,8:16459},
+}
+_PILLAR_SHORT: dict[int, str] = {
+    1: "P1 スタンド・オフ",
+    2: "P2 統合防空",
+    3: "P3 無人アセット",
+    4: "P4 領域横断",
+    5: "P5 指揮統制",
+    6: "P6 機動展開",
+    7: "P7 持続性・強靱性",
+    8: "P8 防衛力の基盤",
+}
+
 _BUDGET_FY2024  = _BUDGET[2024]
 _NON_CONTRACT_FY2024 = _NON_CONTRACT[2024]
 _FUYOU_FY2024   = _FUYOU[2024]
@@ -306,6 +323,27 @@ def _load_url_months() -> pd.DataFrame:
                GROUP BY source_url, month""",
             conn,
         )
+
+
+@st.cache_data(ttl=300)
+def _load_pillar_top(fy: int) -> pd.DataFrame:
+    """FY別ピラー集計（トップページ用）。"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            return pd.read_sql_query(
+                """
+                SELECT cp.pillar_l1_code,
+                       COUNT(*) AS cnt,
+                       ROUND(SUM(c.contract_amount)/1e8, 1) AS db_oku
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                WHERE c.fiscal_year = ? AND cp.pillar_l1_code IS NOT NULL
+                GROUP BY cp.pillar_l1_code
+                """,
+                conn, params=(fy,),
+            )
+    except Exception:
+        return pd.DataFrame()
 
 
 _REQ_ORG_LABELS = {
@@ -848,6 +886,144 @@ def main():
         f"地方調達（陸自・海自・空自・防衛局等）は調達機関から自動判定（confidence=1.0）。"
         f"中央調達（防衛装備庁）は調達予定品目表の品目名と契約名を突合して要求元を特定。"
         f"突合不能分は担当官室・契約月・ベンダー実績・装備品辞書から推定（confidence=0.3〜0.7）。"
+    )
+
+    st.divider()
+
+    # ── 防衛力強化 7本柱 サマリー ─────────────────────────────────────
+    _ph1, _ph2 = st.columns([5, 1])
+    with _ph1:
+        st.subheader("🏛️ 防衛力強化 7本柱 — 調達カバレッジ")
+    with _ph2:
+        _top_pillar_fy = st.selectbox(
+            "FY",
+            options=[2025, 2024, 2023],
+            index=0,
+            format_func=lambda x: f"FY{x}",
+            key="top_pillar_fy",
+            label_visibility="collapsed",
+        )
+
+    _df_pt = _load_pillar_top(_top_pillar_fy)
+    _bgt_map_pt = _PILLAR_BUDGET_BY_FY.get(_top_pillar_fy, {})
+
+    _pillar_rows: list[dict] = []
+    for _code in range(1, 9):
+        _pr = _df_pt[_df_pt["pillar_l1_code"] == _code] if not _df_pt.empty else pd.DataFrame()
+        _db_p  = float(_pr["db_oku"].iloc[0]) if not _pr.empty else 0.0
+        _cnt_p = int(_pr["cnt"].iloc[0]) if not _pr.empty else 0
+        _bgt_p = _bgt_map_pt.get(_code)
+        _cov_p = round(_db_p / _bgt_p * 100, 1) if _bgt_p and _bgt_p > 0 else None
+        _pillar_rows.append({
+            "code": _code, "name": _PILLAR_SHORT[_code],
+            "db_oku": _db_p, "cnt": _cnt_p, "budget": _bgt_p, "cov": _cov_p,
+        })
+
+    def _cov_color(cov) -> str:
+        if cov is None or cov == 0: return "#585b70"
+        if cov >= 80:  return "#a6e3a1"
+        if cov >= 50:  return "#f9e2af"
+        return "#f38ba8"
+
+    _tot_db_p  = sum(r["db_oku"] for r in _pillar_rows)
+    _tot_bgt_p = sum(r["budget"] for r in _pillar_rows if r["budget"])
+    _tot_cnt_p = sum(r["cnt"] for r in _pillar_rows)
+    _tot_cov_p = round(_tot_db_p / _tot_bgt_p * 100, 1) if _tot_bgt_p else None
+
+    _sm1, _sm2, _sm3 = st.columns(3)
+    _sm1.metric(
+        f"FY{_top_pillar_fy} 分類済み収録金額",
+        f"{_tot_db_p:,.0f} 億円",
+        delta=f"{_tot_cnt_p:,} 件",
+    )
+    _sm2.metric(
+        "予算総額（8本柱合計）",
+        f"{_tot_bgt_p:,.0f} 億円" if _tot_bgt_p else "—",
+    )
+    _sm3.metric(
+        "全体カバレッジ",
+        f"{_tot_cov_p:.1f}%" if _tot_cov_p is not None else "—",
+        help="分類済みDB金額 ÷ 8本柱予算合計（契約ベース）",
+    )
+
+    for _row_i in range(2):
+        _card_cols = st.columns(4)
+        for _col_i in range(4):
+            _r = _pillar_rows[_row_i * 4 + _col_i]
+            _color = _cov_color(_r["cov"])
+            _cov_str = f"{_r['cov']:.0f}%" if _r["cov"] is not None else "—"
+            _card_cols[_col_i].markdown(
+                f"""<div style="background:#1e1e2e;border-radius:8px;padding:12px 14px;
+                    border-left:4px solid {_color}">
+                  <div style="font-size:0.76rem;color:#bac2de;margin-bottom:4px">{_r['name']}</div>
+                  <div style="font-size:1.25rem;font-weight:700;color:#cdd6f4">{_r['db_oku']:,.0f}
+                    <span style="font-size:0.78rem;font-weight:400;color:#bac2de">億円</span></div>
+                  <div style="font-size:0.88rem;font-weight:600;color:{_color}">{_cov_str}</div>
+                  <div style="font-size:0.70rem;color:#6c7086;margin-top:2px">
+                    予算 {f"{_r['budget']:,.0f}億" if _r['budget'] else "—"} | {_r['cnt']:,}件
+                  </div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+
+    _fig_p = go.Figure()
+    _p_ynames   = [r["name"] for r in _pillar_rows]
+    _p_db_vals  = [r["db_oku"] for r in _pillar_rows]
+    _p_bgt_vals = [r["budget"] or 0 for r in _pillar_rows]
+    _p_bar_col  = [_cov_color(r["cov"]) for r in _pillar_rows]
+    _p_cov_text = [f"{r['cov']:.0f}%" if r["cov"] is not None else "" for r in _pillar_rows]
+
+    _fig_p.add_trace(go.Bar(
+        name="DB収録金額",
+        y=_p_ynames,
+        x=_p_db_vals,
+        orientation="h",
+        marker_color=_p_bar_col,
+        text=_p_cov_text,
+        textposition="outside",
+        textfont=dict(size=11),
+        customdata=[[r["cnt"], r["budget"] or 0] for r in _pillar_rows],
+        hovertemplate=(
+            "<b>%{y}</b><br>"
+            "DB金額: %{x:,.0f}億円<br>"
+            "件数: %{customdata[0]:,}件<br>"
+            "予算額: %{customdata[1]:,.0f}億円<extra></extra>"
+        ),
+    ))
+    _fig_p.add_trace(go.Scatter(
+        name="予算額",
+        y=_p_ynames,
+        x=_p_bgt_vals,
+        mode="markers",
+        marker=dict(
+            symbol="line-ns-open", size=18, color=ACCENT_2,
+            line=dict(width=2.5, color=ACCENT_2),
+        ),
+        hovertemplate="<b>%{y}</b><br>予算額: %{x:,.0f}億円<extra></extra>",
+    ))
+    _fig_p.update_layout(
+        template=PLOT_TEMPLATE,
+        height=340,
+        margin=dict(l=10, r=90, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        xaxis=dict(title="金額（億円）", gridcolor="#45475a"),
+        yaxis=dict(
+            gridcolor="#45475a",
+            categoryorder="array",
+            categoryarray=_p_ynames[::-1],
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#cdd6f4"),
+    )
+    st.plotly_chart(_fig_p, use_container_width=True, config={"displayModeBar": False})
+    st.caption(
+        f"FY{_top_pillar_fy} 7本柱分類済み収録 {_tot_cnt_p:,}件 / {_tot_db_p:,.0f}億円。"
+        "　バー色: 🟢 ≥80% / 🟡 50–80% / 🔴 <50%。"
+        "　◇マーカー = 予算額。"
+        "　詳細は「その他（参考）」→「7本柱DBビューワー」を参照。"
     )
 
     st.divider()
