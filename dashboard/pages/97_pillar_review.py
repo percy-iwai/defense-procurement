@@ -104,6 +104,7 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
             cp.pillar_l1_code,
             cp.pillar_l2_code,
             c.contract_name,
+            c.contract_requesting_org,
             c.agency_name,
             c.agency_id,
             ROUND(c.contract_amount / 1e8, 1) AS amount_oku,
@@ -223,6 +224,7 @@ def _build_display(src: pd.DataFrame) -> pd.DataFrame:
             "L2":         src["pillar_l2_code"].apply(
                               lambda x: f"P{int(x)}" if pd.notna(x) else ""),
             "契約名":     src["contract_name"].fillna(""),
+            "要求元":     src["contract_requesting_org"].fillna(""),
             "機関":       src["agency_name"].fillna(""),
             "契約額(億)": src["amount_oku"],
             "分類方法":   src["match_method"].fillna("unclassified"),
@@ -241,6 +243,7 @@ _COL_CFG = {
     "L1":           st.column_config.TextColumn("L1",             disabled=True, width="small"),
     "L2":           st.column_config.TextColumn("L2",             disabled=True, width="small"),
     "契約名":       st.column_config.TextColumn("契約名",          disabled=True, width="large"),
+    "要求元":       st.column_config.TextColumn("要求元",          disabled=True, width="small"),
     "機関":         st.column_config.TextColumn("機関",            disabled=True, width="medium"),
     "契約額(億)":   st.column_config.NumberColumn("契約額(億)",    disabled=True, format="%.1f", width="small"),
     "分類方法":     st.column_config.TextColumn("分類方法",        disabled=True, width="small"),
