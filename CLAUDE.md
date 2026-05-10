@@ -796,68 +796,9 @@ FY2023の manual_correction 62件は上書きされない（確認済み）。
 
 ---
 
-## Phase 17: pillar_corrections処理 + 補給処ルール追加（2026-05-10）
-
-### pillar_corrections_pending.csv 処理結果（92件）
-
-| status | 件数 | 内容 |
-|--------|-----:|------|
-| processed | 83件 | manual_corrections_snapshot.json に追加・更新 |
-| pending_review | 1件 | ID=6906（協調制御ロバストネットワーク実験装置）→ P82 vs P5 要確認 |
-| skipped | 8件 | 件名なし（63845等4件）・「一式」（142190等2件）・判定不可 |
-
-**manual_corrections_snapshot.json 変更:**
-- 既存更新3件: 6912 P4→P5、8915 P4→P43、10018 P72→P43
-- 新規追加21件: 車両系（8339/8353/8832/9418/9419 等）P43、火砲系（6939/8962/9468 等）P43、研究開発系（7471/7952/9774/10034/435551）P82 等
-
-### 新規 KEYWORD_RULES 追加（7グループ）
-
-| グループ | ピラー | conf | キーワード例 |
-|---------|--------|-----:|------------|
-| 地上車両（取得） | P43 | 0.73 | トラック, 高機動車, 装軌車, ドーザ, 装甲車 |
-| 火砲・小火器（取得） | P43 | 0.72 | 機関砲, 無反動砲, 火砲, 砲座, 施線砲 |
-| デコイ・おとり装備 | P43 | 0.75 | デコイ |
-| 音響測定装置・水中音響 | P43 | 0.75 | 音響測定装置, 音響特性分析, 水中音響 |
-| UC統合通信・NW管理 | P5 | 0.75 | UCサービス, システム・ネットワーク管理 |
-| 航空爆弾（GBU/JDAM） | P71 | 0.78 | GBU-, JDAM |
-
-### org_fallback 補給処ルール（Rule 4）実装結果
-
-**データ確認（FY2023 補給処 unclassified 上位サンプル）:**
-- 大半がFMS英語部品名（HOUSING, PLATE, SCREW, MICROCIRCUIT等）→ 維持整備用スペアパーツ
-- 乗り物系（「航空機」「護衛艦」「戦闘機」等）は少数
-
-**分類ロジック:**
-- `agency_name LIKE '%補給処%'` かつ `match_method='unclassified'`
-- 乗り物系キーワード（航空機/艦船/護衛艦/潜水艦/ヘリ等）→ **P43 conf=0.60**
-- それ以外（FMSスペアパーツ等）→ **P72 conf=0.55**
-
-**FY別適用結果:**
-| FY | P43（乗り物系） | P72（部品・整備系） |
-|----|---------------:|------------------:|
-| FY2023 | 4件 | 4,086件 |
-| FY2024 | ? | ? |
-| FY2025 | 4,939件合計 | |
-
-### org_fallback Rule 2 強化（情報本部 DIH）
-
-**検出した漏れ:** ATLA調達でrequesting_org='DIH'の案件71件(110億)がP5未分類
-**修正:** `LEFT JOIN contract_requesting_org cro ON cro.contract_id=c.id` を追加し
-`c.agency_name LIKE '%情報本部%' OR cro.requesting_org='DIH'` に拡張
-
-### 3FY再実行結果
-
-| FY | keyword | org_fallback | semantic | fuzzy | manual | 未分類 |
-|----|--------:|-------------:|---------:|------:|-------:|-------:|
-| FY2023 | 16,180 | 6,785 | 3,785 | 107 | 70 | 13,586 |
-| FY2024 | 15,062 | 8,288 | 3,615 | 149 | 0 | 14,485 |
-| FY2025 | 12,944 | 4,939 | 2,607 | 83 | 0 | 11,115 |
-
----
-
 ## 積み残し（2026-05-10現在）
 
-**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**、**セマンティック埋め込み3FY展開（FY2023復元+FY2024/2025新規）計18,128件（Phase 16）**、**pillar_corrections_pending.csv 92件処理 + KEYWORD_RULES7グループ追加 + org_fallback補給処ルール・DIHルール強化 + manual_corrections 83件（Phase 17）**
+**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**、**セマンティック埋め込み3FY展開（FY2023復元+FY2024/2025新規）計18,128件（Phase 16）**、**pillar_corrections 92件処理 + KEYWORD_RULES7グループ追加（地上車両P43/火砲P43/デコイP43/音響測定P43/UC通信P5/GBU→P71）+ org_fallback補給処ルール（大半がFMSスペアパーツ→P72、乗り物系のみP43）+ DIHルール強化（requesting_org='DIH'追加）+ 3FY再実行（Phase 17）**
 
 ### Phase 14: セマンティック埋め込みマッチング（2026-05-09）
 
