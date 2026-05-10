@@ -104,7 +104,7 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
             cp.pillar_l1_code,
             cp.pillar_l2_code,
             c.contract_name,
-            c.contract_requesting_org,
+            cro.requesting_org,
             c.agency_name,
             c.agency_id,
             ROUND(c.contract_amount / 1e8, 1) AS amount_oku,
@@ -113,6 +113,7 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
             cp.confidence
         FROM contracts c
         LEFT JOIN contract_pillar cp ON cp.contract_id = c.id
+        LEFT JOIN contract_requesting_org cro ON cro.contract_id = c.id
         WHERE c.fiscal_year IN ({fy_ph})
         ORDER BY c.contract_amount DESC NULLS LAST
     """
@@ -224,7 +225,7 @@ def _build_display(src: pd.DataFrame) -> pd.DataFrame:
             "L2":         src["pillar_l2_code"].apply(
                               lambda x: f"P{int(x)}" if pd.notna(x) else ""),
             "契約名":     src["contract_name"].fillna(""),
-            "要求元":     src["contract_requesting_org"].fillna(""),
+            "要求元":     src["requesting_org"].fillna(""),
             "機関":       src["agency_name"].fillna(""),
             "契約額(億)": src["amount_oku"],
             "分類方法":   src["match_method"].fillna("unclassified"),
