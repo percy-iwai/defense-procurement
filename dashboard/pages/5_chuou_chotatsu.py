@@ -123,12 +123,17 @@ with tab_trend:
             hovertemplate="%{x}<br>%{y:,.0f}億円<extra></extra>",
         ))
 
-    # R05 急増マーカー（縦線）
-    fig.add_vline(
-        x="R05(2023)", line_width=2, line_dash="dash", line_color="#f38ba8",
-        annotation_text="防衛費倍増加速（R05）",
-        annotation_position="top right",
-        annotation_font_color="#f38ba8",
+    # R05 急増マーカー（縦線）— add_vline はカテゴリ軸で非互換のため add_shape + add_annotation で代替
+    fig.add_shape(
+        type="line", x0="R05(2023)", x1="R05(2023)", y0=0, y1=1,
+        xref="x", yref="paper",
+        line=dict(width=2, dash="dash", color="#f38ba8"),
+    )
+    fig.add_annotation(
+        x="R05(2023)", y=1, yref="paper",
+        text="防衛費倍増加速（R05）",
+        showarrow=False, xanchor="left", yanchor="top",
+        font=dict(color="#f38ba8"),
     )
 
     fig.update_layout(
@@ -374,11 +379,16 @@ with tab_insight:
             marker=dict(size=6, color="#6c7086", symbol="circle-open"),
             hovertemplate="%{x}: %{y:,.0f}億円（推計）<extra></extra>",
         ))
-    fig_ins.add_vline(
-        x="R05(2023)", line_width=2, line_dash="dash", line_color="#f38ba8",
-        annotation_text="R05: 3.3倍急増",
-        annotation_position="top right",
-        annotation_font_color="#f38ba8",
+    fig_ins.add_shape(
+        type="line", x0="R05(2023)", x1="R05(2023)", y0=0, y1=1,
+        xref="x", yref="paper",
+        line=dict(width=2, dash="dash", color="#f38ba8"),
+    )
+    fig_ins.add_annotation(
+        x="R05(2023)", y=1, yref="paper",
+        text="R05: 3.3倍急増",
+        showarrow=False, xanchor="left", yanchor="top",
+        font=dict(color="#f38ba8"),
     )
     fig_ins.update_layout(
         template="plotly_dark", height=380,
