@@ -82,7 +82,12 @@ def _norm(s: str) -> str:
 
 @st.cache_data(ttl=600)
 def _load_low_price(fys: tuple[int, ...]) -> pd.DataFrame:
-    """低価格入札データ（ratio_pct < 70）をFY指定で全件取得する。"""
+    """低価格入札データ（ca/ep < 70%）をFY指定で全件取得する。
+
+    award_rate カラムは 0〜100 / 0〜1 / 円額 など複数スケールが混在しているため使用しない。
+    WHERE 句で estimated_price > 0 AND contract_amount IS NOT NULL を保証しているので
+    ratio_pct は常に ca/ep*100 で算出できる。
+    """
     fy_placeholders = ",".join("?" * len(fys))
     sql = f"""
         SELECT
@@ -94,10 +99,7 @@ def _load_low_price(fys: tuple[int, ...]) -> pd.DataFrame:
             c.vendor_name,
             c.contract_amount,
             c.estimated_price,
-            COALESCE(
-                c.award_rate,
-                CAST(c.contract_amount AS REAL) / c.estimated_price * 100
-            ) AS ratio_pct,
+            CAST(c.contract_amount AS REAL) / c.estimated_price * 100 AS ratio_pct,
             c.bid_method,
             c.contract_date,
             c.source_url,
@@ -108,10 +110,7 @@ def _load_low_price(fys: tuple[int, ...]) -> pd.DataFrame:
           AND c.estimated_price > 0
           AND c.contract_amount IS NOT NULL
           AND c.fiscal_year IN ({fy_placeholders})
-          AND COALESCE(
-                c.award_rate,
-                CAST(c.contract_amount AS REAL) / c.estimated_price * 100
-              ) < 70
+          AND CAST(c.contract_amount AS REAL) / c.estimated_price * 100 < 70
         ORDER BY ratio_pct ASC
     """
     with sqlite3.connect(DB_PATH) as conn:
@@ -225,7 +224,7 @@ with tab1:
         )
         st.caption(
             f"表示: {len(top200):,}件 / 全{len(df_view):,}件　"
-            "※ 落札率は award_rate カラム優先、NULLの場合は 契約価格÷予定価格×100 で算出。"
+            "※ 落札率 = 契約価格 ÷ 予定価格 × 100（予定価格が公表されている案件のみ対象）"
         )
 
 # ─── TAB2: ベンダー別（全件） ─────────────────────────────────────────────────
