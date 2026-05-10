@@ -923,6 +923,7 @@ def main(dry_run: bool = False) -> None:
                 WHERE s.fiscal_year = chuou_chotatsu_companies.fiscal_year
             )
         """)
+        con.commit()
         nulled = cur.rowcount
         if nulled:
             print(f"[INFO] 不正金額 NULL化: {nulled}件")
