@@ -30,6 +30,10 @@ logs/
 data/raw/
 data/cache/
 data/db/backup/
+
+# Temporary working files
+temp/
+dev/null/
 data/db/.fuse_hidden*
 data/db/*.db-journal
 data/db/*.db-wal
