@@ -119,6 +119,9 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
         return pd.read_sql_query(sql, conn, params=list(fys))
 
 
+# ── ピラー名称辞書（フィルター表示用） ───────────────────────────────────────
+_l1_names, _l2_names = _load_pillar_names()
+
 # ── フィルター UI ─────────────────────────────────────────────────────────────
 col_fy, col_l1, col_l2 = st.columns([1, 2, 2])
 
@@ -138,7 +141,12 @@ all_l2_codes = sorted(df_all["pillar_l2_code"].dropna().astype(int).unique().tol
 with col_l1:
     l1_opts = ["全て", "未分類"] + [f"P{c}" for c in all_l1_codes]
     sel_l1 = st.multiselect(
-        "🏛️ 大項目(L1)", l1_opts, default=["全て"], key="pr_l1"
+        "🏛️ 大項目(L1)", l1_opts, default=["全て"], key="pr_l1",
+        format_func=lambda x: (
+            f"P{x[1:]} {_l1_names.get(int(x[1:]), '')}"
+            if x.startswith("P") and x[1:].isdigit()
+            else x
+        ),
     )
     if not sel_l1:
         sel_l1 = ["全て"]
@@ -163,7 +171,8 @@ with col_l2:
             default=["全て"],
             key="pr_l2",
             format_func=lambda x: (
-                L2_LABELS.get(int(x[1:]), x) if x != "全て" else "全て"
+                f"P{x[1:]} {_l2_names.get(int(x[1:]), '')}"
+                if x != "全て" else "全て"
             ),
         )
         if not sel_l2:
@@ -205,30 +214,14 @@ mc4.metric("未分類",    f"{n_uncls:,}件")
 
 
 # ── 表示用 DataFrame 整形 ────────────────────────────────────────────────────
-def _build_display(
-    src: pd.DataFrame,
-    l1_names: dict[int, str],
-    l2_names: dict[int, str],
-) -> pd.DataFrame:
-    def _fmt_l1(x: object) -> str:
-        if pd.isna(x):
-            return "UNCLS"
-        code = int(x)
-        name = l1_names.get(code, "")
-        return f"P{code} {name}" if name else f"P{code}"
-
-    def _fmt_l2(x: object) -> str:
-        if pd.isna(x):
-            return ""
-        code = int(x)
-        name = l2_names.get(code, "")
-        return f"P{code} {name}" if name else f"P{code}"
-
+def _build_display(src: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "#":          range(1, len(src) + 1),
-            "L1":         src["pillar_l1_code"].apply(_fmt_l1),
-            "L2":         src["pillar_l2_code"].apply(_fmt_l2),
+            "L1":         src["pillar_l1_code"].apply(
+                              lambda x: f"P{int(x)}" if pd.notna(x) else "UNCLS"),
+            "L2":         src["pillar_l2_code"].apply(
+                              lambda x: f"P{int(x)}" if pd.notna(x) else ""),
             "契約名":     src["contract_name"].fillna(""),
             "機関":       src["agency_name"].fillna(""),
             "契約額(億)": src["amount_oku"],
@@ -241,13 +234,12 @@ def _build_display(
     ).reset_index(drop=True)
 
 
-_l1_names, _l2_names = _load_pillar_names()
-disp = _build_display(df, _l1_names, _l2_names)
+disp = _build_display(df)
 
 _COL_CFG = {
     "#":            st.column_config.NumberColumn("#",            disabled=True, width="small"),
-    "L1":           st.column_config.TextColumn("L1",             disabled=True, width="medium"),
-    "L2":           st.column_config.TextColumn("L2",             disabled=True, width="medium"),
+    "L1":           st.column_config.TextColumn("L1",             disabled=True, width="small"),
+    "L2":           st.column_config.TextColumn("L2",             disabled=True, width="small"),
     "契約名":       st.column_config.TextColumn("契約名",          disabled=True, width="large"),
     "機関":         st.column_config.TextColumn("機関",            disabled=True, width="medium"),
     "契約額(億)":   st.column_config.NumberColumn("契約額(億)",    disabled=True, format="%.1f", width="small"),
