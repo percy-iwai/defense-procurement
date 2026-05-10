@@ -13,14 +13,14 @@
 
 | ファイル名 | 実績年度 | 見込年度 | 発行機関 | 掲載元 URL |
 |---|---|---|---|---|
-| h19_chotatsu_jisseki.pdf | 平成19年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h20_chotatsu_jisseki.pdf | 平成20年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h21_chotatsu_jisseki.pdf | 平成21年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h22_chotatsu_jisseki.pdf | 平成22年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h23_chotatsu_jisseki.pdf | 平成23年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h24_chotatsu_jisseki.pdf | 平成24年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h25_chotatsu_jisseki.pdf | 平成25年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
-| h26_chotatsu_jisseki.pdf | 平成26年度 | — | 旧・防衛省装備施設本部 | 要確認（旧 DFAB サイト） |
+| h19_chotatsu_jisseki.pdf | 平成19年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h20_chotatsu_jisseki.pdf | 平成20年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h21_chotatsu_jisseki.pdf | 平成21年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h22_chotatsu_jisseki.pdf | 平成22年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h23_chotatsu_jisseki.pdf | 平成23年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h24_chotatsu_jisseki.pdf | 平成24年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h25_chotatsu_jisseki.pdf | 平成25年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
+| h26_chotatsu_jisseki.pdf | 平成26年度 | — | 旧・防衛省装備施設本部 | ATLA/pdf/ パスで DL（現在 404）※1 |
 | h29_jisseki_mikomi.pdf | **平成29年度** | 平成30年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
 | h30_jisseki_mikomi.pdf | **平成30年度** | 令和元年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
 | r01_jisseki_mikomi.pdf | **令和元年度** | 令和2年度 | 防衛装備庁 | ATLA/pdf/ に掲載歴あり（現在 404） |
@@ -79,6 +79,15 @@ r0#_chotatsu_jisseki.pdf      ... 令和#年度の実績のみ（単年、最近
 ```
 
 ファイル名の先頭年号は**実績年度**を指す（見込み年度ではない）。
+
+**命名規則と取得元 URL の関係:**
+本ディレクトリのファイルは DL 時のファイル名を保持している。H19〜H26 を含む全ファイルが
+`h##_chotatsu_jisseki.pdf` / `h##_jisseki_mikomi.pdf` 形式であることは、
+取得時に ATLA の `/atla/souhon/supply/jisseki/pdf/` パスが使われたことを示す（※1）。
+ATLA は H27.10 設立後、旧 DFAB 時代のファイルも同パスに置いていた時期があったと推定される。
+
+※1: 現行サイトでは R05/R06 以外はすべて 404。H29〜R04 については掲載歴が明確。
+H19〜H26 の ATLA パス掲載期間は不明だが、ファイル名の一致から同一パス由来と推定。
 
 ---
 
