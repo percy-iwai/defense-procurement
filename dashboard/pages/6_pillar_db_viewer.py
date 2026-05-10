@@ -1,4 +1,4 @@
-"""defense_pillar.db ビューワー — ピラー階層マスタ・事業名マッピング・分類根拠検索。
+"""defense_pillar.db ビューワー — 柱別集計・ピラー階層マスタ・事業名マッピング・分類根拠検索。
 
 テーブル:
   defense_pillar_master   : L1/L2 階層と名称（19件）
@@ -23,8 +23,9 @@ from _auth import require_password  # noqa: E402
 
 require_password()
 
-PROJECT_ROOT   = DASHBOARD_DIR.parent
-PILLAR_DB_PATH = PROJECT_ROOT / "data" / "db" / "defense_pillar.db"
+PROJECT_ROOT      = DASHBOARD_DIR.parent
+PILLAR_DB_PATH    = PROJECT_ROOT / "data" / "db" / "defense_pillar.db"
+PROC_DB_PATH      = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"
@@ -92,6 +93,78 @@ def _load_sources() -> pd.DataFrame:
         )
 
 
+# ── 柱別集計用データ ─────────────────────────────────────────────────────────
+
+# FY2023 柱別予算額（契約ベース、単位：億円）
+# 出典: 防衛省「令和5年度予算の概要」/ 防衛力整備計画
+_BUDGET_FY2023: dict[int, float] = {
+    1: 14207.0,
+    2:  9867.0,
+    3:  1827.0,
+    4: 16250.0,
+    5:  4588.0,
+    6:  2696.0,
+    7: 33687.0,
+    8: 21795.0,
+}
+
+# L1 大項目の表示名（contract_pillar の pillar_l1_code に対応）
+_L1_NAMES: dict[int, str] = {
+    1: "P1 スタンド・オフ防衛能力",
+    2: "P2 統合防空ミサイル防衛能力",
+    3: "P3 無人アセット防衛能力",
+    4: "P4 領域横断作戦能力",
+    5: "P5 指揮統制・情報関連機能",
+    6: "P6 機動展開能力・国民保護",
+    7: "P7 持続性・強靱性",
+    8: "P8 防衛力を支える基盤",
+}
+
+
+@st.cache_data(ttl=600)
+def _load_pillar_summary(fy: int) -> pd.DataFrame:
+    """指定FYの L1 柱別集計（DB金額・件数）を返す。未分類行を末尾に追加。"""
+    with sqlite3.connect(str(PROC_DB_PATH)) as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT
+                cp.pillar_l1_code,
+                COUNT(*)                              AS 件数,
+                ROUND(SUM(c.contract_amount) / 1e8, 1) AS DB金額_億
+            FROM contract_pillar cp
+            JOIN contracts c ON cp.contract_id = c.id
+            WHERE c.fiscal_year = ?
+            GROUP BY cp.pillar_l1_code
+            ORDER BY cp.pillar_l1_code
+            """,
+            conn,
+            params=(fy,),
+        )
+    rows = []
+    for _, r in df[df["pillar_l1_code"].notna()].iterrows():
+        code = int(r["pillar_l1_code"])
+        budget = _BUDGET_FY2023.get(code) if fy == 2023 else None
+        cov = round(r["DB金額_億"] / budget * 100, 1) if budget and budget > 0 else None
+        rows.append({
+            "ピラー":        _L1_NAMES.get(code, f"P{code}"),
+            "件数":          int(r["件数"]),
+            "DB金額（億円）": r["DB金額_億"],
+            "予算額（億円）": budget,
+            "カバレッジ（%）": cov,
+        })
+    # 未分類（pillar_l1_code IS NULL）
+    unc = df[df["pillar_l1_code"].isna()]
+    if not unc.empty:
+        rows.append({
+            "ピラー":         "未分類",
+            "件数":           int(unc["件数"].sum()),
+            "DB金額（億円）":  round(unc["DB金額_億"].sum(), 1),
+            "予算額（億円）":  None,
+            "カバレッジ（%）": None,
+        })
+    return pd.DataFrame(rows)
+
+
 df_master  = _load_master()
 df_sources = _load_sources()
 
@@ -123,9 +196,83 @@ _all_pillar_ids     = sorted(df_sources["pillar_id"].dropna().unique().astype(in
 _all_fys_int        = sorted(df_sources["fiscal_year"].dropna().unique().astype(int).tolist())
 
 # ── タブ ─────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(
-    ["🗂️ ピラー階層マスタ", "📋 事業名マッピングDB", "🔍 分類根拠検索"]
+tab0, tab1, tab2, tab3 = st.tabs(
+    ["📊 柱別集計", "🗂️ ピラー階層マスタ", "📋 事業名マッピングDB", "🔍 分類根拠検索"]
 )
+
+
+# ─── TAB 0: 柱別集計 ─────────────────────────────────────────────────────────
+with tab0:
+    st.subheader("柱別集計（contract_pillar × contracts）")
+    st.caption(
+        "procurement.db の contract_pillar テーブルを集計。"
+        "予算額・カバレッジは FY2023 のみ（契約ベース）。"
+        "DB金額・予算額ともに契約ベース（歳出ベースと混同しないこと）。"
+    )
+
+    sel_fy0 = st.selectbox(
+        "FY 選択",
+        options=[2022, 2023, 2024, 2025],
+        index=1,  # default: 2023
+        format_func=lambda x: f"FY{x}（令和{x - 2018}年度）",
+        key="pillar_summary_fy",
+    )
+
+    if not PROC_DB_PATH.exists():
+        st.error(f"procurement.db が見つかりません: {PROC_DB_PATH}")
+    else:
+        df_summary = _load_pillar_summary(sel_fy0)
+
+        # 分類済み / 未分類 の分割
+        _classified   = df_summary[df_summary["ピラー"] != "未分類"]
+        _unclassified = df_summary[df_summary["ピラー"] == "未分類"]
+
+        total_cnt      = int(df_summary["件数"].sum())
+        classified_amt = float(_classified["DB金額（億円）"].sum())
+        unc_amt        = float(_unclassified["DB金額（億円）"].sum()) if not _unclassified.empty else 0.0
+        total_amt      = classified_amt + unc_amt
+
+        # メトリクス行
+        mc1, mc2, mc3, mc4 = st.columns(4)
+        mc1.metric("総件数（FY）",       f"{total_cnt:,}件")
+        mc2.metric("全体DB金額",         f"{total_amt:,.0f}億円")
+        mc3.metric("分類済みDB金額",     f"{classified_amt:,.0f}億円")
+        mc4.metric("未分類DB金額",       f"{unc_amt:,.0f}億円")
+
+        st.divider()
+
+        # 表示用 DataFrame — None を "—" に変換
+        disp = df_summary.copy()
+        disp["予算額（億円）"]  = disp["予算額（億円）"].apply(
+            lambda v: f"{v:,.0f}" if v is not None and not (isinstance(v, float) and pd.isna(v)) else "—"
+        )
+        disp["カバレッジ（%）"] = disp["カバレッジ（%）"].apply(
+            lambda v: f"{v:.1f}%" if v is not None and not (isinstance(v, float) and pd.isna(v)) else "—"
+        )
+
+        st.dataframe(
+            disp,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "ピラー":         st.column_config.TextColumn("ピラー", width="large"),
+                "件数":           st.column_config.NumberColumn("件数", format="%d", width="small"),
+                "DB金額（億円）": st.column_config.NumberColumn("DB金額（億円）", format="%.1f", width="medium"),
+                "予算額（億円）": st.column_config.TextColumn("予算額（億円）", width="medium"),
+                "カバレッジ（%）": st.column_config.TextColumn("カバレッジ（%）", width="small"),
+            },
+        )
+
+        if sel_fy0 != 2023:
+            st.info("予算額・カバレッジは FY2023 のみ対応。他FYは「—」表示。")
+        else:
+            budget_total = sum(_BUDGET_FY2023.values())
+            overall_cov  = round(classified_amt / budget_total * 100, 1)
+            st.caption(
+                f"FY2023 予算総額（8本柱合計）: {budget_total:,.0f}億円　"
+                f"／　分類済みDB金額: {classified_amt:,.0f}億円　"
+                f"／　全体カバレッジ: **{overall_cov:.1f}%**"
+            )
 
 
 # ─── TAB 1: ピラー階層マスタ ──────────────────────────────────────────────────
