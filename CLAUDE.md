@@ -798,7 +798,7 @@ FY2023の manual_correction 62件は上書きされない（確認済み）。
 
 ## 積み残し（2026-05-10現在）
 
-**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**、**セマンティック埋め込み3FY展開（FY2023復元+FY2024/2025新規）計18,128件（Phase 16）**、**pillar_corrections 92件処理 + KEYWORD_RULES7グループ追加（地上車両P43/火砲P43/デコイP43/音響測定P43/UC通信P5/GBU→P71）+ org_fallback補給処ルール（大半がFMSスペアパーツ→P72、乗り物系のみP43）+ DIHルール強化（requesting_org='DIH'追加）+ 3FY再実行（Phase 17）**
+**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**、**セマンティック埋め込み3FY展開（FY2023復元+FY2024/2025新規）計18,128件（Phase 16）**、**pillar_corrections 92件処理 + KEYWORD_RULES7グループ追加（地上車両P43/火砲P43/デコイP43/音響測定P43/UC通信P5/GBU→P71）+ org_fallback補給処ルール（大半がFMSスペアパーツ→P72、乗り物系のみP43）+ DIHルール強化（requesting_org='DIH'追加）+ 3FY再実行（Phase 17）**、**中央調達実績PDF（H19〜R05、15ファイル）＋中央調達の概況PDF（R02〜R04、3ファイル）を `data/raw/chuou_chotatsu_jisseki/` / `data/raw/chuou_chotatsu_gaikyo/` に格納（重複2件除去）**
 
 ### Phase 14: セマンティック埋め込みマッチング（2026-05-09）
 
