@@ -992,6 +992,7 @@ pg = st.navigation(
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
             st.Page("pages/5_requesting_org_methodology.py", title="要求元判定ロジック", icon="🔬"),
             st.Page("pages/6_pillar_db_viewer.py", title="7本柱DBビューワー", icon="🏛️"),
+            st.Page("pages/98_pillar_logic.py", title="7本柱分類判定ロジック", icon="🔑"),
             st.Page("pages/97_equipment_glossary.py", title="装備品解説図鑑", icon="🔭"),
             st.Page("pages/98_coverage.py", title="収録状況・カバレッジ", icon="📊"),
             st.Page("pages/99_url_matrix.py", title="URLマトリクス", icon="🗂️"),
