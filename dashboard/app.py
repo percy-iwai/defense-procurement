@@ -1384,6 +1384,7 @@ pg = st.navigation(
             st.Page("pages/4_search.py", title="検索", icon="🔎"),
         ],
         "分析": [
+            st.Page("pages/5_chuou_chotatsu.py", title="中央調達実績分析", icon="📈"),
             st.Page("pages/96_low_price_bid.py", title="低価格入札分析", icon="⚠️"),
             st.Page("pages/97_pillar_review.py", title="ピラーレビュービューワー", icon="🔍"),
         ],
