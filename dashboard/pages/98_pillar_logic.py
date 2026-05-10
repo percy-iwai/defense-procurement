@@ -589,26 +589,56 @@ def _load_pillar_stats() -> dict:
     return {"method": df_method, "l1": df_l1, "total": df_total}
 
 
+_BUDGET_BY_FY: dict[int, float] = {
+    2023: 104917.0,  # P1-P8合計（令和5年度予算概要）
+    2024:  93617.0,  # P1-P8合計（令和6年度予算概要）
+    2025:  84331.0,  # P1-P8合計（令和7年度予算概要）
+}
+
 try:
     stats = _load_pillar_stats()
 
-    # ── 分類カバレッジサマリー ────────────────────────────────────────────────
-    st.subheader("FY別 分類カバレッジ")
+    # ── 分類カバレッジサマリー（3ヵ年） ─────────────────────────────────────
+    st.subheader("FY2023/2024/2025 分類カバレッジ")
     df_total = stats["total"]
     if df_total.empty:
         st.info("contract_pillar テーブルにデータがありません。")
     else:
+        # 金額ベースのカバレッジを追加で取得
+        with sqlite3.connect(DB_PATH) as _con:
+            df_amt = pd.read_sql_query("""
+                SELECT cp.fiscal_year,
+                       ROUND(SUM(CASE WHEN cp.pillar_l1_code IS NOT NULL
+                                      THEN c.contract_amount ELSE 0 END)/1e8, 1) AS classified_oku,
+                       ROUND(SUM(c.contract_amount)/1e8, 1) AS total_oku
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                GROUP BY cp.fiscal_year ORDER BY cp.fiscal_year
+            """, _con)
+        df_amt_idx = df_amt.set_index("fiscal_year")
+
         cols = st.columns(len(df_total))
         for col, (_, row) in zip(cols, df_total.iterrows()):
             fy = int(row["fiscal_year"])
             total = int(row["total"])
             cls = int(row["classified"])
             rate = cls / total * 100 if total else 0
-            col.metric(
-                f"FY{fy}",
-                f"{cls:,}件 分類済み",
-                delta=f"{rate:.1f}% ({total:,}件中)",
-            )
+            _am = df_amt_idx.loc[fy] if fy in df_amt_idx.index else None
+            _bgt = _BUDGET_BY_FY.get(fy)
+            if _am is not None and _bgt:
+                _cls_oku = float(_am["classified_oku"])
+                _cov_pct = round(_cls_oku / _bgt * 100, 1)
+                col.metric(
+                    f"FY{fy}",
+                    f"{cls:,}件 / {rate:.1f}%",
+                    delta=f"金額カバレッジ {_cov_pct:.1f}% ({_cls_oku:,.0f}億/{_bgt:,.0f}億)",
+                )
+            else:
+                col.metric(
+                    f"FY{fy}",
+                    f"{cls:,}件 分類済み",
+                    delta=f"{rate:.1f}% ({total:,}件中)",
+                )
 
     # ── 判定手法別件数 ─────────────────────────────────────────────────────────
     st.subheader("判定手法（match_method）別件数")
@@ -659,10 +689,10 @@ st.subheader("関連スクリプト")
 st.markdown("""
 | スクリプト | 役割 | 実行方法 |
 |-----------|------|---------|
-| `dev/assign_pillar_fy2023.py` | FY単位の keyword+fuzzy 分類（KEYWORD_RULES の本体） | `python dev/assign_pillar_fy2023.py [--dry-run]` |
+| `dev/assign_pillar_fy2023.py` | FY2023〜2025 の keyword+fuzzy 分類（KEYWORD_RULES の本体） | `python dev/assign_pillar_fy2023.py --fy 2025 [--dry-run]` |
 | `dev/assign_pillar_semantic.py` | セマンティック埋め込み（未分類への後処理） | `python dev/assign_pillar_semantic.py --threshold 0.80` |
 | `dev/reclassify_p4_p7.py` | P4/P7 親ピラー→サブピラーへの再分類（実行済み） | — |
 | `dashboard/pages/97_pillar_review.py` | 手動修正のビューワー（pillar_corrections_pending.csv への記録） | ダッシュボードから |
 
-`TARGET_FY` を変更して `assign_pillar_fy2023.py` を実行すると FY2024/FY2025 にも展開できる。
+`--fy` オプションで対象年度を指定可能（FY2023/2024/2025）。再実行すると対象FYのcontract_pillar全行を削除して再挿入。
 """)

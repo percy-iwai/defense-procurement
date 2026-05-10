@@ -13,6 +13,7 @@ import unicodedata
 from pathlib import Path
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent
@@ -107,6 +108,33 @@ _BUDGET_FY2023: dict[int, float] = {
     7: 33687.0,
     8: 21795.0,
 }
+# FY2024 予算（契約ベース・億円） — 令和6年度予算概要 P.7 より抽出
+_BUDGET_FY2024: dict[int, float] = {
+    1:  7127.0,
+    2: 12284.0,
+    3:  1146.0,
+    4: 16401.0,
+    5:  4248.0,
+    6:  5653.0,
+    7: 29422.0,
+    8: 17336.0,
+}
+# FY2025 予算（契約ベース・億円） — 令和7年度予算概要 P.7 より抽出
+_BUDGET_FY2025: dict[int, float] = {
+    1:  9390.0,
+    2:  5331.0,
+    3:  1110.0,
+    4: 16119.0,
+    5:  3852.0,
+    6:  4545.0,
+    7: 27525.0,
+    8: 16459.0,
+}
+_BUDGET_ALL: dict[int, dict[int, float]] = {
+    2023: _BUDGET_FY2023,
+    2024: _BUDGET_FY2024,
+    2025: _BUDGET_FY2025,
+}
 
 # L1 大項目の表示名（contract_pillar の pillar_l1_code に対応）
 _L1_NAMES: dict[int, str] = {
@@ -143,7 +171,7 @@ def _load_pillar_summary(fy: int) -> pd.DataFrame:
     rows = []
     for _, r in df[df["pillar_l1_code"].notna()].iterrows():
         code = int(r["pillar_l1_code"])
-        budget = _BUDGET_FY2023.get(code) if fy == 2023 else None
+        budget = _BUDGET_ALL.get(fy, {}).get(code)
         cov = round(r["DB金額_億"] / budget * 100, 1) if budget and budget > 0 else None
         rows.append({
             "ピラー":        _L1_NAMES.get(code, f"P{code}"),
@@ -196,8 +224,9 @@ _all_pillar_ids     = sorted(df_sources["pillar_id"].dropna().unique().astype(in
 _all_fys_int        = sorted(df_sources["fiscal_year"].dropna().unique().astype(int).tolist())
 
 # ── タブ ─────────────────────────────────────────────────────────────────────
-tab0, tab1, tab2, tab3 = st.tabs(
-    ["📊 柱別集計", "🗂️ ピラー階層マスタ", "📋 事業名マッピングDB", "🔍 分類根拠検索"]
+tab0, tab1, tab2, tab3, tab4 = st.tabs(
+    ["📊 柱別集計", "🗂️ ピラー階層マスタ", "📋 事業名マッピングDB", "🔍 分類根拠検索",
+     "📈 年度比較"]
 )
 
 
@@ -206,14 +235,14 @@ with tab0:
     st.subheader("柱別集計（contract_pillar × contracts）")
     st.caption(
         "procurement.db の contract_pillar テーブルを集計。"
-        "予算額・カバレッジは FY2023 のみ（契約ベース）。"
+        "予算額・カバレッジは FY2023/2024/2025（契約ベース）。"
         "DB金額・予算額ともに契約ベース（歳出ベースと混同しないこと）。"
     )
 
     sel_fy0 = st.selectbox(
         "FY 選択",
-        options=[2022, 2023, 2024, 2025],
-        index=1,  # default: 2023
+        options=[2025, 2024, 2023, 2022],
+        index=0,  # default: 2025
         format_func=lambda x: f"FY{x}（令和{x - 2018}年度）",
         key="pillar_summary_fy",
     )
@@ -263,16 +292,17 @@ with tab0:
             },
         )
 
-        if sel_fy0 != 2023:
-            st.info("予算額・カバレッジは FY2023 のみ対応。他FYは「—」表示。")
-        else:
-            budget_total = sum(_BUDGET_FY2023.values())
+        _fy_budget = _BUDGET_ALL.get(sel_fy0, {})
+        if _fy_budget:
+            budget_total = sum(_fy_budget.values())
             overall_cov  = round(classified_amt / budget_total * 100, 1)
             st.caption(
-                f"FY2023 予算総額（8本柱合計）: {budget_total:,.0f}億円　"
+                f"FY{sel_fy0} 予算総額（8本柱合計）: {budget_total:,.0f}億円　"
                 f"／　分類済みDB金額: {classified_amt:,.0f}億円　"
                 f"／　全体カバレッジ: **{overall_cov:.1f}%**"
             )
+        else:
+            st.info("FY2022 は予算データ未登録のため予算額・カバレッジは「—」表示。")
 
 
 # ─── TAB 1: ピラー階層マスタ ──────────────────────────────────────────────────
@@ -492,3 +522,97 @@ with tab3:
                     "文脈":     st.column_config.TextColumn(width="large"),
                 },
             )
+
+
+# ─── TAB 4: 年度比較 ─────────────────────────────────────────────────────────
+with tab4:
+    st.subheader("FY2023/2024/2025 年度比較")
+    st.caption(
+        "各FYの分類済みDB金額と予算額を並べて比較。"
+        "予算額・DB金額ともに契約ベース（億円）。"
+    )
+
+    if not PROC_DB_PATH.exists():
+        st.error(f"procurement.db が見つかりません: {PROC_DB_PATH}")
+    else:
+        _compare_fys = [2023, 2024, 2025]
+        _compare_rows = []
+        for _cfy in _compare_fys:
+            _df = _load_pillar_summary(_cfy)
+            for _, _r in _df[_df["ピラー"] != "未分類"].iterrows():
+                _compare_rows.append({
+                    "FY":             _cfy,
+                    "ピラー":          _r["ピラー"],
+                    "DB金額（億円）":  _r["DB金額（億円）"],
+                    "予算額（億円）":  _r["予算額（億円）"],
+                })
+        df_cmp = pd.DataFrame(_compare_rows)
+
+        # ── 横棒グラフ: FYごとのP1-P8 DB金額 ────────────────────────────────
+        pillar_order = [_L1_NAMES[k] for k in sorted(_L1_NAMES.keys())]
+        _colors = {"2023": "#4fc3f7", "2024": "#81c784", "2025": "#ffb74d"}
+
+        fig = go.Figure()
+        for _cfy in _compare_fys:
+            _sub = df_cmp[df_cmp["FY"] == _cfy].set_index("ピラー")["DB金額（億円）"]
+            _vals = [float(_sub.get(p, 0) or 0) for p in pillar_order]
+            fig.add_trace(go.Bar(
+                name=f"FY{_cfy} DB金額",
+                y=pillar_order,
+                x=_vals,
+                orientation="h",
+                marker_color=_colors[str(_cfy)],
+            ))
+
+        fig.update_layout(
+            barmode="group",
+            height=480,
+            margin=dict(l=10, r=20, t=30, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#cdd6f4"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis=dict(title="DB金額（億円）", gridcolor="#45475a"),
+            yaxis=dict(gridcolor="#45475a"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ── サマリーテーブル: FY×ピラー カバレッジ ───────────────────────────
+        st.subheader("FY別カバレッジ早見表")
+        _tbl_rows = []
+        for _cfy in _compare_fys:
+            _df_s = _load_pillar_summary(_cfy)
+            _cls  = _df_s[_df_s["ピラー"] != "未分類"]
+            _unc  = _df_s[_df_s["ピラー"] == "未分類"]
+            _bgt  = sum(_BUDGET_ALL.get(_cfy, {}).values())
+            _db   = float(_cls["DB金額（億円）"].sum())
+            _unc_db = float(_unc["DB金額（億円）"].sum()) if not _unc.empty else 0.0
+            _total  = int(_df_s["件数"].sum())
+            _cls_cnt = int(_cls["件数"].sum())
+            _cov = round(_db / _bgt * 100, 1) if _bgt else None
+            _tbl_rows.append({
+                "FY":               _cfy,
+                "総件数":           _total,
+                "分類済み件数":     _cls_cnt,
+                "分類率（件数%）":  round(_cls_cnt / _total * 100, 1) if _total else None,
+                "分類済みDB金額（億円）": _db,
+                "未分類DB金額（億円）":   _unc_db,
+                "予算総額（億円）": _bgt if _bgt else None,
+                "カバレッジ（%）":  _cov,
+            })
+        df_tbl = pd.DataFrame(_tbl_rows)
+        st.dataframe(
+            df_tbl,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "FY":                      st.column_config.NumberColumn(format="FY%d", width="small"),
+                "総件数":                  st.column_config.NumberColumn(format="%d"),
+                "分類済み件数":            st.column_config.NumberColumn(format="%d"),
+                "分類率（件数%）":         st.column_config.NumberColumn(format="%.1f%%"),
+                "分類済みDB金額（億円）":  st.column_config.NumberColumn(format="%.0f"),
+                "未分類DB金額（億円）":    st.column_config.NumberColumn(format="%.0f"),
+                "予算総額（億円）":        st.column_config.NumberColumn(format="%.0f"),
+                "カバレッジ（%）":         st.column_config.NumberColumn(format="%.1f%%"),
+            },
+        )
