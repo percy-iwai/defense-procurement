@@ -709,9 +709,72 @@ python dev/load_seibi_keikaku_gaiyou.py             # 本番
 
 ---
 
-## 積み残し（2026-05-09現在）
+## Phase 15: FY2024/2025 7本柱分類展開 + KEYWORD_RULES追加（2026-05-10）
 
-**完了（2026-05-09）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13: 16,189件/52,285億円を分類済み）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14: 6,709件追加分類・unclassified 25,364→18,655件）**
+### 追加KEYWORD_RULES（FY2024/2025解析から発見）
+
+FY2024未分類上位をbyletter収集額で分析し、以下5グループを `_KEYWORD_RULES_RAW` に追加。
+FY2023も含めた3年分を再実行済み。
+
+| ルール | ピラー | conf | 追加理由 |
+|--------|--------|-----:|---------|
+| 補給艦, 補給艦艇, 民間船舶 | P6 | 0.78 | 補給艦14,500t型720億、民間旅客船304億 |
+| 掃海艦, 掃海艇, 電子作戦機, US-2, ＵＳ－２, 救難飛行艇, ガスタービン主機 | P43 | 0.78 | 電子作戦機552億、掃海艦149億、US-2 146億 |
+| 統合指揮, 作戦指揮 | P5 | 0.78 | 統合指揮通信システム97億 |
+| SDB, ＳＤＢ, ＭＫ２５, MK25 | P71 | 0.78 | SDB-Ⅰ等109億、MK25キャニスタ194億 |
+| リスク管理枠組み | P42 | 0.82 | RMF認証・監査159億（サイバー施策） |
+
+### 3FY分類結果
+
+| FY | 総件数 | 分類済 | 分類率 | keyword_rule | fuzzy | org_fallback |
+|----|-------:|------:|------:|-------------:|------:|-------------:|
+| FY2023 | 42,512 | 17,722 | 41.7% | 16,911 | 118 | 575 (+62手動) |
+| FY2024 | 43,975 | 16,288 | 37.0% | 15,710 | 156 | 422 |
+| FY2025 | 33,385 | 14,081 | 42.2% | 13,599 | 87 | 395 |
+
+> **注意**: FY2023は再実行によりPhase 14のセマンティック埋め込み結果（6,709件）がリセット。
+> 現状のFY2023 unclassified 24,790件には semantic 分類済み分が含まれない。
+> FY2023に再度 `assign_pillar_semantic.py --threshold 0.80` を実行すると回復可能。
+
+### FY2024/2025 予算額（令和6/7年度予算概要 P.7 OCR抽出）
+
+| ピラー | FY2024（億円） | FY2025（億円） |
+|--------|-------------:|-------------:|
+| P1 スタンド・オフ | 7,127 | 9,390 |
+| P2 統合防空 | 12,284 | 5,331 |
+| P3 無人アセット | 1,146 | 1,110 |
+| P4 領域横断 | 16,401 | 16,119 |
+| P5 指揮統制 | 4,248 | 3,852 |
+| P6 機動展開 | 5,653 | 4,545 |
+| P7 持続性・強靱性 | 29,422 | 27,525 |
+| P8 防衛生産基盤 | 17,336 | 16,459 |
+| **合計** | **93,617** | **84,331** |
+
+PDF形式: 表が画像PDF埋め込み（テキスト抽出不可）→ PyMuPDF でページをPNG化 → EasyOCR で数値抽出。
+OCRは大きい数値の先頭桁を落とす傾向があるため、x位置によるカラム推定と合計値検証で補正。
+
+### ダッシュボード更新内容
+
+- `6_pillar_db_viewer.py`: `_BUDGET_FY2024`/`_BUDGET_FY2025` 追加、FYセレクタ default→FY2025、
+  全FYカバレッジ表示対応、**年度比較タブ**（P1-P8 横棒グラフ + 3カ年サマリーテーブル）追加
+- `98_pillar_logic.py`: DB実績に金額ベースカバレッジ（FY2023/24/25）追加、スクリプト説明更新
+
+### 実行コマンド
+
+```bash
+# 3FY一括再実行（KEYWORD_RULES変更後）
+python dev/assign_pillar_fy2023.py --fy 2023  # FY2023（manual_correction 62件も再適用）
+python dev/assign_pillar_fy2023.py --fy 2024
+python dev/assign_pillar_fy2023.py --fy 2025
+# 任意: セマンティック後処理（FY2023 unclassified 24,790件→削減）
+python dev/assign_pillar_semantic.py --threshold 0.80
+```
+
+---
+
+## 積み残し（2026-05-10現在）
+
+**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**
 
 ### Phase 14: セマンティック埋め込みマッチング（2026-05-09）
 
@@ -744,8 +807,8 @@ python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類�
 
 | 優先度 | タスク | 理由 |
 |--------|--------|------|
-| 高 | FY2024・FY2025への7本柱コード展開 | `TARGET_FY` 変更するだけで `dev/assign_pillar_fy2023.py` + `assign_pillar_semantic.py` 再利用可 |
-| 高 | FY2023 残存unclassified 18,655件の精度向上 | NDMCを除外フィルター追加・P43 passage改善検討 |
+| 高 | FY2023 semantic re-run | Phase 15再実行でPhase 14の6,709件リセット。`assign_pillar_semantic.py --threshold 0.80` で回復 |
+| 高 | FY2024/2025 semantic展開 | `assign_pillar_semantic.py --fy 2024/2025 --threshold 0.80`（--fyオプション要確認） |
 | 高 | FY2025 3月（202603）定期収集 | 各機関が4-5月に順次公表中 |
 | 中 | `kenkyuu_hyouka` 再収集（349→432件） | btreeページ損失で83件喪失、`python -m pipeline.load_kenkyuu_hyouka` で回復可 |
 | 中 | P4/P7 親残存（P4=6件、P7=1件）の手動分類 | 正規表現でマッチしない7件が未分類で残存 |
@@ -758,10 +821,11 @@ python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類�
 ## 実行方法
 
 ```bash
-# Phase 13: 7本柱コード付与（contract_pillarテーブルへ）
+# Phase 13-15: 7本柱コード付与 + KEYWORD_RULES適用
 python dev/assign_pillar_fy2023.py --dry-run   # ドライラン確認
-python dev/assign_pillar_fy2023.py              # FY2023本番実行
-# FY2024・FY2025へ展開するには assign_pillar_fy2023.py の TARGET_FY を変更して再実行
+python dev/assign_pillar_fy2023.py              # FY2023本番実行（manual_correction 62件含む）
+python dev/assign_pillar_fy2023.py --fy 2024   # FY2024
+python dev/assign_pillar_fy2023.py --fy 2025   # FY2025
 
 # Phase 14: セマンティック埋め込みマッチング（未分類→7本柱）
 # 依存: torch>=2.11.0+cu128, sentence-transformers>=5.4.1, intfloat/multilingual-e5-large
