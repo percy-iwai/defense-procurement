@@ -1,12 +1,14 @@
 """ピラーレビュービューワー — 全契約をピラー別×金額降順で一覧・精査するためのビュー。
 
 FY・大項目(L1)・中項目(L2) でフィルタリングし、分類の誤りや漏れを確認する。
+「修正指示」列に修正内容を記入し「確定」ボタンで data/manual/pillar_corrections_pending.csv に保存。
 contract_pillar を LEFT JOIN しているため未分類（UNCLS）も表示される。
 """
 from __future__ import annotations
 
 import sqlite3
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -20,25 +22,23 @@ from _auth import require_password  # noqa: E402
 
 require_password()
 
-PROJECT_ROOT = DASHBOARD_DIR.parent
-DB_PATH = PROJECT_ROOT / "data" / "db" / "procurement.db"
+PROJECT_ROOT    = DASHBOARD_DIR.parent
+DB_PATH         = PROJECT_ROOT / "data" / "db" / "procurement.db"
+CORRECTIONS_CSV = PROJECT_ROOT / "data" / "manual" / "pillar_corrections_pending.csv"
+
+_CSV_COLS = [
+    "contract_id", "fiscal_year", "contract_name",
+    "current_l1", "current_l2", "correction", "created_at",
+]
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"
-ACCENT     = "#89b4fa"
 
 L2_LABELS: dict[int, str] = {
-    41: "P41 宇宙",
-    42: "P42 サイバー",
-    43: "P43 車両・艦船・航空機",
-    71: "P71 弾薬・誘導弾",
-    72: "P72 維持整備",
-    73: "P73 施設強靱化",
-    81: "P81 防衛生産基盤",
-    82: "P82 研究開発",
-    83: "P83 基地対策",
-    84: "P84 教育訓練・燃料",
-    85: "P85 米軍再編",
+    41: "P41 宇宙",          42: "P42 サイバー",      43: "P43 車両・艦船・航空機",
+    71: "P71 弾薬・誘導弾",  72: "P72 維持整備",      73: "P73 施設強靱化",
+    81: "P81 防衛生産基盤",  82: "P82 研究開発",      83: "P83 基地対策",
+    84: "P84 教育訓練・燃料", 85: "P85 米軍再編",
 }
 
 L1_TO_L2: dict[int, list[int]] = {
@@ -57,8 +57,10 @@ st.markdown(
     [data-testid="stMetricValue"] {{ color: {TEXT_COLOR}; font-weight: 600; }}
     [data-testid="stMetricLabel"] {{ color: {TEXT_DIM}; font-size: 0.85rem; }}
     [data-testid="stCaptionContainer"] {{ color: {TEXT_DIM} !important; }}
-    [data-testid="stDataFrame"] td {{ font-size: 0.78rem !important; }}
-    [data-testid="stDataFrame"] th {{ font-size: 0.78rem !important; white-space: nowrap; }}
+    [data-testid="stDataFrame"] td,
+    [data-testid="stDataEditor"] td {{ font-size: 0.78rem !important; }}
+    [data-testid="stDataFrame"] th,
+    [data-testid="stDataEditor"] th {{ font-size: 0.78rem !important; white-space: nowrap; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -66,7 +68,7 @@ st.markdown(
 
 st.title("🔍 ピラーレビュービューワー")
 st.caption(
-    "全契約をピラー別・金額降順で一覧。分類の精査・誤分類の発見に使用する。"
+    "「修正指示」列に修正先ピラー等を記入 → 「確定」ボタンで保存。"
     " contract_pillar を LEFT JOIN しているため未分類（UNCLS）も含む。"
 )
 
@@ -89,7 +91,7 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
             c.contract_name,
             c.agency_name,
             c.agency_id,
-            ROUND(c.contract_amount / 1e8, 1)   AS amount_oku,
+            ROUND(c.contract_amount / 1e8, 1) AS amount_oku,
             cp.match_method,
             cp.match_source,
             cp.confidence
@@ -126,12 +128,10 @@ with col_l1:
     if not sel_l1:
         sel_l1 = ["全て"]
 
-# 選択された L1 コードを整数リストに変換
 selected_l1_ints = [
     int(x[1:]) for x in sel_l1 if x.startswith("P") and x[1:].isdigit()
 ]
 
-# L2 オプションを L1 選択に連動
 if "全て" in sel_l1:
     avail_l2 = all_l2_codes
 else:
@@ -173,6 +173,9 @@ if "全て" not in sel_l2 and avail_l2:
     sel_l2_ints = [int(x[1:]) for x in sel_l2 if x.startswith("P") and x[1:].isdigit()]
     df = df[df["pillar_l2_code"].isin(sel_l2_ints)]
 
+# ID → fiscal_year の逆引き辞書（CSV保存用）
+id_to_fy: dict[int, int] = df.set_index("id")["fiscal_year"].to_dict()
+
 
 # ── サマリーメトリクス ────────────────────────────────────────────────────────
 n_classified = int(df["pillar_l1_code"].notna().sum())
@@ -190,13 +193,11 @@ mc4.metric("未分類",    f"{n_uncls:,}件")
 def _build_display(src: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "#": range(1, len(src) + 1),
-            "L1": src["pillar_l1_code"].apply(
-                lambda x: f"P{int(x)}" if pd.notna(x) else "UNCLS"
-            ),
-            "L2": src["pillar_l2_code"].apply(
-                lambda x: f"P{int(x)}" if pd.notna(x) else ""
-            ),
+            "#":          range(1, len(src) + 1),
+            "L1":         src["pillar_l1_code"].apply(
+                              lambda x: f"P{int(x)}" if pd.notna(x) else "UNCLS"),
+            "L2":         src["pillar_l2_code"].apply(
+                              lambda x: f"P{int(x)}" if pd.notna(x) else ""),
             "契約名":     src["contract_name"].fillna(""),
             "機関":       src["agency_name"].fillna(""),
             "契約額(億)": src["amount_oku"],
@@ -204,6 +205,7 @@ def _build_display(src: pd.DataFrame) -> pd.DataFrame:
             "match_source": src["match_source"].fillna(""),
             "conf":       src["confidence"],
             "ID":         src["id"].astype(int),
+            "修正指示":   "",   # 唯一の編集可能列
         }
     ).reset_index(drop=True)
 
@@ -211,24 +213,26 @@ def _build_display(src: pd.DataFrame) -> pd.DataFrame:
 disp = _build_display(df)
 
 _COL_CFG = {
-    "#":            st.column_config.NumberColumn("#",            width="small"),
-    "L1":           st.column_config.TextColumn("L1",             width="small"),
-    "L2":           st.column_config.TextColumn("L2",             width="small"),
-    "契約名":       st.column_config.TextColumn("契約名",          width="large"),
-    "機関":         st.column_config.TextColumn("機関",            width="medium"),
-    "契約額(億)":   st.column_config.NumberColumn("契約額(億)",    format="%.1f", width="small"),
-    "分類方法":     st.column_config.TextColumn("分類方法",        width="small"),
-    "match_source": st.column_config.TextColumn("match_source",   width="medium"),
-    "conf":         st.column_config.NumberColumn("conf",          format="%.3f", width="small"),
-    "ID":           st.column_config.NumberColumn("ID",            width="small"),
+    "#":            st.column_config.NumberColumn("#",            disabled=True, width="small"),
+    "L1":           st.column_config.TextColumn("L1",             disabled=True, width="small"),
+    "L2":           st.column_config.TextColumn("L2",             disabled=True, width="small"),
+    "契約名":       st.column_config.TextColumn("契約名",          disabled=True, width="large"),
+    "機関":         st.column_config.TextColumn("機関",            disabled=True, width="medium"),
+    "契約額(億)":   st.column_config.NumberColumn("契約額(億)",    disabled=True, format="%.1f", width="small"),
+    "分類方法":     st.column_config.TextColumn("分類方法",        disabled=True, width="small"),
+    "match_source": st.column_config.TextColumn("match_source",   disabled=True, width="medium"),
+    "conf":         st.column_config.NumberColumn("conf",          disabled=True, format="%.3f", width="small"),
+    "ID":           st.column_config.NumberColumn("ID",            disabled=True, width="small"),
+    "修正指示":     st.column_config.TextColumn("修正指示 ✏️",   width="medium"),
 }
 
-st.dataframe(
+edited = st.data_editor(
     disp,
     use_container_width=True,
     hide_index=True,
     height=700,
     column_config=_COL_CFG,
+    key="pr_editor",
 )
 
 fy_range = (
@@ -238,5 +242,70 @@ fy_range = (
 )
 st.caption(
     f"表示: {len(disp):,}件 / 読込: {len(df_all):,}件 | {fy_range}"
-    " | デフォルト: 契約額降順（列ヘッダークリックでソート変更）"
+    " | 「修正指示」列に修正先ピラー等を記入して「確定」を押してください"
 )
+
+
+# ── 確定ボタン ────────────────────────────────────────────────────────────────
+st.markdown("---")
+
+if st.button("✅ 修正指示を確定", type="primary"):
+    pending = edited[edited["修正指示"].str.strip().fillna("") != ""].copy()
+
+    if pending.empty:
+        st.warning("「修正指示」列に何も入力されていません。")
+    else:
+        # ── コピー用テキスト出力 ─────────────────────────────────────────────
+        lines = [f"以下の修正をお願いします（{fy_range}）：", ""]
+        for _, row in pending.iterrows():
+            name_trunc = str(row["契約名"])[:30]
+            lines.append(
+                f"#{int(row['#'])}   "
+                f"ID={int(row['ID'])}  "
+                f"{name_trunc}  "
+                f"[{row['L1']}] → {str(row['修正指示']).strip()}"
+            )
+        st.code("\n".join(lines), language=None)
+
+        # ── CSV 保存（contract_id で upsert） ───────────────────────────────
+        now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        if CORRECTIONS_CSV.exists():
+            existing = pd.read_csv(CORRECTIONS_CSV, dtype=str)
+            # 列が不足している場合は補完
+            for col in _CSV_COLS:
+                if col not in existing.columns:
+                    existing[col] = ""
+            existing = existing[_CSV_COLS]
+        else:
+            existing = pd.DataFrame(columns=_CSV_COLS)
+            CORRECTIONS_CSV.parent.mkdir(parents=True, exist_ok=True)
+
+        new_rows = [
+            {
+                "contract_id":   str(int(row["ID"])),
+                "fiscal_year":   str(id_to_fy.get(int(row["ID"]), min(sel_fy))),
+                "contract_name": str(row["契約名"]),
+                "current_l1":    str(row["L1"]),
+                "current_l2":    str(row["L2"]),
+                "correction":    str(row["修正指示"]).strip(),
+                "created_at":    now_iso,
+            }
+            for _, row in pending.iterrows()
+        ]
+        new_df = pd.DataFrame(new_rows, columns=_CSV_COLS)
+
+        # 既存エントリから同一 contract_id を除去して追記（upsert）
+        updated_ids = set(new_df["contract_id"].tolist())
+        existing_kept = existing[~existing["contract_id"].isin(updated_ids)]
+        merged = pd.concat([existing_kept, new_df], ignore_index=True)
+        merged.to_csv(CORRECTIONS_CSV, index=False, encoding="utf-8-sig")
+
+        st.success(
+            f"{len(new_rows)}件の修正指示を保存しました"
+            f" → `data/manual/pillar_corrections_pending.csv`"
+        )
+        st.caption(
+            f"累計: {len(merged)}件"
+            f" (既存 {len(existing_kept)}件 + 今回 {len(new_rows)}件)"
+        )
