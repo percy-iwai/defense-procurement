@@ -986,6 +986,7 @@ pg = st.navigation(
         ],
         "分析": [
             st.Page("pages/96_low_price_bid.py", title="低価格入札分析", icon="⚠️"),
+            st.Page("pages/97_pillar_review.py", title="ピラーレビュービューワー", icon="🔍"),
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
