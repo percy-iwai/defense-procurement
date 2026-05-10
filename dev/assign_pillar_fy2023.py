@@ -1,11 +1,13 @@
 """
 FY2023 契約への7本柱コード付与パイロット
 Usage:
-    python dev/assign_pillar_fy2023.py --dry-run   # ドライラン（上位マッチ20件表示）
-    python dev/assign_pillar_fy2023.py              # 本番実行
+    python dev/assign_pillar_fy2023.py --dry-run        # ドライラン（上位マッチ20件表示）
+    python dev/assign_pillar_fy2023.py                  # 本番実行（FY2023）
+    python dev/assign_pillar_fy2023.py --fy 2024        # FY2024に適用
 """
 
 import argparse
+import json
 import sqlite3
 import unicodedata
 from datetime import datetime, timezone
@@ -15,9 +17,10 @@ from rapidfuzz import fuzz, process
 
 # ─── パス定義 ───────────────────────────────────────────────────────────────
 BASE = Path(__file__).resolve().parent.parent
-DB_PROCUREMENT = BASE / "data/db/procurement.db"
-DB_PILLAR      = BASE / "data/db/defense_pillar.db"
-TARGET_FY      = 2023
+DB_PROCUREMENT    = BASE / "data/db/procurement.db"
+DB_PILLAR         = BASE / "data/db/defense_pillar.db"
+CORRECTIONS_JSON  = BASE / "data/manual/manual_corrections_snapshot.json"
+TARGET_FY         = 2023
 
 # ─── L1/L2コード導出ヘルパー ─────────────────────────────────────────────────
 def pillar_l1_l2(pillar_id: int) -> tuple[int, int | None]:
@@ -448,6 +451,147 @@ def match_keywords(name: str, agency_id: str | None) -> tuple[int, int | None, f
     return best
 
 
+# ─── org_fallback ─────────────────────────────────────────────────────────────
+_FMS_AMMO_KWS = [
+    "AMMO", "AMMUNITION", "MISSILE", "CARTRIDGE",
+    "ROCKET", "WARHEAD", "BOMB", "GRENADE",
+]
+
+def apply_org_fallback(
+    conn: sqlite3.Connection, fy: int, dry_run: bool = False
+) -> dict[str, int]:
+    """
+    keyword_rule / fuzzy_jigyou で未分類の行に対して機関情報ベースの追加分類を適用。
+
+    Rule 1: 装備庁研究所 → P82（研究開発）
+      agency_id LIKE 'atla%' AND agency_name に「研究所」「技術研究本部」「研究本部」のいずれか
+    Rule 2: 情報本部 → P5（指揮統制・情報）
+      agency_name LIKE '%情報本部%'
+    Rule 3: FMS弾薬 → P12 (l1=1, l2=12)
+      contract_name が英大文字主体 かつ AMMO/MISSILE 等の弾薬キーワードを含む
+    """
+    cur = conn.cursor()
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    counts: dict[str, int] = {"atla_research": 0, "dih": 0, "fms_ammo": 0}
+
+    # Rule 1: 装備庁研究所 → P82
+    rule1_rows = cur.execute("""
+        SELECT cp.contract_id
+        FROM contract_pillar cp
+        JOIN contracts c ON cp.contract_id = c.id
+        WHERE cp.fiscal_year = ?
+          AND cp.match_method = 'unclassified'
+          AND c.agency_id LIKE 'atla%'
+          AND (  c.agency_name LIKE '%研究所%'
+              OR c.agency_name LIKE '%技術研究本部%'
+              OR c.agency_name LIKE '%研究本部%')
+    """, (fy,)).fetchall()
+    rule1_ids = [r[0] for r in rule1_rows]
+    counts["atla_research"] = len(rule1_ids)
+    if not dry_run and rule1_ids:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = 8, pillar_l2_code = 82, confidence = 0.62,
+                match_method = 'org_fallback', match_source = 'atla_research→P82',
+                updated_at = ?
+            WHERE contract_id = ?
+        """, [(now_iso, cid) for cid in rule1_ids])
+
+    # Rule 2: 情報本部 → P5（l2=None）
+    rule2_rows = cur.execute("""
+        SELECT cp.contract_id
+        FROM contract_pillar cp
+        JOIN contracts c ON cp.contract_id = c.id
+        WHERE cp.fiscal_year = ?
+          AND cp.match_method = 'unclassified'
+          AND c.agency_name LIKE '%情報本部%'
+    """, (fy,)).fetchall()
+    rule2_ids = [r[0] for r in rule2_rows]
+    counts["dih"] = len(rule2_ids)
+    if not dry_run and rule2_ids:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = 5, pillar_l2_code = NULL, confidence = 0.60,
+                match_method = 'org_fallback', match_source = 'dih→P5',
+                updated_at = ?
+            WHERE contract_id = ?
+        """, [(now_iso, cid) for cid in rule2_ids])
+
+    # Rule 3: FMS弾薬 → P12（l1=1, l2=12）
+    # 英大文字3文字以上連続 かつ 弾薬キーワードを含む
+    kw_cond = " OR ".join("c.contract_name LIKE ?" for _ in _FMS_AMMO_KWS)
+    rule3_rows = cur.execute(f"""
+        SELECT cp.contract_id
+        FROM contract_pillar cp
+        JOIN contracts c ON cp.contract_id = c.id
+        WHERE cp.fiscal_year = ?
+          AND cp.match_method = 'unclassified'
+          AND c.contract_name GLOB '*[A-Z][A-Z][A-Z]*'
+          AND ({kw_cond})
+    """, [fy] + [f"%{kw}%" for kw in _FMS_AMMO_KWS]).fetchall()
+    rule3_ids = [r[0] for r in rule3_rows]
+    counts["fms_ammo"] = len(rule3_ids)
+    if not dry_run and rule3_ids:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = 1, pillar_l2_code = 12, confidence = 0.62,
+                match_method = 'org_fallback', match_source = 'fms_ammo→P12',
+                updated_at = ?
+            WHERE contract_id = ?
+        """, [(now_iso, cid) for cid in rule3_ids])
+
+    if not dry_run:
+        conn.commit()
+    return counts
+
+
+# ─── manual_corrections 再適用 ────────────────────────────────────────────────
+def apply_manual_corrections(
+    conn: sqlite3.Connection, fy: int, snapshot_path: Path, dry_run: bool = False
+) -> int:
+    """
+    manual_corrections_snapshot.json に記録された手動修正を contract_pillar に上書き適用。
+    DELETE 後の再実行で自動分類に埋もれないよう conf=0.99 で保護する。
+
+    JSON 形式: {"contract_id": [l1, l2_or_null], ...}
+    """
+    if not snapshot_path.exists():
+        print(f"  [manual_corrections] スナップショットなし: {snapshot_path}")
+        return 0
+
+    with open(snapshot_path, encoding="utf-8") as f:
+        snapshot: dict[str, list] = json.load(f)
+
+    cur = conn.cursor()
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # fy 内の contract_id のみ対象（他FY修正を誤って上書きしない）
+    fy_ids = {
+        r[0]
+        for r in cur.execute(
+            "SELECT contract_id FROM contract_pillar WHERE fiscal_year = ?", (fy,)
+        ).fetchall()
+    }
+
+    rows: list[tuple] = []
+    for cid_str, (l1, l2) in snapshot.items():
+        cid = int(cid_str)
+        if cid not in fy_ids:
+            continue
+        rows.append((l1, l2, 0.99, "manual_correction", cid_str, now_iso, cid))
+
+    if not dry_run and rows:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = ?, pillar_l2_code = ?, confidence = ?,
+                match_method = ?, match_source = ?, updated_at = ?
+            WHERE contract_id = ?
+        """, rows)
+        conn.commit()
+
+    return len(rows)
+
+
 # ─── ファジーマッチ用コーパス構築 ──────────────────────────────────────────────
 def build_fuzzy_corpus(pillar_db: str) -> list[tuple[str, int]]:
     """
@@ -477,11 +621,12 @@ def build_fuzzy_corpus(pillar_db: str) -> list[tuple[str, int]]:
 
 
 # ─── メイン処理 ─────────────────────────────────────────────────────────────
-def main(dry_run: bool = False) -> None:
+def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
     corpus = build_fuzzy_corpus(str(DB_PILLAR))
     corpus_names = [c[0] for c in corpus]
     name_to_pid  = {c[0]: c[1] for c in corpus}
     print(f"Fuzzy corpus size: {len(corpus_names)} entries")
+    print(f"Target FY: {fy}")
 
     conn = sqlite3.connect(str(DB_PROCUREMENT))
     cur  = conn.cursor()
@@ -504,18 +649,18 @@ def main(dry_run: bool = False) -> None:
 
     # FY対象の既存行を削除（冪等実行のため）
     if not dry_run:
-        cur.execute("DELETE FROM contract_pillar WHERE fiscal_year = ?", (TARGET_FY,))
+        cur.execute("DELETE FROM contract_pillar WHERE fiscal_year = ?", (fy,))
         conn.commit()
-        print(f"FY{TARGET_FY} existing rows deleted.")
+        print(f"FY{fy} existing rows deleted.")
 
-    # FY2023 契約ロード
+    # FY 契約ロード
     cur.execute("""
         SELECT id, contract_name, agency_id
         FROM contracts
         WHERE fiscal_year = ?
-    """, (TARGET_FY,))
+    """, (fy,))
     contracts = cur.fetchall()
-    print(f"FY{TARGET_FY} contracts loaded: {len(contracts)}")
+    print(f"FY{fy} contracts loaded: {len(contracts)}")
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -577,16 +722,24 @@ def main(dry_run: bool = False) -> None:
             mname_s = mname[:38]
             print(f"{cname_s:40s} {mname_s:40s} {score:6.1f} {l1!s:3s} {str(l2):5s}")
 
-        print(f"\n=== DRY RUN 分類見込み (FY{TARGET_FY}: {len(contracts)}件) ===")
+        print(f"\n=== DRY RUN 分類見込み (FY{fy}: {len(contracts)}件) ===")
         print(f"  Pass1 fuzzy_jigyou : {fuzzy_count:6d}件 ({fuzzy_count/len(contracts)*100:.1f}%)")
         print(f"  Pass2 keyword_rule : {keyword_count:6d}件 ({keyword_count/len(contracts)*100:.1f}%)")
         print(f"  未分類             : {unclassified:6d}件 ({unclassified/len(contracts)*100:.1f}%)")
+        print()
+        print("=== DRY RUN: org_fallback 見込み ===")
+        fb_counts = apply_org_fallback(conn, fy, dry_run=True)
+        print(f"  Rule1 atla_research→P82 : {fb_counts['atla_research']:4d}件")
+        print(f"  Rule2 dih→P5            : {fb_counts['dih']:4d}件")
+        print(f"  Rule3 fms_ammo→P12      : {fb_counts['fms_ammo']:4d}件")
+        mc_count = apply_manual_corrections(conn, fy, CORRECTIONS_JSON, dry_run=True)
+        print(f"  manual_correction再適用  : {mc_count:4d}件")
         conn.close()
         return
 
     # ─── 本番: DB書き込み ────────────────────────────────────────────────
     rows_to_insert = [
-        (r[0], r[1], r[2], r[3], r[4], r[5], TARGET_FY, now_iso)
+        (r[0], r[1], r[2], r[3], r[4], r[5], fy, now_iso)
         for r in results
     ]
     cur.executemany("""
@@ -598,12 +751,29 @@ def main(dry_run: bool = False) -> None:
     conn.commit()
     print(f"\n{len(rows_to_insert)} rows inserted/replaced into contract_pillar.")
 
+    # ─── org_fallback ステージ ──────────────────────────────────────────────
+    print("\n=== org_fallback 適用 ===")
+    fb_counts = apply_org_fallback(conn, fy, dry_run=False)
+    print(f"  Rule1 atla_research→P82 : {fb_counts['atla_research']:4d}件")
+    print(f"  Rule2 dih→P5            : {fb_counts['dih']:4d}件")
+    print(f"  Rule3 fms_ammo→P12      : {fb_counts['fms_ammo']:4d}件")
+    org_fallback_total = sum(fb_counts.values())
+    print(f"  合計                    : {org_fallback_total:4d}件")
+
+    # ─── manual_corrections 再適用 ─────────────────────────────────────────
+    print("\n=== manual_corrections 再適用 ===")
+    mc_count = apply_manual_corrections(conn, fy, CORRECTIONS_JSON, dry_run=False)
+    print(f"  適用件数: {mc_count}件")
+
     # ─── 集計レポート ───────────────────────────────────────────────────────
-    print(f"\n=== FY{TARGET_FY} 分類結果 ===")
+    print(f"\n=== FY{fy} 分類結果 ===")
     print(f"  対象件数           : {len(contracts):6d}件")
     print(f"  Pass1 fuzzy_jigyou : {fuzzy_count:6d}件 ({fuzzy_count/len(contracts)*100:.1f}%)")
     print(f"  Pass2 keyword_rule : {keyword_count:6d}件 ({keyword_count/len(contracts)*100:.1f}%)")
-    print(f"  未分類             : {unclassified:6d}件 ({unclassified/len(contracts)*100:.1f}%)")
+    print(f"  Pass3 org_fallback : {org_fallback_total:6d}件 ({org_fallback_total/len(contracts)*100:.1f}%)")
+    print(f"  manual_correction  : {mc_count:6d}件")
+    remaining = unclassified - org_fallback_total - mc_count
+    print(f"  未分類（残）       : {remaining:6d}件 ({remaining/len(contracts)*100:.1f}%)")
 
     print(f"\n=== 柱別件数・金額 ===")
     cur.execute("""
@@ -616,8 +786,8 @@ def main(dry_run: bool = False) -> None:
         WHERE cp.fiscal_year = ?
         GROUP BY cp.pillar_l1_code
         ORDER BY cp.pillar_l1_code
-    """, (TARGET_FY,))
-    rows = cur.fetchall()
+    """, (fy,))
+    pillar_rows = cur.fetchall()
 
     PILLAR_NAMES = {
         1: "P1 スタンド・オフ防衛",
@@ -630,7 +800,7 @@ def main(dry_run: bool = False) -> None:
         8: "P8 防衛生産基盤・研究開発",
         None: "未分類",
     }
-    for l1, cnt, amt in rows:
+    for l1, cnt, amt in pillar_rows:
         name = PILLAR_NAMES.get(l1, f"P{l1}")
         amt_s = f"{amt}億円" if amt else "（金額なし）"
         print(f"  {name:30s}: {cnt:6d}件 / {amt_s}")
@@ -640,7 +810,7 @@ def main(dry_run: bool = False) -> None:
     cur.execute("""
         SELECT match_method, COUNT(*) FROM contract_pillar
         WHERE fiscal_year = ? GROUP BY match_method ORDER BY COUNT(*) DESC
-    """, (TARGET_FY,))
+    """, (fy,))
     for method, cnt in cur.fetchall():
         print(f"  {method:20s}: {cnt:6d}件")
 
@@ -652,5 +822,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true",
                         help="DBに書き込まず上位マッチ20件を確認する")
+    parser.add_argument("--fy", type=int, default=TARGET_FY,
+                        help=f"対象年度（デフォルト: {TARGET_FY}）")
     args = parser.parse_args()
-    main(dry_run=args.dry_run)
+    main(dry_run=args.dry_run, fy=args.fy)
