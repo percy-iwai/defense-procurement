@@ -422,6 +422,38 @@ _KEYWORD_RULES_RAW: list[tuple] = [
     # ── P42 リスク管理枠組み=RMF（FY2024追加） ───────────────────────────────
     (["リスク管理枠組み"],
      4, 42, 0.82),
+
+    # ── P43 地上車両（全体取得）（conf=0.73 > P72「維持整備」0.72）────────────────
+    # 根拠: Percy確認済み（トラック/高機動車/装軌車/ドーザ等は全車両調達→P43確定）
+    # conf=0.73: P72の最高値(0.72)より高く設定し、維持整備キーワードと同時ヒット時もP43優先
+    (["トラック", "高機動車", "装軌車", "ドーザ", "装甲車",
+      "10式戦車", "16式機動戦闘車", "11式装軌車"],
+     4, 43, 0.73),
+
+    # ── P43 火砲・小火器（取得）──────────────────────────────────────────────
+    # 根拠: 機関砲/無反動砲/砲座は装備品取得→P43（弾薬・砲弾はP71ルールが上位）
+    (["機関砲", "無反動砲", "火砲", "砲座", "施線砲"],
+     4, 43, 0.72),
+
+    # ── P43 デコイ・おとり装備 ────────────────────────────────────────────────
+    (["デコイ"],
+     4, 43, 0.75),
+
+    # ── P43 音響測定装置・水中音響センサー（ソーナー系）──────────────────────────
+    # 根拠: 音響測定装置信号処理部=ソーナー関連→P43確定
+    (["音響測定装置", "音響特性分析", "水中音響"],
+     4, 43, 0.75),
+
+    # ── P5 UC統合通信・システムネットワーク管理 ────────────────────────────────
+    # 根拠: UCサービス基盤=統合通信インフラ→P5、システムネットワーク管理=C2インフラ→P5
+    (["UCサービス", "システムネットワーク管理", "システム・ネットワーク管理",
+      "統合通信基盤"],
+     5, None, 0.75),
+
+    # ── P71 航空爆弾（GBU/JDAM系）───────────────────────────────────────────
+    # 根拠: GBU-39(SDB)等は弾薬→P71確定
+    (["GBU-", "JDAM"],
+     7, 71, 0.78),
 ]
 
 # 起動時に全キーワードを NFKC 正規化（全角英数→半角に統一して照合漏れ防止）
@@ -479,6 +511,14 @@ _FMS_AMMO_KWS = [
     "ROCKET", "WARHEAD", "BOMB", "GRENADE",
 ]
 
+_HOKYUSHO_VEHICLE_KWS: list[str] = [
+    norm(kw) for kw in [
+        "航空機", "艦船", "護衛艦", "潜水艦", "ヘリコプター", "ヘリ",
+        "輸送機", "戦闘機", "掃海艦", "掃海艇", "哨戒機", "哨戒艦",
+        "戦車", "装甲車", "高機動車", "装軌車",
+    ]
+]
+
 def apply_org_fallback(
     conn: sqlite3.Connection, fy: int, dry_run: bool = False
 ) -> dict[str, int]:
@@ -488,13 +528,18 @@ def apply_org_fallback(
     Rule 1: 装備庁研究所 → P82（研究開発）
       agency_id LIKE 'atla%' AND agency_name に「研究所」「技術研究本部」「研究本部」のいずれか
     Rule 2: 情報本部 → P5（指揮統制・情報）
-      agency_name LIKE '%情報本部%'
+      agency_name LIKE '%情報本部%' OR requesting_org = 'DIH'
     Rule 3: FMS弾薬 → P12 (l1=1, l2=12)
       contract_name が英大文字主体 かつ AMMO/MISSILE 等の弾薬キーワードを含む
+    Rule 4: 補給処 → P43（乗り物系）or P72（部品・消耗品系）
+      agency_name LIKE '%補給処%'
     """
     cur = conn.cursor()
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    counts: dict[str, int] = {"atla_research": 0, "dih": 0, "fms_ammo": 0}
+    counts: dict[str, int] = {
+        "atla_research": 0, "dih": 0, "fms_ammo": 0,
+        "hokyusho_vehicle": 0, "hokyusho_parts": 0,
+    }
 
     # Rule 1: 装備庁研究所 → P82
     rule1_rows = cur.execute("""
@@ -520,13 +565,15 @@ def apply_org_fallback(
         """, [(now_iso, cid) for cid in rule1_ids])
 
     # Rule 2: 情報本部 → P5（l2=None）
+    # agency_name に「情報本部」を含む場合、または contract_requesting_org.requesting_org = 'DIH'
     rule2_rows = cur.execute("""
-        SELECT cp.contract_id
+        SELECT DISTINCT cp.contract_id
         FROM contract_pillar cp
         JOIN contracts c ON cp.contract_id = c.id
+        LEFT JOIN contract_requesting_org cro ON cro.contract_id = c.id
         WHERE cp.fiscal_year = ?
           AND cp.match_method = 'unclassified'
-          AND c.agency_name LIKE '%情報本部%'
+          AND (c.agency_name LIKE '%情報本部%' OR cro.requesting_org = 'DIH')
     """, (fy,)).fetchall()
     rule2_ids = [r[0] for r in rule2_rows]
     counts["dih"] = len(rule2_ids)
@@ -561,6 +608,48 @@ def apply_org_fallback(
                 updated_at = ?
             WHERE contract_id = ?
         """, [(now_iso, cid) for cid in rule3_ids])
+
+    # Rule 4: 補給処 → P43（乗り物系）or P72（部品・消耗品系）
+    # 乗り物系: 航空機/護衛艦/戦闘機/ヘリ/戦車等のキーワードを含む → P43 conf=0.60
+    # 部品・消耗品系: 上記以外（FMSスペアパーツ・整備品等） → P72 conf=0.55
+    rule4_rows = cur.execute("""
+        SELECT cp.contract_id, c.contract_name
+        FROM contract_pillar cp
+        JOIN contracts c ON cp.contract_id = c.id
+        WHERE cp.fiscal_year = ?
+          AND cp.match_method = 'unclassified'
+          AND c.agency_name LIKE '%補給処%'
+    """, (fy,)).fetchall()
+
+    rule4a_ids: list[int] = []  # 乗り物系 → P43
+    rule4b_ids: list[int] = []  # 部品・消耗品系 → P72
+    for cid, cname in rule4_rows:
+        n = norm(cname or "")
+        if any(kw in n for kw in _HOKYUSHO_VEHICLE_KWS):
+            rule4a_ids.append(cid)
+        else:
+            rule4b_ids.append(cid)
+
+    counts["hokyusho_vehicle"] = len(rule4a_ids)
+    counts["hokyusho_parts"]   = len(rule4b_ids)
+
+    if not dry_run and rule4a_ids:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = 4, pillar_l2_code = 43, confidence = 0.60,
+                match_method = 'org_fallback', match_source = 'hokyusho→P43',
+                updated_at = ?
+            WHERE contract_id = ?
+        """, [(now_iso, cid) for cid in rule4a_ids])
+
+    if not dry_run and rule4b_ids:
+        cur.executemany("""
+            UPDATE contract_pillar
+            SET pillar_l1_code = 7, pillar_l2_code = 72, confidence = 0.55,
+                match_method = 'org_fallback', match_source = 'hokyusho→P72',
+                updated_at = ?
+            WHERE contract_id = ?
+        """, [(now_iso, cid) for cid in rule4b_ids])
 
     if not dry_run:
         conn.commit()
@@ -751,11 +840,13 @@ def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
         print()
         print("=== DRY RUN: org_fallback 見込み ===")
         fb_counts = apply_org_fallback(conn, fy, dry_run=True)
-        print(f"  Rule1 atla_research→P82 : {fb_counts['atla_research']:4d}件")
-        print(f"  Rule2 dih→P5            : {fb_counts['dih']:4d}件")
-        print(f"  Rule3 fms_ammo→P12      : {fb_counts['fms_ammo']:4d}件")
+        print(f"  Rule1 atla_research→P82  : {fb_counts['atla_research']:4d}件")
+        print(f"  Rule2 dih→P5             : {fb_counts['dih']:4d}件")
+        print(f"  Rule3 fms_ammo→P12       : {fb_counts['fms_ammo']:4d}件")
+        print(f"  Rule4a hokyusho→P43      : {fb_counts['hokyusho_vehicle']:4d}件")
+        print(f"  Rule4b hokyusho→P72      : {fb_counts['hokyusho_parts']:4d}件")
         mc_count = apply_manual_corrections(conn, fy, CORRECTIONS_JSON, dry_run=True)
-        print(f"  manual_correction再適用  : {mc_count:4d}件")
+        print(f"  manual_correction再適用   : {mc_count:4d}件")
         conn.close()
         return
 
@@ -776,9 +867,11 @@ def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
     # ─── org_fallback ステージ ──────────────────────────────────────────────
     print("\n=== org_fallback 適用 ===")
     fb_counts = apply_org_fallback(conn, fy, dry_run=False)
-    print(f"  Rule1 atla_research→P82 : {fb_counts['atla_research']:4d}件")
-    print(f"  Rule2 dih→P5            : {fb_counts['dih']:4d}件")
-    print(f"  Rule3 fms_ammo→P12      : {fb_counts['fms_ammo']:4d}件")
+    print(f"  Rule1 atla_research→P82  : {fb_counts['atla_research']:4d}件")
+    print(f"  Rule2 dih→P5             : {fb_counts['dih']:4d}件")
+    print(f"  Rule3 fms_ammo→P12       : {fb_counts['fms_ammo']:4d}件")
+    print(f"  Rule4a hokyusho→P43      : {fb_counts['hokyusho_vehicle']:4d}件")
+    print(f"  Rule4b hokyusho→P72      : {fb_counts['hokyusho_parts']:4d}件")
     org_fallback_total = sum(fb_counts.values())
     print(f"  合計                    : {org_fallback_total:4d}件")
 
