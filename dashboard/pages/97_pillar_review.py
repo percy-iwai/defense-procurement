@@ -25,6 +25,7 @@ require_password()
 PROJECT_ROOT    = DASHBOARD_DIR.parent
 DB_PATH         = PROJECT_ROOT / "data" / "db" / "procurement.db"
 CORRECTIONS_CSV = PROJECT_ROOT / "data" / "manual" / "pillar_corrections_pending.csv"
+PILLAR_DB_PATH  = PROJECT_ROOT / "data" / "db" / "defense_pillar.db"
 
 _CSV_COLS = [
     "contract_id", "fiscal_year", "contract_name",
@@ -46,6 +47,20 @@ L1_TO_L2: dict[int, list[int]] = {
     7: [71, 72, 73],
     8: [81, 82, 83, 84, 85],
 }
+
+@st.cache_data(ttl=3600)
+def _load_pillar_names() -> tuple[dict[int, str], dict[int, str]]:
+    """defense_pillar_master から L1/L2 の pillar_id → name 辞書を返す。"""
+    if not PILLAR_DB_PATH.exists():
+        return {}, {}
+    with sqlite3.connect(str(PILLAR_DB_PATH)) as conn:
+        rows = conn.execute(
+            "SELECT pillar_id, level, name FROM defense_pillar_master"
+        ).fetchall()
+    l1 = {r[0]: r[2] for r in rows if r[1] == 1}
+    l2 = {r[0]: r[2] for r in rows if r[1] == 2}
+    return l1, l2
+
 
 # ── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown(
@@ -190,14 +205,30 @@ mc4.metric("未分類",    f"{n_uncls:,}件")
 
 
 # ── 表示用 DataFrame 整形 ────────────────────────────────────────────────────
-def _build_display(src: pd.DataFrame) -> pd.DataFrame:
+def _build_display(
+    src: pd.DataFrame,
+    l1_names: dict[int, str],
+    l2_names: dict[int, str],
+) -> pd.DataFrame:
+    def _fmt_l1(x: object) -> str:
+        if pd.isna(x):
+            return "UNCLS"
+        code = int(x)
+        name = l1_names.get(code, "")
+        return f"P{code} {name}" if name else f"P{code}"
+
+    def _fmt_l2(x: object) -> str:
+        if pd.isna(x):
+            return ""
+        code = int(x)
+        name = l2_names.get(code, "")
+        return f"P{code} {name}" if name else f"P{code}"
+
     return pd.DataFrame(
         {
             "#":          range(1, len(src) + 1),
-            "L1":         src["pillar_l1_code"].apply(
-                              lambda x: f"P{int(x)}" if pd.notna(x) else "UNCLS"),
-            "L2":         src["pillar_l2_code"].apply(
-                              lambda x: f"P{int(x)}" if pd.notna(x) else ""),
+            "L1":         src["pillar_l1_code"].apply(_fmt_l1),
+            "L2":         src["pillar_l2_code"].apply(_fmt_l2),
             "契約名":     src["contract_name"].fillna(""),
             "機関":       src["agency_name"].fillna(""),
             "契約額(億)": src["amount_oku"],
@@ -210,12 +241,13 @@ def _build_display(src: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-disp = _build_display(df)
+_l1_names, _l2_names = _load_pillar_names()
+disp = _build_display(df, _l1_names, _l2_names)
 
 _COL_CFG = {
     "#":            st.column_config.NumberColumn("#",            disabled=True, width="small"),
-    "L1":           st.column_config.TextColumn("L1",             disabled=True, width="small"),
-    "L2":           st.column_config.TextColumn("L2",             disabled=True, width="small"),
+    "L1":           st.column_config.TextColumn("L1",             disabled=True, width="medium"),
+    "L2":           st.column_config.TextColumn("L2",             disabled=True, width="medium"),
     "契約名":       st.column_config.TextColumn("契約名",          disabled=True, width="large"),
     "機関":         st.column_config.TextColumn("機関",            disabled=True, width="medium"),
     "契約額(億)":   st.column_config.NumberColumn("契約額(億)",    disabled=True, format="%.1f", width="small"),
