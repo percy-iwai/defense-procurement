@@ -379,7 +379,17 @@ def parse_pdf_records(
                             v = row[col_map["contract_name"]]
                             if v:
                                 s = str(v).replace("\n", " ").strip()
-                                if s:
+                                # 財計第2017号書式で「番号」列と「名称」列が結合ヘッダーになっている場合、
+                                # pdfplumberが col N に"名称"ヘッダーを入れ col N+1 を空にするが、
+                                # データ行では col N=行番号 / col N+1=実際の案件名 という分割になる。
+                                # col N の値が純粋な整数（行番号）なら col N+1 を優先使用する。
+                                if re.match(r"^\d+$", s):
+                                    next_col = col_map["contract_name"] + 1
+                                    if next_col < len(row) and row[next_col]:
+                                        s2 = str(row[next_col]).replace("\n", " ").strip()
+                                        if s2 and not re.match(r"^\d+$", s2):
+                                            s = s2
+                                if s and not re.match(r"^\d+$", s):
                                     rec["contract_name"] = s[:500]
 
                         if "contract_amount" in col_map:
