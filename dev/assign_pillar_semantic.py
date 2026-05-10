@@ -34,7 +34,7 @@ BASE        = Path(__file__).resolve().parent.parent
 DB_REAL     = BASE / "data/db/procurement.db"
 DB_TMP      = Path(r"C:\Users\Percy Iwai\AppData\Local\Temp") / "procurement_semantic.db"
 NARRATIVE   = BASE / "docs/pillar_narrative.md"
-TARGET_FY   = 2023
+TARGET_FY   = 2023  # デフォルト値（--fyで上書き可能）
 MODEL_NAME  = "intfloat/multilingual-e5-large"
 BATCH_SIZE  = 256
 DEFAULT_THR = 0.75
@@ -261,11 +261,11 @@ def load_narrative_summary(path: Path) -> dict[str, str]:
 
 
 # ─── メイン処理 ───────────────────────────────────────────────────────────────
-def main(dry_run: bool = False, threshold: float = DEFAULT_THR) -> None:
+def main(dry_run: bool = False, threshold: float = DEFAULT_THR, fiscal_year: int = TARGET_FY) -> None:
     print(f"{'=== DRY RUN ===' if dry_run else '=== 本番実行 ==='}")
     print(f"モデル: {MODEL_NAME}")
     print(f"閾値: {threshold}")
-    print(f"対象: FY{TARGET_FY} / match_method='unclassified'")
+    print(f"対象: FY{fiscal_year} / match_method='unclassified'")
     print()
 
     # ── 1. モデルロード ──────────────────────────────────────────────────────
@@ -306,7 +306,7 @@ def main(dry_run: bool = False, threshold: float = DEFAULT_THR) -> None:
         JOIN contract_pillar cp ON cp.contract_id = c.id
         WHERE cp.match_method = 'unclassified'
           AND c.fiscal_year = ?
-    """, (TARGET_FY,))
+    """, (fiscal_year,))
     rows = cur_r.fetchall()
     conn_r.close()
     total = len(rows)
@@ -406,7 +406,7 @@ def main(dry_run: bool = False, threshold: float = DEFAULT_THR) -> None:
         WHERE cp.match_method = 'keyword_rule'
           AND c.fiscal_year = ?
         LIMIT 500
-    """, (TARGET_FY,))
+    """, (fiscal_year,))
     kw_rows = cur_s.fetchall()
     conn_s.close()
 
@@ -468,8 +468,8 @@ def main(dry_run: bool = False, threshold: float = DEFAULT_THR) -> None:
     cur_w.execute("""
         SELECT match_method, COUNT(*) FROM contract_pillar
         WHERE fiscal_year = ? GROUP BY match_method ORDER BY COUNT(*) DESC
-    """, (TARGET_FY,))
-    print(f"\n=== 更新後 FY{TARGET_FY} match_method 分布 ===")
+    """, (fiscal_year,))
+    print(f"\n=== 更新後 FY{fiscal_year} match_method 分布 ===")
     for method, cnt in cur_w.fetchall():
         print(f"  {method:25s}: {cnt:6,}件")
 
@@ -482,10 +482,13 @@ def main(dry_run: bool = False, threshold: float = DEFAULT_THR) -> None:
 
 # ─── エントリポイント ─────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="FY2023 未分類契約へのセマンティック埋め込みピラー付与")
+    parser = argparse.ArgumentParser(description="未分類契約へのセマンティック埋め込みピラー付与")
     parser.add_argument("--dry-run", action="store_true",
                         help="DBに書き込まず結果確認のみ")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THR,
                         help=f"コサイン類似度閾値 (デフォルト: {DEFAULT_THR})")
+    parser.add_argument("--fy", "--fiscal-year", type=int, default=TARGET_FY,
+                        dest="fiscal_year",
+                        help=f"対象年度 (デフォルト: {TARGET_FY})")
     args = parser.parse_args()
-    main(dry_run=args.dry_run, threshold=args.threshold)
+    main(dry_run=args.dry_run, threshold=args.threshold, fiscal_year=args.fiscal_year)
