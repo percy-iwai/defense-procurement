@@ -51,9 +51,10 @@ def norm(s: str | None) -> str:
     return unicodedata.normalize("NFKC", s)
 
 # ─── キーワードルール辞書（raw）──────────────────────────────────────────────────
-# (キーワードリスト, pillar_l1, pillar_l2, confidence)
+# (キーワードリスト, pillar_l1, pillar_l2, confidence[, org_filter: set[str]])
+# org_filter: 指定したorgキーのみ適用。省略 or None = 全機関に適用。
 # NOTE: キーワードは起動時に NFKC 正規化済みリストに変換される（全角英数に対応）
-_KEYWORD_RULES_RAW: list[tuple[list[str], int, int | None, float]] = [
+_KEYWORD_RULES_RAW: list[tuple] = [
 
     # ── P1 スタンド・オフ防衛能力 ──────────────────────────────────────────────
     # 対艦・対地長射程ミサイル、反撃能力関連
@@ -156,10 +157,12 @@ _KEYWORD_RULES_RAW: list[tuple[list[str], int, int | None, float]] = [
       "維持整備", "維持修理", "部品費", "維持費",
       "成果払い", "PBL", "包括契約", "補用品", "修理用部品",
       "保守整備", "性能維持", "機能維持",
-      # 追加: エンジン補用（修理・交換用）
+      # エンジン補用（修理・交換用）
       "エンジン補用", "補用エンジン",
       # 「補用」単独（スペアパーツ）
-      "補用"],
+      "補用",
+      # 定期修理・OH（P43の「修理」低信頼より優先させるため高信頼側に配置）
+      "オーバーホール", "定期修理", "改修整備"],
      7, 72, 0.72),
 
     # ── P72 汎用保守/修理（低信頼） ─────────────────────────────────────────
@@ -197,7 +200,12 @@ _KEYWORD_RULES_RAW: list[tuple[list[str], int, int | None, float]] = [
     (["試作", "研究", "開発", "DISTI"],
      8, 82, 0.62),
 
-    # ── P83 基地対策 ────────────────────────────────────────────────────────
+    # ── P83 基地対策（RDB専用・高優先: 賃貸借・基地周辺用地） ─────────────────
+    # rdb系機関の土地賃貸借・移転補償等。全機関適用すると一般賃貸借と混同するためRDB限定。
+    (["賃貸借", "土地賃貸", "移転補償", "家屋防音", "飛行場周辺"],
+     8, 83, 0.85, {"RDB"}),
+
+    # ── P83 基地対策（全機関）────────────────────────────────────────────────
     (["騒音対策", "防音工事", "基地対策", "基地周辺", "防音",
       "補償", "民生安定", "住宅防音"],
      8, 83, 0.75),
@@ -215,9 +223,11 @@ _KEYWORD_RULES_RAW: list[tuple[list[str], int, int | None, float]] = [
 ]
 
 # 起動時に全キーワードを NFKC 正規化（全角英数→半角に統一して照合漏れ防止）
-KEYWORD_RULES: list[tuple[list[str], int, int | None, float]] = [
-    ([norm(kw) for kw in kws], l1, l2, conf)
-    for kws, l1, l2, conf in _KEYWORD_RULES_RAW
+# 5番目要素 org_filter (set[str] | None) を保持する
+KEYWORD_RULES: list[tuple] = [
+    ([norm(kw) for kw in raw[0]], raw[1], raw[2], raw[3],
+     raw[4] if len(raw) > 4 else None)
+    for raw in _KEYWORD_RULES_RAW
 ]
 
 # ─── キーワードマッチ ─────────────────────────────────────────────────────────
@@ -230,7 +240,9 @@ def match_keywords(name: str, agency_id: str | None) -> tuple[int, int | None, f
     # Step A: KEYWORD_RULES を全部スキャンして最高信頼度のマッチを取得
     best: tuple[int, int | None, float, str] | None = None
     best_conf = 0.0
-    for kws, l1, l2, conf in KEYWORD_RULES:
+    for kws, l1, l2, conf, org_filter in KEYWORD_RULES:
+        if org_filter is not None and org not in org_filter:
+            continue  # org_filter 指定あり & 現機関が対象外 → スキップ
         for kw in kws:
             if kw in n:
                 if conf > best_conf:
