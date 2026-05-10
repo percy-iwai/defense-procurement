@@ -53,21 +53,28 @@ _FUYOU = {
 
 _ALL_FYS = [2022, 2023, 2024, 2025]  # 収録FY一覧
 
-# 7本柱 ピラー別予算（契約ベース、単位：億円）
-_PILLAR_BUDGET_BY_FY: dict[int, dict[int, float]] = {
-    2023: {1:14207,2:9867,3:1827,4:16250,5:4588,6:2696,7:33687,8:21795},
-    2024: {1:7127,2:12284,3:1146,4:16401,5:4248,6:5653,7:29422,8:17336},
-    2025: {1:9390,2:5331,3:1110,4:16119,5:3852,6:4545,7:27525,8:16459},
-}
 _PILLAR_SHORT: dict[int, str] = {
-    1: "P1 スタンド・オフ",
-    2: "P2 統合防空",
-    3: "P3 無人アセット",
-    4: "P4 領域横断",
-    5: "P5 指揮統制",
-    6: "P6 機動展開",
-    7: "P7 持続性・強靱性",
-    8: "P8 防衛力の基盤",
+    1: "P1 スタンドオフ", 2: "P2 統合防空", 3: "P3 無人アセット",
+    4: "P4 領域横断",    5: "P5 指揮統制", 6: "P6 機動展開",
+    7: "P7 持続性",      8: "P8 防衛生産",
+}
+_PILLAR_L2_NAMES: dict[int, str] = {
+    1: "スタンド・オフ防衛能力",   2: "統合防空ミサイル防衛能力",
+    3: "無人アセット防衛能力",     4: "領域横断作戦能力",
+    5: "指揮統制・情報関連機能",   6: "機動展開能力・国民保護",
+    7: "持続性・強靱性",           8: "防衛生産基盤強化・研究開発等",
+    41: "宇宙",    42: "サイバー",  43: "車両、艦船、航空機等",
+    71: "弾薬・誘導弾",  72: "装備品等の維持、整備費", 73: "施設の強靱化",
+    81: "防衛生産基盤の強化", 82: "研究開発", 83: "基地対策",
+    84: "教育訓練費・燃料費等", 85: "米軍再編関係経費等",
+}
+_L2_COLOR: dict[int, str] = {
+    1: "#f38ba8", 2: "#fab387", 3: "#a6e3a1", 4: "#89b4fa",
+    5: "#89dceb", 6: "#cba6f7", 7: "#f9e2af", 8: "#b4befe",
+    41: "#74c7ec", 42: "#cba6f7", 43: "#89b4fa",
+    71: "#f38ba8", 72: "#fab387", 73: "#a6e3a1",
+    81: "#eba0ac", 82: "#cdd6f4", 83: "#b4befe",
+    84: "#94e2d5", 85: "#6c7086",
 }
 
 _BUDGET_FY2024  = _BUDGET[2024]
@@ -326,24 +333,61 @@ def _load_url_months() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300)
-def _load_pillar_top(fy: int) -> pd.DataFrame:
-    """FY別ピラー集計（トップページ用）。"""
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            return pd.read_sql_query(
-                """
-                SELECT cp.pillar_l1_code,
-                       COUNT(*) AS cnt,
-                       ROUND(SUM(c.contract_amount)/1e8, 1) AS db_oku
+def _load_pillar_detail(
+    pillar_l1: int, fys: tuple[int, ...]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """指定L1ピラーのトップ10契約と上位10社を返す。"""
+    ph = ",".join("?" * len(fys))
+    with sqlite3.connect(DB_PATH) as conn:
+        top_contracts = pd.read_sql_query(
+            f"""SELECT
+                    COALESCE(cp.pillar_l2_code, cp.pillar_l1_code) AS l2_code,
+                    c.contract_name,
+                    c.contract_amount,
+                    c.fiscal_year,
+                    c.vendor_name
                 FROM contract_pillar cp
                 JOIN contracts c ON cp.contract_id = c.id
-                WHERE c.fiscal_year = ? AND cp.pillar_l1_code IS NOT NULL
-                GROUP BY cp.pillar_l1_code
-                """,
-                conn, params=(fy,),
-            )
-    except Exception:
-        return pd.DataFrame()
+                WHERE cp.pillar_l1_code = ?
+                  AND c.fiscal_year IN ({ph})
+                  AND c.contract_amount IS NOT NULL
+                ORDER BY c.contract_amount DESC
+                LIMIT 10""",
+            conn, params=(pillar_l1, *fys),
+        )
+        raw_vendors = pd.read_sql_query(
+            f"""SELECT
+                    c.vendor_name,
+                    COUNT(*) AS cnt,
+                    SUM(c.contract_amount) AS total_amount
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                WHERE cp.pillar_l1_code = ?
+                  AND c.fiscal_year IN ({ph})
+                  AND c.vendor_name IS NOT NULL
+                  AND c.contract_amount IS NOT NULL
+                GROUP BY c.vendor_name
+                ORDER BY SUM(c.contract_amount) DESC
+                LIMIT 50""",
+            conn, params=(pillar_l1, *fys),
+        )
+    top_contracts["amount_oku"]  = top_contracts["contract_amount"] / 1e8
+    top_contracts["vendor_disp"] = top_contracts["vendor_name"].map(
+        lambda x: _normalize_vendor(x) or "—"
+    )
+    top_contracts["l2_name"] = top_contracts["l2_code"].map(
+        lambda x: _PILLAR_L2_NAMES.get(int(x), f"P{int(x)}") if pd.notna(x) else "—"
+    )
+    raw_vendors["vendor_norm"] = raw_vendors["vendor_name"].map(_normalize_vendor)
+    top_vendors = (
+        raw_vendors.dropna(subset=["vendor_norm"])
+        .groupby("vendor_norm", as_index=False)
+        .agg(cnt=("cnt", "sum"), total_amount=("total_amount", "sum"))
+        .sort_values("total_amount", ascending=False)
+        .head(10)
+    )
+    top_vendors["total_oku"] = top_vendors["total_amount"] / 1e8
+    return top_contracts, top_vendors
 
 
 _REQ_ORG_LABELS = {
@@ -890,141 +934,130 @@ def main():
 
     st.divider()
 
-    # ── 防衛力強化 7本柱 サマリー ─────────────────────────────────────
-    _ph1, _ph2 = st.columns([5, 1])
-    with _ph1:
-        st.subheader("🏛️ 防衛力強化 7本柱 — 調達カバレッジ")
-    with _ph2:
-        _top_pillar_fy = st.selectbox(
-            "FY",
-            options=[2025, 2024, 2023],
-            index=0,
-            format_func=lambda x: f"FY{x}",
-            key="top_pillar_fy",
-            label_visibility="collapsed",
-        )
+    # ── 7本柱 × 大型案件・受注企業 ─────────────────────────────────────
+    st.subheader("🔍 防衛力強化 7本柱 — 大型案件 & 受注企業")
 
-    _df_pt = _load_pillar_top(_top_pillar_fy)
-    _bgt_map_pt = _PILLAR_BUDGET_BY_FY.get(_top_pillar_fy, {})
-
-    _pillar_rows: list[dict] = []
-    for _code in range(1, 9):
-        _pr = _df_pt[_df_pt["pillar_l1_code"] == _code] if not _df_pt.empty else pd.DataFrame()
-        _db_p  = float(_pr["db_oku"].iloc[0]) if not _pr.empty else 0.0
-        _cnt_p = int(_pr["cnt"].iloc[0]) if not _pr.empty else 0
-        _bgt_p = _bgt_map_pt.get(_code)
-        _cov_p = round(_db_p / _bgt_p * 100, 1) if _bgt_p and _bgt_p > 0 else None
-        _pillar_rows.append({
-            "code": _code, "name": _PILLAR_SHORT[_code],
-            "db_oku": _db_p, "cnt": _cnt_p, "budget": _bgt_p, "cov": _cov_p,
-        })
-
-    def _cov_color(cov) -> str:
-        if cov is None or cov == 0: return "#585b70"
-        if cov >= 80:  return "#a6e3a1"
-        if cov >= 50:  return "#f9e2af"
-        return "#f38ba8"
-
-    _tot_db_p  = sum(r["db_oku"] for r in _pillar_rows)
-    _tot_bgt_p = sum(r["budget"] for r in _pillar_rows if r["budget"])
-    _tot_cnt_p = sum(r["cnt"] for r in _pillar_rows)
-    _tot_cov_p = round(_tot_db_p / _tot_bgt_p * 100, 1) if _tot_bgt_p else None
-
-    _sm1, _sm2, _sm3 = st.columns(3)
-    _sm1.metric(
-        f"FY{_top_pillar_fy} 分類済み収録金額",
-        f"{_tot_db_p:,.0f} 億円",
-        delta=f"{_tot_cnt_p:,} 件",
+    _pfy_opts: dict[str, tuple[int, ...]] = {
+        "FY2023–2025 合算": (2023, 2024, 2025),
+        "FY2025": (2025,),
+        "FY2024": (2024,),
+        "FY2023": (2023,),
+        "FY2022": (2022,),
+    }
+    _pfy_sel: str = st.radio(
+        "集計年度",
+        list(_pfy_opts.keys()),
+        index=0,
+        horizontal=True,
+        key="pillar_detail_fy",
+        label_visibility="collapsed",
     )
-    _sm2.metric(
-        "予算総額（8本柱合計）",
-        f"{_tot_bgt_p:,.0f} 億円" if _tot_bgt_p else "—",
-    )
-    _sm3.metric(
-        "全体カバレッジ",
-        f"{_tot_cov_p:.1f}%" if _tot_cov_p is not None else "—",
-        help="分類済みDB金額 ÷ 8本柱予算合計（契約ベース）",
-    )
+    _pfy: tuple[int, ...] = _pfy_opts[_pfy_sel]
 
-    for _row_i in range(2):
-        _card_cols = st.columns(4)
-        for _col_i in range(4):
-            _r = _pillar_rows[_row_i * 4 + _col_i]
-            _color = _cov_color(_r["cov"])
-            _cov_str = f"{_r['cov']:.0f}%" if _r["cov"] is not None else "—"
-            _card_cols[_col_i].markdown(
-                f"""<div style="background:#1e1e2e;border-radius:8px;padding:12px 14px;
-                    border-left:4px solid {_color}">
-                  <div style="font-size:0.76rem;color:#bac2de;margin-bottom:4px">{_r['name']}</div>
-                  <div style="font-size:1.25rem;font-weight:700;color:#cdd6f4">{_r['db_oku']:,.0f}
-                    <span style="font-size:0.78rem;font-weight:400;color:#bac2de">億円</span></div>
-                  <div style="font-size:0.88rem;font-weight:600;color:{_color}">{_cov_str}</div>
-                  <div style="font-size:0.70rem;color:#6c7086;margin-top:2px">
-                    予算 {f"{_r['budget']:,.0f}億" if _r['budget'] else "—"} | {_r['cnt']:,}件
-                  </div>
-                </div>""",
-                unsafe_allow_html=True,
-            )
+    _ptabs = st.tabs([_PILLAR_SHORT[i] for i in range(1, 9)])
+    for _pi, _ptab in enumerate(_ptabs):
+        _l1 = _pi + 1
+        with _ptab:
+            _top_c, _top_v = _load_pillar_detail(_l1, _pfy)
+            _pc_l, _pc_r = st.columns([11, 9])
 
-    st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+            with _pc_l:
+                st.markdown(
+                    "<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
+                    "margin-bottom:6px'>大型案件 TOP10</div>",
+                    unsafe_allow_html=True,
+                )
+                if _top_c.empty:
+                    st.info("データなし")
+                else:
+                    _rows_html: list[str] = []
+                    for _, _cr in _top_c.iterrows():
+                        _l2c  = int(_cr["l2_code"]) if pd.notna(_cr.get("l2_code")) else _l1
+                        _lcol = _L2_COLOR.get(_l2c, _L2_COLOR.get(_l1, "#585b70"))
+                        _l2sh = str(_cr.get("l2_name") or "—")
+                        if len(_l2sh) > 12:
+                            _l2sh = _l2sh[:11] + "…"
+                        _cn   = str(_cr.get("contract_name") or "")
+                        _amt  = _cr.get("amount_oku")
+                        _cfy  = int(_cr.get("fiscal_year") or 0)
+                        _vn   = str(_cr.get("vendor_disp") or "—")
+                        _cn_d = (_cn[:44] + "…") if len(_cn) > 44 else _cn
+                        _vn_d = (_vn[:16] + "…") if len(_vn) > 16 else _vn
+                        _amt_s = f"{_amt:,.0f}" if pd.notna(_amt) else "—"
+                        _rows_html.append(
+                            f'<tr style="border-bottom:1px solid #313244">'
+                            f'<td style="padding:5px 8px;white-space:nowrap">'
+                            f'<span style="background:{_lcol};color:#1e1e2e;padding:2px 7px;'
+                            f'border-radius:10px;font-size:0.70rem;font-weight:700">{_l2sh}</span>'
+                            f'</td>'
+                            f'<td style="padding:5px 8px" title="{_cn}">{_cn_d}</td>'
+                            f'<td style="padding:5px 8px;text-align:right;font-weight:700;'
+                            f'color:#f5f5f5">{_amt_s}</td>'
+                            f'<td style="padding:5px 8px;text-align:center;color:#9399b2;'
+                            f'font-size:0.76rem">FY{_cfy}</td>'
+                            f'<td style="padding:5px 8px;color:#bac2de" title="{_vn}">{_vn_d}</td>'
+                            f'</tr>'
+                        )
+                    st.markdown(
+                        '<div style="overflow-x:auto">'
+                        '<table style="border-collapse:collapse;width:100%;'
+                        'font-size:0.81rem;color:#cdd6f4">'
+                        '<thead><tr style="border-bottom:2px solid #45475a;background:#1e1e2e;'
+                        'color:#9399b2;font-size:0.76rem">'
+                        '<th style="padding:4px 8px;text-align:left">中項目</th>'
+                        '<th style="padding:4px 8px;text-align:left">契約名</th>'
+                        '<th style="padding:4px 8px;text-align:right">億円</th>'
+                        '<th style="padding:4px 8px">FY</th>'
+                        '<th style="padding:4px 8px;text-align:left">受注企業</th>'
+                        '</tr></thead><tbody>'
+                        + "".join(_rows_html)
+                        + '</tbody></table></div>',
+                        unsafe_allow_html=True,
+                    )
 
-    _fig_p = go.Figure()
-    _p_ynames   = [r["name"] for r in _pillar_rows]
-    _p_db_vals  = [r["db_oku"] for r in _pillar_rows]
-    _p_bgt_vals = [r["budget"] or 0 for r in _pillar_rows]
-    _p_bar_col  = [_cov_color(r["cov"]) for r in _pillar_rows]
-    _p_cov_text = [f"{r['cov']:.0f}%" if r["cov"] is not None else "" for r in _pillar_rows]
-
-    _fig_p.add_trace(go.Bar(
-        name="DB収録金額",
-        y=_p_ynames,
-        x=_p_db_vals,
-        orientation="h",
-        marker_color=_p_bar_col,
-        text=_p_cov_text,
-        textposition="outside",
-        textfont=dict(size=11),
-        customdata=[[r["cnt"], r["budget"] or 0] for r in _pillar_rows],
-        hovertemplate=(
-            "<b>%{y}</b><br>"
-            "DB金額: %{x:,.0f}億円<br>"
-            "件数: %{customdata[0]:,}件<br>"
-            "予算額: %{customdata[1]:,.0f}億円<extra></extra>"
-        ),
-    ))
-    _fig_p.add_trace(go.Scatter(
-        name="予算額",
-        y=_p_ynames,
-        x=_p_bgt_vals,
-        mode="markers",
-        marker=dict(
-            symbol="line-ns-open", size=18, color=ACCENT_2,
-            line=dict(width=2.5, color=ACCENT_2),
-        ),
-        hovertemplate="<b>%{y}</b><br>予算額: %{x:,.0f}億円<extra></extra>",
-    ))
-    _fig_p.update_layout(
-        template=PLOT_TEMPLATE,
-        height=340,
-        margin=dict(l=10, r=90, t=30, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        xaxis=dict(title="金額（億円）", gridcolor="#45475a"),
-        yaxis=dict(
-            gridcolor="#45475a",
-            categoryorder="array",
-            categoryarray=_p_ynames[::-1],
-        ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#cdd6f4"),
-    )
-    st.plotly_chart(_fig_p, use_container_width=True, config={"displayModeBar": False})
-    st.caption(
-        f"FY{_top_pillar_fy} 7本柱分類済み収録 {_tot_cnt_p:,}件 / {_tot_db_p:,.0f}億円。"
-        "　バー色: 🟢 ≥80% / 🟡 50–80% / 🔴 <50%。"
-        "　◇マーカー = 予算額。"
-        "　詳細は「その他（参考）」→「7本柱DBビューワー」を参照。"
-    )
+            with _pc_r:
+                st.markdown(
+                    "<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
+                    "margin-bottom:6px'>受注企業 TOP10</div>",
+                    unsafe_allow_html=True,
+                )
+                if _top_v.empty:
+                    st.info("データなし")
+                else:
+                    _bar_col = _L2_COLOR.get(_l1, ACCENT)
+                    _tv_sort = _top_v.sort_values("total_oku", ascending=True)
+                    _fig_v = go.Figure(go.Bar(
+                        x=_tv_sort["total_oku"],
+                        y=_tv_sort["vendor_norm"],
+                        orientation="h",
+                        marker_color=_bar_col,
+                        marker_opacity=0.85,
+                        text=_tv_sort["total_oku"].map(lambda v: f"{v:,.0f}"),
+                        textposition="outside",
+                        textfont=dict(size=10, color="#cdd6f4"),
+                        customdata=_tv_sort["cnt"].values,
+                        hovertemplate=(
+                            "<b>%{y}</b><br>%{x:,.0f}億円"
+                            "<br>%{customdata:,}件<extra></extra>"
+                        ),
+                    ))
+                    _fig_v.update_layout(
+                        template=PLOT_TEMPLATE,
+                        height=320,
+                        margin=dict(l=5, r=70, t=5, b=10),
+                        xaxis=dict(title="受注総額（億円）", gridcolor="#313244"),
+                        yaxis=dict(gridcolor="#313244", tickfont=dict(size=11)),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color="#cdd6f4", size=11),
+                    )
+                    st.plotly_chart(
+                        _fig_v, use_container_width=True,
+                        config={"displayModeBar": False},
+                    )
+                    _tv_oku = float(_top_v["total_oku"].sum())
+                    _tv_cnt = int(_top_v["cnt"].sum())
+                    st.caption(f"TOP10社合計 {_tv_oku:,.0f}億円 / {_tv_cnt:,}件")
 
     st.divider()
 
