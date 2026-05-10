@@ -732,9 +732,9 @@ FY2023も含めた3年分を再実行済み。
 | FY2024 | 43,975 | 16,288 | 37.0% | 15,710 | 156 | 422 |
 | FY2025 | 33,385 | 14,081 | 42.2% | 13,599 | 87 | 395 |
 
-> **注意**: FY2023は再実行によりPhase 14のセマンティック埋め込み結果（6,709件）がリセット。
-> 現状のFY2023 unclassified 24,790件には semantic 分類済み分が含まれない。
-> FY2023に再度 `assign_pillar_semantic.py --threshold 0.80` を実行すると回復可能。
+> **注意（解決済み）**: Phase 15再実行でFY2023のセマンティック結果（6,709件）がリセットされたが、
+> Phase 16（2026-05-10）で `--fy` 引数追加後に3FY一括再実行済み。
+> FY2023: 6,471件 / FY2024: 6,321件 / FY2025: 5,336件（合計18,128件）を semantic_embedding 分類。
 
 ### FY2024/2025 予算額（令和6/7年度予算概要 P.7 OCR抽出）
 
@@ -772,9 +772,33 @@ python dev/assign_pillar_semantic.py --threshold 0.80
 
 ---
 
+## Phase 16: セマンティック埋め込み 3FY展開（2026-05-10）
+
+`assign_pillar_semantic.py` に `--fy` 引数を追加し、FY2023/2024/2025 の3年分に適用。
+
+| FY | 未分類入力 | semantic割当 | 割当率 | 未分類残存 | サニティ |
+|----|----------:|------------:|------:|----------:|------:|
+| FY2023 | 24,846 | **6,471** | 26.0% | 18,375 | 97.2% |
+| FY2024 | 27,687 | **6,321** | 22.8% | 21,366 | 98.4% |
+| FY2025 | 19,304 | **5,336** | 27.6% | 13,968 | 100.0% |
+| **合計** | **71,837** | **18,128** | **25.2%** | **53,709** | — |
+
+**金額**: FY2023=5,975億 / FY2024=8,693億 / FY2025=6,209億（3FY計20,877億円）
+
+**柱別割当（3FY合計上位）:**
+P72（維持整備）4,643件 / P84（燃料）2,769件 / P43（電磁波・艦船）2,580件 /
+P71（弾薬）1,880件 / P73（施設）1,769件 / P83（基地対策）1,313件 /
+P82（研究開発）809件 / P5（指揮統制）642件 / P6（機動展開）593件 /
+P1（スタンドオフ）439件 / P84以下省略
+
+**manual_correction保護**: セマンティックは `match_method='unclassified'` 行のみ更新するため
+FY2023の manual_correction 62件は上書きされない（確認済み）。
+
+---
+
 ## 積み残し（2026-05-10現在）
 
-**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**
+**完了（2026-05-10）**: 事前/事後評価突合（Phase 8）、fallback 50億超突合（Phase 9）、7本柱DB構築・defense_pillar.db分離（Phase 10）、P4/P7サブ分類・bukai/hakusho追加収集（Phase 11）、整備計画概要取込 (Phase 12)、**FY2023への7本柱コード付与パイロット（Phase 13）**、**FY2023 未分類へのセマンティック埋め込みマッチング（Phase 14）**、**FY2024/2025 7本柱分類展開 + KEYWORD_RULES5グループ追加（Phase 15）**、**セマンティック埋め込み3FY展開（FY2023復元+FY2024/2025新規）計18,128件（Phase 16）**
 
 ### Phase 14: セマンティック埋め込みマッチング（2026-05-09）
 
@@ -798,17 +822,16 @@ P41（宇宙）45件 / P2（統合防空）50件 / P42（サイバー）5件
 - P82にNDMC研究分析装置が混入
 - サニティチェック: keyword_rule 500件中485件一致（97.0%）
 
-**実行コマンド:**
+**実行コマンド（--fy 引数追加済み、Phase 16で3FY展開完了）:**
 ```bash
-python dev/assign_pillar_semantic.py --dry-run            # 確認
-python dev/assign_pillar_semantic.py --threshold 0.80     # 本番（0.80推奨）
+python dev/assign_pillar_semantic.py --fy 2023 --threshold 0.80   # FY2023（6,471件）
+python dev/assign_pillar_semantic.py --fy 2024 --threshold 0.80   # FY2024（6,321件）
+python dev/assign_pillar_semantic.py --fy 2025 --threshold 0.80   # FY2025（5,336件）
 python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類注意）
 ```
 
 | 優先度 | タスク | 理由 |
 |--------|--------|------|
-| 高 | FY2023 semantic re-run | Phase 15再実行でPhase 14の6,709件リセット。`assign_pillar_semantic.py --threshold 0.80` で回復 |
-| 高 | FY2024/2025 semantic展開 | `assign_pillar_semantic.py --fy 2024/2025 --threshold 0.80`（--fyオプション要確認） |
 | 高 | FY2025 3月（202603）定期収集 | 各機関が4-5月に順次公表中 |
 | 中 | `kenkyuu_hyouka` 再収集（349→432件） | btreeページ損失で83件喪失、`python -m pipeline.load_kenkyuu_hyouka` で回復可 |
 | 中 | P4/P7 親残存（P4=6件、P7=1件）の手動分類 | 正規表現でマッチしない7件が未分類で残存 |
@@ -827,11 +850,13 @@ python dev/assign_pillar_fy2023.py              # FY2023本番実行（manual_co
 python dev/assign_pillar_fy2023.py --fy 2024   # FY2024
 python dev/assign_pillar_fy2023.py --fy 2025   # FY2025
 
-# Phase 14: セマンティック埋め込みマッチング（未分類→7本柱）
+# Phase 16: セマンティック埋め込みマッチング（未分類→7本柱）3FY対応
 # 依存: torch>=2.11.0+cu128, sentence-transformers>=5.4.1, intfloat/multilingual-e5-large
-python dev/assign_pillar_semantic.py --dry-run               # DB書き込みなし
-python dev/assign_pillar_semantic.py --threshold 0.80        # 推奨（0.80）
-python dev/assign_pillar_semantic.py --threshold 0.75        # 緩め（誤分類注意）
+python dev/assign_pillar_semantic.py --fy 2023 --threshold 0.80  # FY2023（6,471件）
+python dev/assign_pillar_semantic.py --fy 2024 --threshold 0.80  # FY2024（6,321件）
+python dev/assign_pillar_semantic.py --fy 2025 --threshold 0.80  # FY2025（5,336件）
+# ドライラン確認
+python dev/assign_pillar_semantic.py --fy 2024 --dry-run
 
 # 全ASDF機関を収集してDB投入
 python -m pipeline.load_asdf
