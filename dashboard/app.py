@@ -76,6 +76,11 @@ _L2_COLOR: dict[int, str] = {
     81: "#eba0ac", 82: "#cdd6f4", 83: "#b4befe",
     84: "#94e2d5", 85: "#6c7086",
 }
+_L1_SUB_L2: dict[int, list[int]] = {
+    4: [41, 42, 43],
+    7: [71, 72, 73],
+    8: [81, 82, 83, 84, 85],
+}
 
 _BUDGET_FY2024  = _BUDGET[2024]
 _NON_CONTRACT_FY2024 = _NON_CONTRACT[2024]
@@ -390,6 +395,121 @@ def _load_pillar_detail(
     return top_contracts, top_vendors
 
 
+@st.cache_data(ttl=300)
+def _load_pillar_detail_l2(
+    pillar_l1: int, pillar_l2: int | None, fys: tuple[int, ...], limit: int = 10
+) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """指定L1(+任意L2)ピラーのトップN契約・上位10社・vendor_norm→raw_names辞書を返す。
+
+    pillar_l2:
+      None  → L2フィルタなし（L1全体）
+      l1と同値 → pillar_l2_code IS NULL or = l1（未分類）
+      それ以外 → 特定のL2サブピラー
+    """
+    ph = ",".join("?" * len(fys))
+    if pillar_l2 is None:
+        l2_clause, l2_params = "", ()
+    elif pillar_l2 == pillar_l1:
+        l2_clause = "AND (cp.pillar_l2_code IS NULL OR cp.pillar_l2_code = ?)"
+        l2_params = (pillar_l2,)
+    else:
+        l2_clause = "AND cp.pillar_l2_code = ?"
+        l2_params = (pillar_l2,)
+    with sqlite3.connect(DB_PATH) as conn:
+        top_contracts = pd.read_sql_query(
+            f"""SELECT
+                    COALESCE(cp.pillar_l2_code, cp.pillar_l1_code) AS l2_code,
+                    c.contract_name, c.contract_amount, c.fiscal_year, c.vendor_name
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                WHERE cp.pillar_l1_code = ?
+                  {l2_clause}
+                  AND c.fiscal_year IN ({ph})
+                  AND c.contract_amount IS NOT NULL
+                ORDER BY c.contract_amount DESC
+                LIMIT {limit}""",
+            conn, params=(pillar_l1, *l2_params, *fys),
+        )
+        raw_vendors = pd.read_sql_query(
+            f"""SELECT
+                    c.vendor_name,
+                    COUNT(*) AS cnt,
+                    SUM(c.contract_amount) AS total_amount
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                WHERE cp.pillar_l1_code = ?
+                  {l2_clause}
+                  AND c.fiscal_year IN ({ph})
+                  AND c.vendor_name IS NOT NULL
+                  AND c.contract_amount IS NOT NULL
+                GROUP BY c.vendor_name
+                ORDER BY SUM(c.contract_amount) DESC
+                LIMIT 50""",
+            conn, params=(pillar_l1, *l2_params, *fys),
+        )
+    top_contracts["amount_oku"] = top_contracts["contract_amount"] / 1e8
+    top_contracts["vendor_disp"] = top_contracts["vendor_name"].map(
+        lambda x: _normalize_vendor(x) or "—"
+    )
+    top_contracts["l2_name"] = top_contracts["l2_code"].map(
+        lambda x: _PILLAR_L2_NAMES.get(int(x), f"P{int(x)}") if pd.notna(x) else "—"
+    )
+    raw_vendors["vendor_norm"] = raw_vendors["vendor_name"].map(_normalize_vendor)
+    vendor_norm_to_raw: dict[str, list[str]] = {}
+    for _, row in raw_vendors.iterrows():
+        if pd.notna(row["vendor_norm"]):
+            norm, raw = str(row["vendor_norm"]), str(row["vendor_name"])
+            vendor_norm_to_raw.setdefault(norm, [])
+            if raw not in vendor_norm_to_raw[norm]:
+                vendor_norm_to_raw[norm].append(raw)
+    top_vendors = (
+        raw_vendors.dropna(subset=["vendor_norm"])
+        .groupby("vendor_norm", as_index=False)
+        .agg(cnt=("cnt", "sum"), total_amount=("total_amount", "sum"))
+        .sort_values("total_amount", ascending=False)
+        .head(10)
+    )
+    top_vendors["total_oku"] = top_vendors["total_amount"] / 1e8
+    return top_contracts, top_vendors, vendor_norm_to_raw
+
+
+@st.cache_data(ttl=300)
+def _load_vendor_contracts_in_pillar(
+    vendor_names: tuple[str, ...], pillar_l1: int, pillar_l2: int | None,
+    fys: tuple[int, ...]
+) -> pd.DataFrame:
+    """指定ベンダー生名リストの指定ピラースコープ内の全契約（金額降順）。"""
+    if not vendor_names:
+        return pd.DataFrame()
+    ph_v = ",".join("?" * len(vendor_names))
+    ph_f = ",".join("?" * len(fys))
+    if pillar_l2 is None:
+        l2_clause, l2_params = "", ()
+    elif pillar_l2 == pillar_l1:
+        l2_clause = "AND (cp.pillar_l2_code IS NULL OR cp.pillar_l2_code = ?)"
+        l2_params = (pillar_l2,)
+    else:
+        l2_clause = "AND cp.pillar_l2_code = ?"
+        l2_params = (pillar_l2,)
+    with sqlite3.connect(DB_PATH) as conn:
+        return pd.read_sql_query(
+            f"""SELECT
+                    c.contract_name,
+                    c.fiscal_year,
+                    c.contract_amount,
+                    COALESCE(cp.pillar_l2_code, cp.pillar_l1_code) AS l2_code,
+                    cp.match_method
+                FROM contract_pillar cp
+                JOIN contracts c ON cp.contract_id = c.id
+                WHERE cp.pillar_l1_code = ?
+                  {l2_clause}
+                  AND c.fiscal_year IN ({ph_f})
+                  AND c.vendor_name IN ({ph_v})
+                ORDER BY c.contract_amount DESC NULLS LAST""",
+            conn, params=(pillar_l1, *l2_params, *fys, *vendor_names),
+        )
+
+
 _REQ_ORG_LABELS = {
     "MSDF":     "海上自衛隊",
     "GSDF":     "陸上自衛隊",
@@ -675,6 +795,166 @@ def show_vendor_drilldown(sub: pd.DataFrame, title: str) -> None:
     )
 
 
+def _render_pillar_section(
+    l1: int, l2: int | None, fys: tuple[int, ...], top_n: int, key_suffix: str
+) -> None:
+    """大型案件テーブル + 受注企業バーグラフ + ドリルダウンを描画。"""
+    _top_c, _top_v, _vmap = _load_pillar_detail_l2(l1, l2, fys, limit=top_n)
+    _pc_l, _pc_r = st.columns([11, 9])
+
+    with _pc_l:
+        st.markdown(
+            f"<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
+            f"margin-bottom:6px'>大型案件 TOP{top_n}</div>",
+            unsafe_allow_html=True,
+        )
+        if _top_c.empty:
+            st.info("データなし")
+        else:
+            _rows: list[str] = []
+            for _, _cr in _top_c.iterrows():
+                _l2c  = int(_cr["l2_code"]) if pd.notna(_cr.get("l2_code")) else l1
+                _lcol = _L2_COLOR.get(_l2c, _L2_COLOR.get(l1, "#585b70"))
+                _l2sh = str(_cr.get("l2_name") or "—")
+                if len(_l2sh) > 12:
+                    _l2sh = _l2sh[:11] + "…"
+                _cn   = str(_cr.get("contract_name") or "")
+                _amt  = _cr.get("amount_oku")
+                _cfy  = int(_cr.get("fiscal_year") or 0)
+                _vn   = str(_cr.get("vendor_disp") or "—")
+                _cn_d = (_cn[:44] + "…") if len(_cn) > 44 else _cn
+                _vn_d = (_vn[:16] + "…") if len(_vn) > 16 else _vn
+                _amt_s = f"{_amt:,.0f}" if pd.notna(_amt) else "—"
+                _rows.append(
+                    f'<tr style="border-bottom:1px solid #313244">'
+                    f'<td style="padding:5px 8px;white-space:nowrap">'
+                    f'<span style="background:{_lcol};color:#1e1e2e;padding:2px 7px;'
+                    f'border-radius:10px;font-size:0.70rem;font-weight:700">{_l2sh}</span>'
+                    f'</td>'
+                    f'<td style="padding:5px 8px" title="{_cn}">{_cn_d}</td>'
+                    f'<td style="padding:5px 8px;text-align:right;font-weight:700;'
+                    f'color:#f5f5f5">{_amt_s}</td>'
+                    f'<td style="padding:5px 8px;text-align:center;color:#9399b2;'
+                    f'font-size:0.76rem">FY{_cfy}</td>'
+                    f'<td style="padding:5px 8px;color:#bac2de" title="{_vn}">{_vn_d}</td>'
+                    f'</tr>'
+                )
+            st.markdown(
+                '<div style="overflow-x:auto">'
+                '<table style="border-collapse:collapse;width:100%;'
+                'font-size:0.81rem;color:#cdd6f4">'
+                '<thead><tr style="border-bottom:2px solid #45475a;background:#1e1e2e;'
+                'color:#9399b2;font-size:0.76rem">'
+                '<th style="padding:4px 8px;text-align:left">中項目</th>'
+                '<th style="padding:4px 8px;text-align:left">契約名</th>'
+                '<th style="padding:4px 8px;text-align:right">億円</th>'
+                '<th style="padding:4px 8px">FY</th>'
+                '<th style="padding:4px 8px;text-align:left">受注企業</th>'
+                '</tr></thead><tbody>'
+                + "".join(_rows)
+                + '</tbody></table></div>',
+                unsafe_allow_html=True,
+            )
+
+    with _pc_r:
+        st.markdown(
+            "<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
+            "margin-bottom:6px'>受注企業 TOP10</div>",
+            unsafe_allow_html=True,
+        )
+        if _top_v.empty:
+            st.info("データなし")
+        else:
+            _bar_col = _L2_COLOR.get(l2 if l2 and l2 != l1 else l1, ACCENT)
+            _tv_sort = _top_v.sort_values("total_oku", ascending=True)
+            _chart_h = 260 if top_n <= 5 else 320
+            _fig_v = go.Figure(go.Bar(
+                x=_tv_sort["total_oku"],
+                y=_tv_sort["vendor_norm"],
+                orientation="h",
+                marker_color=_bar_col,
+                marker_opacity=0.85,
+                text=_tv_sort["total_oku"].map(lambda v: f"{v:,.0f}"),
+                textposition="outside",
+                textfont=dict(size=10, color="#cdd6f4"),
+                customdata=_tv_sort["cnt"].values,
+                hovertemplate=(
+                    "<b>%{y}</b><br>%{x:,.0f}億円"
+                    "<br>%{customdata:,}件<extra></extra>"
+                ),
+            ))
+            _fig_v.update_layout(
+                template=PLOT_TEMPLATE,
+                height=_chart_h,
+                margin=dict(l=5, r=70, t=5, b=10),
+                xaxis=dict(title="受注総額（億円）", gridcolor="#313244"),
+                yaxis=dict(gridcolor="#313244", tickfont=dict(size=11)),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#cdd6f4", size=11),
+            )
+            _chart_key = f"pv_{key_suffix}"
+            _sel = st.plotly_chart(
+                _fig_v, use_container_width=True,
+                on_select="rerun", key=_chart_key,
+                config={"displayModeBar": False},
+            )
+            _tv_oku = float(_top_v["total_oku"].sum())
+            _tv_cnt = int(_top_v["cnt"].sum())
+            st.caption(
+                f"TOP10社合計 {_tv_oku:,.0f}億円 / {_tv_cnt:,}件"
+                " — 企業名バーをクリックで契約一覧"
+            )
+
+            _pts = _sel.get("selection", {}).get("points", []) if _sel else []
+            if _pts:
+                _sel_vendor = _pts[0].get("y")
+                if _sel_vendor:
+                    _raw_names = tuple(_vmap.get(_sel_vendor, []))
+                    if _raw_names:
+                        _dd = _load_vendor_contracts_in_pillar(_raw_names, l1, l2, fys)
+                        if not _dd.empty:
+                            st.markdown(
+                                f"<div style='font-size:0.85rem;font-weight:600;"
+                                f"color:#89b4fa;margin:8px 0 4px'>"
+                                f"📋 {_sel_vendor} — {len(_dd):,}件</div>",
+                                unsafe_allow_html=True,
+                            )
+                            _dd["amount_oku"] = _dd["contract_amount"].map(
+                                lambda v: round(v / 1e8, 1) if pd.notna(v) else None
+                            )
+                            _dd["l2_disp"] = _dd["l2_code"].map(
+                                lambda x: _PILLAR_L2_NAMES.get(int(x), f"P{int(x)}")
+                                if pd.notna(x) else "—"
+                            )
+                            _dd_view = _dd[[
+                                "contract_name", "fiscal_year", "amount_oku",
+                                "l2_disp", "match_method",
+                            ]].rename(columns={
+                                "contract_name": "契約名",
+                                "fiscal_year":   "年度",
+                                "amount_oku":    "金額(億円)",
+                                "l2_disp":       "中項目",
+                                "match_method":  "分類方法",
+                            })
+                            st.dataframe(
+                                _dd_view,
+                                use_container_width=True,
+                                hide_index=True,
+                                height=min(320, max(100, len(_dd_view) * 36 + 40)),
+                                column_config={
+                                    "契約名":    st.column_config.TextColumn(width="large"),
+                                    "金額(億円)": st.column_config.NumberColumn(format="%.1f"),
+                                    "年度":      st.column_config.NumberColumn(
+                                        format="FY%d", width="small"
+                                    ),
+                                    "中項目":    st.column_config.TextColumn(width="medium"),
+                                    "分類方法":  st.column_config.TextColumn(width="small"),
+                                },
+                            )
+                            st.caption("グラフ外クリックで選択解除")
+
+
 def main():
     # ── ダイアログ管理: 1スクリプトラン内で1つだけ開く ──────────────────
     # 複数ウィジェットが同時にトリガーした場合、後のセクション（最終書き込み）が優先。
@@ -958,106 +1238,16 @@ def main():
     for _pi, _ptab in enumerate(_ptabs):
         _l1 = _pi + 1
         with _ptab:
-            _top_c, _top_v = _load_pillar_detail(_l1, _pfy)
-            _pc_l, _pc_r = st.columns([11, 9])
-
-            with _pc_l:
-                st.markdown(
-                    "<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
-                    "margin-bottom:6px'>大型案件 TOP10</div>",
-                    unsafe_allow_html=True,
-                )
-                if _top_c.empty:
-                    st.info("データなし")
-                else:
-                    _rows_html: list[str] = []
-                    for _, _cr in _top_c.iterrows():
-                        _l2c  = int(_cr["l2_code"]) if pd.notna(_cr.get("l2_code")) else _l1
-                        _lcol = _L2_COLOR.get(_l2c, _L2_COLOR.get(_l1, "#585b70"))
-                        _l2sh = str(_cr.get("l2_name") or "—")
-                        if len(_l2sh) > 12:
-                            _l2sh = _l2sh[:11] + "…"
-                        _cn   = str(_cr.get("contract_name") or "")
-                        _amt  = _cr.get("amount_oku")
-                        _cfy  = int(_cr.get("fiscal_year") or 0)
-                        _vn   = str(_cr.get("vendor_disp") or "—")
-                        _cn_d = (_cn[:44] + "…") if len(_cn) > 44 else _cn
-                        _vn_d = (_vn[:16] + "…") if len(_vn) > 16 else _vn
-                        _amt_s = f"{_amt:,.0f}" if pd.notna(_amt) else "—"
-                        _rows_html.append(
-                            f'<tr style="border-bottom:1px solid #313244">'
-                            f'<td style="padding:5px 8px;white-space:nowrap">'
-                            f'<span style="background:{_lcol};color:#1e1e2e;padding:2px 7px;'
-                            f'border-radius:10px;font-size:0.70rem;font-weight:700">{_l2sh}</span>'
-                            f'</td>'
-                            f'<td style="padding:5px 8px" title="{_cn}">{_cn_d}</td>'
-                            f'<td style="padding:5px 8px;text-align:right;font-weight:700;'
-                            f'color:#f5f5f5">{_amt_s}</td>'
-                            f'<td style="padding:5px 8px;text-align:center;color:#9399b2;'
-                            f'font-size:0.76rem">FY{_cfy}</td>'
-                            f'<td style="padding:5px 8px;color:#bac2de" title="{_vn}">{_vn_d}</td>'
-                            f'</tr>'
+            _sub_l2s = _L1_SUB_L2.get(_l1, [])
+            if not _sub_l2s:
+                _render_pillar_section(_l1, None, _pfy, top_n=10, key_suffix=f"{_l1}_all")
+            else:
+                for _l2 in _sub_l2s:
+                    _l2_name = _PILLAR_L2_NAMES.get(_l2, f"P{_l2}")
+                    with st.expander(f"P{_l2}  {_l2_name}", expanded=False):
+                        _render_pillar_section(
+                            _l1, _l2, _pfy, top_n=5, key_suffix=f"{_l1}_{_l2}"
                         )
-                    st.markdown(
-                        '<div style="overflow-x:auto">'
-                        '<table style="border-collapse:collapse;width:100%;'
-                        'font-size:0.81rem;color:#cdd6f4">'
-                        '<thead><tr style="border-bottom:2px solid #45475a;background:#1e1e2e;'
-                        'color:#9399b2;font-size:0.76rem">'
-                        '<th style="padding:4px 8px;text-align:left">中項目</th>'
-                        '<th style="padding:4px 8px;text-align:left">契約名</th>'
-                        '<th style="padding:4px 8px;text-align:right">億円</th>'
-                        '<th style="padding:4px 8px">FY</th>'
-                        '<th style="padding:4px 8px;text-align:left">受注企業</th>'
-                        '</tr></thead><tbody>'
-                        + "".join(_rows_html)
-                        + '</tbody></table></div>',
-                        unsafe_allow_html=True,
-                    )
-
-            with _pc_r:
-                st.markdown(
-                    "<div style='font-size:0.85rem;font-weight:600;color:#bac2de;"
-                    "margin-bottom:6px'>受注企業 TOP10</div>",
-                    unsafe_allow_html=True,
-                )
-                if _top_v.empty:
-                    st.info("データなし")
-                else:
-                    _bar_col = _L2_COLOR.get(_l1, ACCENT)
-                    _tv_sort = _top_v.sort_values("total_oku", ascending=True)
-                    _fig_v = go.Figure(go.Bar(
-                        x=_tv_sort["total_oku"],
-                        y=_tv_sort["vendor_norm"],
-                        orientation="h",
-                        marker_color=_bar_col,
-                        marker_opacity=0.85,
-                        text=_tv_sort["total_oku"].map(lambda v: f"{v:,.0f}"),
-                        textposition="outside",
-                        textfont=dict(size=10, color="#cdd6f4"),
-                        customdata=_tv_sort["cnt"].values,
-                        hovertemplate=(
-                            "<b>%{y}</b><br>%{x:,.0f}億円"
-                            "<br>%{customdata:,}件<extra></extra>"
-                        ),
-                    ))
-                    _fig_v.update_layout(
-                        template=PLOT_TEMPLATE,
-                        height=320,
-                        margin=dict(l=5, r=70, t=5, b=10),
-                        xaxis=dict(title="受注総額（億円）", gridcolor="#313244"),
-                        yaxis=dict(gridcolor="#313244", tickfont=dict(size=11)),
-                        paper_bgcolor="rgba(0,0,0,0)",
-                        plot_bgcolor="rgba(0,0,0,0)",
-                        font=dict(color="#cdd6f4", size=11),
-                    )
-                    st.plotly_chart(
-                        _fig_v, use_container_width=True,
-                        config={"displayModeBar": False},
-                    )
-                    _tv_oku = float(_top_v["total_oku"].sum())
-                    _tv_cnt = int(_top_v["cnt"].sum())
-                    st.caption(f"TOP10社合計 {_tv_oku:,.0f}億円 / {_tv_cnt:,}件")
 
     st.divider()
 
