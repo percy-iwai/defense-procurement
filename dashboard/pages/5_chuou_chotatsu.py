@@ -39,6 +39,19 @@ st.markdown(
     [data-testid="stCaptionContainer"] {{ color: {TEXT_DIM} !important; }}
     [data-testid="stDataFrame"] td {{ font-size: 0.78rem !important; }}
     [data-testid="stDataFrame"] th {{ font-size: 0.78rem !important; white-space: nowrap; }}
+    /* データ充足状況マトリクス */
+    .status-matrix {{ border-collapse: collapse; width: 100%; font-size: 0.82rem; }}
+    .status-matrix th, .status-matrix td {{ border: 1px solid #45475a; padding: 4px 8px; text-align: center; white-space: nowrap; }}
+    .status-matrix th {{ background: #313244; color: {TEXT_COLOR}; font-weight: 600; }}
+    .status-matrix td.sc-year {{ background: #1e1e2e; color: {TEXT_DIM}; text-align: left; font-size: 0.78rem; }}
+    .status-matrix td.sc-ok {{ background: #1e3a2f; color: #a6e3a1; font-weight: 700; }}
+    .status-matrix td.sc-partial {{ background: #3a341e; color: #f9e2af; font-weight: 700; }}
+    .status-matrix td.sc-none {{ background: #2a1f2a; color: #585b70; }}
+    .status-legend {{ display: flex; gap: 1.5rem; margin: 0.6rem 0 1rem; font-size: 0.82rem; }}
+    .status-legend span {{ padding: 2px 10px; border-radius: 4px; font-weight: 600; }}
+    .leg-ok      {{ background: #1e3a2f; color: #a6e3a1; }}
+    .leg-partial {{ background: #3a341e; color: #f9e2af; }}
+    .leg-none    {{ background: #2a1f2a; color: #585b70; }}
     </style>
     """,
     unsafe_allow_html=True,
@@ -256,12 +269,80 @@ def load_company_items() -> pd.DataFrame:
             return pd.DataFrame()
 
 
+@st.cache_data(ttl=600)
+def load_data_status() -> pd.DataFrame:
+    """各年度×5項目のデータ充足状況を返す。
+    ○=DB格納済み（SQLで自動判定）、△=元データあり未取込（コード内定数）、×=元データなし。
+    """
+    with sqlite3.connect(str(CHUOU_DB)) as con:
+        base = pd.read_sql_query(
+            "SELECT fiscal_year, army_100m, method_competition_cnt "
+            "FROM chuou_chotatsu_summary ORDER BY fiscal_year",
+            con,
+        )
+        ci = pd.read_sql_query(
+            "SELECT fiscal_year, COUNT(*) AS cnt FROM chuou_chotatsu_company_items "
+            "GROUP BY fiscal_year",
+            con,
+        )
+        mi = pd.read_sql_query(
+            "SELECT fiscal_year, COUNT(*) AS cnt FROM chuou_chotatsu_main_items "
+            "GROUP BY fiscal_year",
+            con,
+        )
+        co = pd.read_sql_query(
+            "SELECT fiscal_year, COUNT(*) AS cnt FROM chuou_chotatsu_companies "
+            "GROUP BY fiscal_year",
+            con,
+        )
+
+    df = (
+        base
+        .merge(ci.rename(columns={"cnt": "ci_cnt"}), on="fiscal_year", how="left")
+        .merge(mi.rename(columns={"cnt": "mi_cnt"}), on="fiscal_year", how="left")
+        .merge(co.rename(columns={"cnt": "co_cnt"}), on="fiscal_year", how="left")
+        .fillna(0)
+    )
+
+    # 元データはあるがDB未格納の年度（△判定用）
+    _SRC_ARMY     = {2021, 2022}           # chuou_chotatsu_gaikyo に機関別あり
+    _SRC_METHOD   = {2021, 2022}           # 同上、契約方式別あり
+    _SRC_CO_ITEMS = {1999,2000,2001,2002,2003,2004,2005,2006}  # HTML「主な調達品」あり
+    _SRC_MAIN     = {1997,1999,2000,2001,2002,2003,2004,2006}  # HTML/PDF 主要品目あり
+
+    def _s1(r):  # ①機関別
+        return "○" if pd.notna(r.army_100m) and r.army_100m else (
+            "△" if r.fiscal_year in _SRC_ARMY else "×")
+
+    def _s2(r):  # ②品目別（company_items で代替）
+        return "○" if r.ci_cnt > 0 else (
+            "△" if r.fiscal_year in _SRC_CO_ITEMS else "×")
+
+    def _s3(r):  # ③契約方式別
+        return "○" if pd.notna(r.method_competition_cnt) and r.method_competition_cnt else (
+            "△" if r.fiscal_year in _SRC_METHOD else "×")
+
+    def _s4(r):  # ④主要調達品目
+        return "○" if r.mi_cnt > 0 else (
+            "△" if r.fiscal_year in _SRC_MAIN else "×")
+
+    def _s5(r):  # ⑤上位20社
+        return "○" if r.co_cnt >= 20 else ("△" if r.co_cnt > 0 else "×")
+
+    df["s1"] = df.apply(_s1, axis=1)
+    df["s2"] = df.apply(_s2, axis=1)
+    df["s3"] = df.apply(_s3, axis=1)
+    df["s4"] = df.apply(_s4, axis=1)
+    df["s5"] = df.apply(_s5, axis=1)
+    return df
+
+
 df_sum = load_summary()
 df_co  = load_companies()
 
 # ── タブ ───────────────────────────────────────────────────────────
-tab_trend, tab_top, tab_drill, tab_insight = st.tabs([
-    "全体推移", "TOP企業推移", "企業ドリルダウン", "考察",
+tab_trend, tab_top, tab_drill, tab_insight, tab_status = st.tabs([
+    "全体推移", "TOP企業推移", "企業ドリルダウン", "考察", "データ充足状況",
 ])
 
 
@@ -772,3 +853,89 @@ R06(2024)も5.8兆円台を維持し、防衛費増強が契約実績として�
         "📌 このページのデータは `data/chuou_chotatsu.db` から読み込んでいます。"
         "更新するには `python dev/extract_chuou_chotatsu.py` を再実行してください。"
     )
+
+
+# ══════════════════════════════════════════════════════════════════
+# Tab 5: データ充足状況マトリクス
+# ══════════════════════════════════════════════════════════════════
+with tab_status:
+    st.subheader("データ充足状況マトリクス")
+    st.caption(
+        "各年度ごとに5カテゴリのデータ格納状況を示す。"
+        "○=DB格納済み、△=元データにあるが未取込、×=元データ自体なし。"
+    )
+
+    st.markdown(
+        '<div class="status-legend">'
+        '<span class="leg-ok">○ DB格納済み</span>'
+        '<span class="leg-partial">△ 元データあり・未取込</span>'
+        '<span class="leg-none">× 元データなし</span>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    df_status = load_data_status()
+
+    def _label_fy(y: int) -> str:
+        if y >= 2019:
+            return f"R{y-2018:02d}({y})"
+        return f"H{y-1988:02d}({y})"
+
+    def _cell(s: str) -> str:
+        cls = {"○": "sc-ok", "△": "sc-partial", "×": "sc-none"}.get(s, "sc-none")
+        return f'<td class="{cls}">{s}</td>'
+
+    header_cols = [
+        "年度",
+        "①<br>機関別<br>(陸/海/空)",
+        "②<br>品目別<br>(主な調達品)",
+        "③<br>契約方式別<br>(競争/随意/FMS)",
+        "④<br>主要<br>調達品目",
+        "⑤<br>上位<br>20社",
+    ]
+    th_html = "".join(f"<th>{h}</th>" for h in header_cols)
+
+    rows_html = ""
+    for _, row in df_status.iterrows():
+        fy = int(row["fiscal_year"])
+        lbl = _label_fy(fy)
+        rows_html += (
+            f'<tr><td class="sc-year">{lbl}</td>'
+            f'{_cell(row["s1"])}{_cell(row["s2"])}{_cell(row["s3"])}'
+            f'{_cell(row["s4"])}{_cell(row["s5"])}</tr>'
+        )
+
+    st.markdown(
+        f'<table class="status-matrix"><thead><tr>{th_html}</tr></thead>'
+        f"<tbody>{rows_html}</tbody></table>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("---")
+    st.markdown("""
+**カテゴリの説明**
+
+| # | 項目 | DBテーブル | 備考 |
+|---|------|-----------|------|
+| ① | 要求機関別（陸/海/空/他） | `summary.army_100m` 等 | FY2000-2005・FY2024は機関別金額あり |
+| ② | 品目別（上位20社×主な調達品） | `chuou_chotatsu_company_items` | FY2007-2024は抽出済み |
+| ③ | 契約方式別（競争/随意/FMS） | `summary.method_*` | R05/R06（FY2023-2024）のみ取込済み |
+| ④ | 主要調達品目一覧 | `chuou_chotatsu_main_items` | FY2005・FY2007-2024は抽出済み |
+| ⑤ | 上位20社（順位/件数/金額） | `chuou_chotatsu_companies` | FY1999-2024は全20社完備 |
+
+△（元データあり・未取込）の主なケース:
+- **①機関別 FY2021-2022**: 中央調達の概況PDFに記載あり、未抽出
+- **③契約方式 FY2021-2022**: 同上
+- **②品目別 FY1999-2006**: 旧防衛庁のWebページに「主な調達品」記載あり、未抽出
+- **④主要品目 FY1997-2006**: HTML/PDFに主要調達品記載あり、部分的未抽出
+""")
+
+    # サマリーカウント表示
+    total_fy = len(df_status)
+    for col, label in [("s1","①機関別"), ("s2","②品目別"), ("s3","③契約方式"),
+                       ("s4","④主要品目"), ("s5","⑤上位20社")]:
+        counts = df_status[col].value_counts()
+        ok  = counts.get("○", 0)
+        tri = counts.get("△", 0)
+        ng  = counts.get("×", 0)
+        st.caption(f"{label}: ○{ok}年度 / △{tri}年度 / ×{ng}年度（全{total_fy}年度）")
