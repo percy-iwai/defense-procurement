@@ -87,6 +87,30 @@ VENDOR_NORMALIZE: dict[str, str] = {
     "アイ・エイチ・アイ マリンユナイテッド": "IHIマリンユナイテッド",
 }
 
+# 法人格表記の除去パターン（Unicode テキストに適用）
+_LEGAL_SUFFIX_PATTERNS = [
+    (r"^(?:公益)?財団法人\s*", ""),
+    (r"\s*(?:公益)?財団法人$", ""),
+    (r"\s*[（(]財[)）]\s*", ""),
+    (r"^(?:公益|一般)?社団法人\s*", ""),
+    (r"\s*[（(]社[)）]\s*", ""),
+    (r"^株式会社\s*", ""),
+    (r"\s*株式会社\s*", ""),
+    (r"\s*[（(]株[)）]\s*", ""),
+    (r"\s*㈱\s*", ""),
+    (r"^有限会社\s*", ""),
+    (r"\s*有限会社\s*", ""),
+    (r"\s*[（(]有[)）]\s*", ""),
+]
+
+
+def _strip_legal_suffix(name: str) -> str:
+    """全角スペース正規化 + 法人格表記除去。"""
+    name = name.replace("　", " ")
+    for pattern, repl in _LEGAL_SUFFIX_PATTERNS:
+        name = re.sub(pattern, repl, name)
+    return name.strip()
+
 
 def _normalize_company(name: str) -> str:
     """企業名を年代横断で統合できる正規化名に変換する。
@@ -94,8 +118,9 @@ def _normalize_company(name: str) -> str:
     1. \\n 以降を除去（法人番号・注釈を削除）
     2. 脚注行を除外
     3. CP932 mojibake decode を試みる（Latin-1 として格納されたバイト列を復元）
-    4. decode 成功時: 会社形態 suffix を除去 → VENDOR_NORMALIZE 適用
-    5. decode 失敗時: 文字間スペース除去 → suffix パターン除去
+    4. decode 成功時（H11-H27 garbled PDF）: 法人格除去 → VENDOR_NORMALIZE 適用
+    5. Latin-1 encode 不可（R03-R06 正常 UTF-8）: 直接法人格除去 → VENDOR_NORMALIZE 適用
+    6. garbled で decode 不可: 文字間スペース除去のみ（日本語テキスト取り出し不可）
     """
     name = name.split("\n")[0].strip()
     name = re.sub(r"[（(]注\d+[)）]", "", name).strip()
@@ -103,17 +128,26 @@ def _normalize_company(name: str) -> str:
         return ""
 
     decoded = None
+    is_latin1 = True
     try:
-        decoded = name.encode("latin-1").decode("cp932")
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        pass
+        raw = name.encode("latin-1")
+        try:
+            decoded = raw.decode("cp932")
+        except UnicodeDecodeError:
+            pass
+    except UnicodeEncodeError:
+        is_latin1 = False  # 非 Latin-1 文字を含む → 正常 Unicode テキスト
 
     if decoded:
-        clean = re.sub(r"[（(]株[)）]", "", decoded)
-        clean = re.sub(r"株式会社", "", clean).strip()
+        # CP932 decode 成功（H11-H27 PDF の garbled 名）
+        clean = _strip_legal_suffix(decoded)
+        return VENDOR_NORMALIZE.get(clean, clean)
+    elif not is_latin1:
+        # 正常 Unicode（R03-R06 など）→ 直接法人格除去
+        clean = _strip_legal_suffix(name)
         return VENDOR_NORMALIZE.get(clean, clean)
     else:
-        # H19-H27 の garbled 名にある文字間スペースを除去して年代間で統一
+        # Latin-1 エンコード可能だが CP932 decode 失敗 → garbled のまま空白正規化のみ
         name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f(（])", "", name)
         name = re.sub(r"(?<=[^\x00-\x7f]) (?=[)）])", "", name)
         name = re.sub(r"(?<=\b[A-Z]) (?=[A-Z])", "", name)
