@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 import sqlite3
 import sys
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -78,39 +79,83 @@ def load_summary() -> pd.DataFrame:
 # ── 企業名正規化 ─────────────────────────────────────────────────
 
 VENDOR_NORMALIZE: dict[str, str] = {
-    "三菱重工": "三菱重工業",
+    # IHI グループ（石川島播磨重工業の後継・カタカナ読み統合）
     "石川島播磨重工業": "IHI",
-    "JX日鉱日石エネルギー": "JXエネルギー",
-    "JXTGエネルギー": "JXエネルギー",
+    "アイ・エイチ・アイ": "IHI",
+    "アイ・エイチ・アイ・エアロスペース": "IHIエアロスペース",
+    "アイ・エイチ・アイ・マリンユナイテッド": "IHIマリンユナイテッド",
+    "アイ・エイチ・アイマリンユナイテッド": "IHIマリンユナイテッド",
+    # 三菱グループ
+    "三菱重工": "三菱重工業",
+    "三菱重工機械システム": "三菱重工業",
+    # エネルギー会社（歴代名称 → ENEOS に統合）
+    "新日本石油": "ENEOS",
+    "JX日鉱日石エネルギー": "ENEOS",
+    "JXエネルギー": "ENEOS",
+    "JXTGエネルギー": "ENEOS",
+    # 造船（三井造船+ユニバーサル造船 → 2013年 JMU に合併）
+    "三井造船": "ジャパンマリンユナイテッド",
+    "ユニバーサル造船": "ジャパンマリンユナイテッド",
+    "マリンユナイテッド": "ジャパンマリンユナイテッド",
+    # 富士重工業 → SUBARU（2017年改称）
+    "富士重工業": "SUBARU",
+    # コスモ石油（販売子会社統合）
     "コスモ石油マーケティング": "コスモ石油",
-    "アイ・エイチ・アイ エアロスペース": "IHIエアロスペース",
-    "アイ・エイチ・アイ マリンユナイテッド": "IHIマリンユナイテッド",
+    # 東芝インフラ（東芝の分社→2018年 東芝インフラシステムズ設立）
+    "東芝インフラシステムズ": "東芝",
+    "東芝インフラ": "東芝",
+    # GEアビエーション（Distribution は日本販社）
+    "GEアビエーション・ディストリビューション・ジャパン": "GEアビエーション",
+    # 昭和シェル → ENEOSグループに統合（2019年）
+    "昭和シェル石油": "ENEOS",
 }
 
 # 法人格表記の除去パターン（Unicode テキストに適用）
 _LEGAL_SUFFIX_PATTERNS = [
-    (r"^(?:公益)?財団法人\s*", ""),
-    (r"\s*(?:公益)?財団法人$", ""),
+    # 公的法人（前置のみ）
+    (r"^国立研究開発法人\s*", ""),
+    (r"^独立行政法人\s*", ""),
+    # 財団法人系
+    (r"^(?:公益|一般)?財団法人\s*", ""),
+    (r"\s*(?:公益|一般)?財団法人$", ""),
     (r"\s*[（(]財[)）]\s*", ""),
+    # 社団法人系
     (r"^(?:公益|一般)?社団法人\s*", ""),
     (r"\s*[（(]社[)）]\s*", ""),
+    # 株式会社（前置・後置・略称）
     (r"^株式会社\s*", ""),
     (r"\s*株式会社\s*", ""),
     (r"\s*[（(]株[)）]\s*", ""),
     (r"\s*㈱\s*", ""),
+    # 有限会社
     (r"^有限会社\s*", ""),
     (r"\s*有限会社\s*", ""),
     (r"\s*[（(]有[)）]\s*", ""),
 ]
 
+# 脚注・ノイズ行の先頭文字列
+_NOISE_PREFIXES = ("計数は", "金額は", "内局等", "プロは", "(企業")
+
 
 def _strip_legal_suffix(name: str) -> str:
-    """全角スペース正規化 + 法人格表記除去 + 全角文字間スペース除去。"""
+    """文字間スペース正規化（先に実行） + 法人格除去。
+
+    ★スペース除去を suffix パターンより先に行う理由:
+    「株 式 会 社 IHI」のようにスペース入りの法人格表記は、
+    先にスペースを除去して「株式会社IHI」にしてから suffix パターンを当てる必要がある。
+    """
     name = name.replace("　", " ")
+    # STEP 1: 文字間スペース除去（suffix 除去より先に実行）
+    # 全角文字間スペース（「三 菱 重 工 業」→「三菱重工業」、「株 式 会 社」→「株式会社」）
+    name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f])", "", name)
+    # ASCII大文字間スペース（「I H I」→「IHI」、「S U B A R U」→「SUBARU」）
+    name = re.sub(r"(?<=[A-Z]) (?=[A-Z])", "", name)
+    # ASCII↔全角間スペース（「J X エネルギー」→「JXエネルギー」）
+    name = re.sub(r"(?<=[A-Za-z0-9]) (?=[^\x00-\x7f])", "", name)
+    name = re.sub(r"(?<=[^\x00-\x7f]) (?=[A-Za-z0-9])", "", name)
+    # STEP 2: 法人格表記除去（スペース正規化後なので正しくマッチする）
     for pattern, repl in _LEGAL_SUFFIX_PATTERNS:
         name = re.sub(pattern, repl, name)
-    # 全角文字の間に挟まった半角スペースを除去（「三 菱 重 工 業」→「三菱重工業」）
-    name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f])", "", name)
     return name.strip()
 
 
@@ -118,15 +163,25 @@ def _normalize_company(name: str) -> str:
     """企業名を年代横断で統合できる正規化名に変換する。
 
     1. \\n 以降を除去（法人番号・注釈を削除）
-    2. 脚注行を除外
-    3. CP932 mojibake decode を試みる（Latin-1 として格納されたバイト列を復元）
-    4. decode 成功時（H11-H27 garbled PDF）: 法人格除去 → VENDOR_NORMALIZE 適用
-    5. Latin-1 encode 不可（R03-R06 正常 UTF-8）: 直接法人格除去 → VENDOR_NORMALIZE 適用
-    6. garbled で decode 不可: 文字間スペース除去のみ（日本語テキスト取り出し不可）
+    2. NFKC 正規化（全角英数・記号を半角に統一）
+    3. 脚注・ノイズ行を除外
+    4. CP932 mojibake decode を試みる（Latin-1 として格納されたバイト列を復元）
+    5. decode 成功時（H11-H27 garbled PDF）: NFKC再適用 + 法人格除去 → VENDOR_NORMALIZE
+    6. Latin-1 encode 不可（R03-R06 正常 UTF-8）: 直接法人格除去 → VENDOR_NORMALIZE
+    7. garbled で decode 不可: 文字間スペース除去のみ
     """
-    name = name.split("\n")[0].strip()
+    # 法人番号行・注釈行を除去してから改行を連結（複数行カタカナ企業名を接続）
+    name = re.sub(r"\n?\(法人番号[^)]*\)", "", name)
+    name = re.sub(r"\n?（法人番号[^）]*）", "", name)
+    name = name.replace("\n", "").strip()
+    name = unicodedata.normalize("NFKC", name)
     name = re.sub(r"[（(]注\d+[)）]", "", name).strip()
-    if name.startswith("計数は") or name.startswith("内局等") or not name:
+    if not name:
+        return ""
+    for prefix in _NOISE_PREFIXES:
+        if name.startswith(prefix):
+            return ""
+    if re.match(r"^\d+年度$", name):  # 「14年度」などのラベル行
         return ""
 
     decoded = None
@@ -142,6 +197,7 @@ def _normalize_company(name: str) -> str:
 
     if decoded:
         # CP932 decode 成功（H11-H27 PDF の garbled 名）
+        decoded = unicodedata.normalize("NFKC", decoded)
         clean = _strip_legal_suffix(decoded)
         return VENDOR_NORMALIZE.get(clean, clean)
     elif not is_latin1:
@@ -149,7 +205,7 @@ def _normalize_company(name: str) -> str:
         clean = _strip_legal_suffix(name)
         return VENDOR_NORMALIZE.get(clean, clean)
     else:
-        # Latin-1 エンコード可能だが CP932 decode 失敗 → garbled のまま空白正規化のみ
+        # garbled のまま（Latin-1だがCP932 decode失敗）→ 空白正規化のみ
         name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f(（])", "", name)
         name = re.sub(r"(?<=[^\x00-\x7f]) (?=[)）])", "", name)
         name = re.sub(r"(?<=\b[A-Z]) (?=[A-Z])", "", name)
