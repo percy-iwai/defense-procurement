@@ -110,6 +110,11 @@ VENDOR_NORMALIZE: dict[str, str] = {
     "昭和シェル石油": "ENEOS",
 }
 
+# VENDOR_NORMALIZE の逆引き辞書（正規化名 → 統合前旧名称リスト）
+_REVERSE_NORMALIZE: dict[str, list[str]] = {}
+for _old_name, _canonical in VENDOR_NORMALIZE.items():
+    _REVERSE_NORMALIZE.setdefault(_canonical, []).append(_old_name)
+
 # 法人格表記の除去パターン（Unicode テキストに適用）
 _LEGAL_SUFFIX_PATTERNS = [
     # 公的法人（前置のみ）
@@ -333,34 +338,63 @@ with tab_top:
         )
 
         if selected:
+            # x軸カテゴリを fiscal_year の数値順で固定（H16 等が右端に飛ぶ問題を防止）
+            def _fy_label(y: int) -> str:
+                return f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
+            all_labels = [_fy_label(y) for y in sorted(df_co["fiscal_year"].unique())]
+
             fig3 = go.Figure()
+            table_rows = []
             for co in selected:
                 sub = df_co[df_co["company_name_clean"] == co].sort_values("fiscal_year").copy()
                 if sub.empty:
                     continue
-                sub["label"] = sub["fiscal_year"].apply(
-                    lambda y: f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
-                )
+                sub["label"] = sub["fiscal_year"].apply(_fy_label)
                 fig3.add_trace(go.Scatter(
                     x=sub["label"], y=sub["amount_100m"],
                     mode="lines+markers",
                     name=co,
                     hovertemplate=f"{co}: %{{y:,.0f}}億円<extra></extra>",
                 ))
+                table_rows.append(sub[["fiscal_year", "label", "company_name_clean", "rank", "amount_100m"]])
+
             fig3.update_layout(
                 template="plotly_dark",
                 height=700,
-                xaxis=dict(title="年度", tickangle=-45),
+                xaxis=dict(
+                    title="年度", tickangle=-45,
+                    categoryorder="array", categoryarray=all_labels,
+                ),
                 yaxis=dict(title="調達額（億円）", tickformat=",.0f"),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
                 margin=dict(l=60, r=20, t=50, b=80),
             )
             st.plotly_chart(fig3, use_container_width=True)
 
+            # 年度×企業×順位×金額 テーブル
+            if table_rows:
+                tbl = (
+                    pd.concat(table_rows, ignore_index=True)
+                    .sort_values(["fiscal_year", "rank"])
+                    .rename(columns={
+                        "label": "年度",
+                        "company_name_clean": "企業名",
+                        "rank": "順位",
+                        "amount_100m": "金額（億円）",
+                    })
+                )
+                st.dataframe(
+                    tbl[["年度", "企業名", "順位", "金額（億円）"]],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
         st.caption(
             f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度、"
             f"延べ{len(df_co)}社件数。"
             "企業名は年代横断で正規化済み（CP932 mojibake 復元・表記揺れ吸収）。"
+            " ※FY1999/2000 は上位19社（重複エントリ削除）、"
+            "FY2002-2004 は HTML 解析エラーにより上位9〜11社のみ収録（順位は金額順に再採番）。"
         )
 
 
@@ -382,6 +416,11 @@ with tab_drill:
         sel_co = st.selectbox("企業を選択", options=co_list)
 
         if sel_co:
+            # 旧名称・統合前企業名の表示
+            if sel_co in _REVERSE_NORMALIZE:
+                aliases = " / ".join(_REVERSE_NORMALIZE[sel_co])
+                st.caption(f"旧名称・統合前企業: **{aliases}**")
+
             sub = df_co[df_co["company_name_clean"] == sel_co].sort_values("fiscal_year").copy()
             sub["label"] = sub["fiscal_year"].apply(
                 lambda y: f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
