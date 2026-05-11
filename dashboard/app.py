@@ -1382,13 +1382,13 @@ pg = st.navigation(
         "分析": [
             st.Page("pages/5_chuou_chotatsu.py", title="中央調達実績分析", icon="📈"),
             st.Page("pages/96_low_price_bid.py", title="低価格入札分析", icon="⚠️"),
-            st.Page("pages/97_pillar_review.py", title="ピラーレビュービューワー", icon="🔍"),
         ],
         "その他（参考）": [
             st.Page("pages/3_jigyou_review.py", title="行政事業レビュー", icon="🔍"),
             st.Page("pages/5_requesting_org_methodology.py", title="要求元判定ロジック", icon="🔬"),
             st.Page("pages/6_pillar_db_viewer.py", title="7本柱DBビューワー", icon="🏛️"),
             st.Page("pages/98_pillar_logic.py", title="7本柱分類判定ロジック", icon="🔑"),
+            st.Page("pages/97_pillar_review.py", title="7本柱分類レビュー用ビューワー", icon="🔍"),
             st.Page("pages/97_equipment_glossary.py", title="装備品解説図鑑", icon="🔭"),
             st.Page("pages/98_coverage.py", title="収録状況・カバレッジ", icon="📊"),
             st.Page("pages/99_url_matrix.py", title="URLマトリクス", icon="🗂️"),

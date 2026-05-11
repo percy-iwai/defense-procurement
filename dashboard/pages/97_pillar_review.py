@@ -81,7 +81,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.title("🔍 ピラーレビュービューワー")
+st.title("🔍 7本柱分類レビュー用ビューワー")
 st.caption(
     "「修正指示」列に修正先ピラー等を記入 → 「確定」ボタンで保存。"
     " contract_pillar を LEFT JOIN しているため未分類（UNCLS）も含む。"
