@@ -24,7 +24,6 @@ require_password()
 
 PROJECT_ROOT = DASHBOARD_DIR.parent
 CHUOU_DB = PROJECT_ROOT / "data" / "chuou_chotatsu.db"
-PROCUREMENT_DB = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"
@@ -243,38 +242,18 @@ def load_companies() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=600)
-def load_contracts_for_vendor(company_clean: str, fiscal_year: int) -> pd.DataFrame:
-    """procurement.db から指定企業・年度の契約一覧を取得する（TOP20件）。"""
-    if not PROCUREMENT_DB.exists():
-        return pd.DataFrame()
-    # canonical 名 + 旧名称・統合前企業名を検索対象に含める
-    search_terms = [company_clean]
-    if company_clean in _REVERSE_NORMALIZE:
-        search_terms.extend(_REVERSE_NORMALIZE[company_clean])
-    # 検索キーが短すぎると誤ヒットが多いため4文字未満は除外
-    search_terms = [t for t in search_terms if len(t) >= 3]
-    if not search_terms:
-        return pd.DataFrame()
-    like_clauses = " OR ".join(["vendor_name LIKE ?" for _ in search_terms])
-    params: list = [f"%{t}%" for t in search_terms]
-    params.append(fiscal_year)
-    query = f"""
-        SELECT
-            contract_name,
-            vendor_name,
-            ROUND(contract_amount / 1e8, 1) AS amount_100m,
-            agency_name,
-            bid_method,
-            contract_date
-        FROM contracts
-        WHERE ({like_clauses})
-          AND fiscal_year = ?
-          AND contract_amount IS NOT NULL
-        ORDER BY contract_amount DESC
-        LIMIT 20
-    """
-    with sqlite3.connect(str(PROCUREMENT_DB)) as con:
-        return pd.read_sql_query(query, con, params=params)
+def load_company_items() -> pd.DataFrame:
+    """chuou_chotatsu_company_items テーブルから全データを読み込む。"""
+    with sqlite3.connect(str(CHUOU_DB)) as con:
+        try:
+            return pd.read_sql_query(
+                """SELECT fiscal_year, company_rank, company_name, item_name, item_order
+                   FROM chuou_chotatsu_company_items
+                   ORDER BY fiscal_year, company_rank, item_order""",
+                con,
+            )
+        except Exception:
+            return pd.DataFrame()
 
 
 df_sum = load_summary()
@@ -474,50 +453,146 @@ with tab_top:
             "企業名は年代横断で正規化済み（CP932 mojibake 復元・表記揺れ吸収）。"
         )
 
-        # ── 主要契約品目ドリルダウン ──────────────────────────────────
-        st.markdown("#### 主要契約品目ドリルダウン（procurement.db 連携）")
-        if not PROCUREMENT_DB.exists():
-            st.warning("procurement.db が見つかりません。個別契約データは表示できません。")
+        # ── 主な調達品 ドリルダウン ────────────────────────────────────
+        st.markdown("---")
+        st.markdown("#### 🔍 主な調達品（中央調達実績PDF記載データ）")
+
+        _df_items_all = load_company_items()
+        _ITEM_FYS = sorted(_df_items_all["fiscal_year"].unique().tolist()) if not _df_items_all.empty else []
+
+        _ITEM_ICON_MAP = {
+            ("護衛艦", "潜水艦", "補給艦", "掃海", "哨戒艦", "輸送艦"): "⚓",
+            ("戦闘機", "哨戒機", "輸送機", "救難機", "練習機", "飛行機", "ヘリ", "回転翼", "UH-", "SH-", "P-1", "C-2", "F-", "T-", "US-2", "KC-"): "✈️",
+            ("ミサイル", "誘導弾", "ロケット", "爆弾", "SDB", "弾薬"): "🚀",
+            ("レーダー", "ソーナー", "通信", "システム", "ネットワーク", "電波", "警戒", "衛星", "C4I", "JADGE"): "📡",
+            ("車両", "装甲", "戦車", "自走", "トラック", "軽装甲"): "🚛",
+        }
+
+        def _item_icon(name: str) -> str:
+            for keywords, icon in _ITEM_ICON_MAP.items():
+                if any(kw in name for kw in keywords):
+                    return icon
+            return "🛡️"
+
+        _ITEM_CARD_CSS = """
+<style>
+.drill-header {
+    display: flex; align-items: center; gap: 10px;
+    background: #1e1e2e; border: 1px solid #45475a; border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 14px; font-size: 14px; color: #cdd6f4;
+}
+.drill-header .co-name { font-weight: 700; color: #89b4fa; font-size: 15px; }
+.drill-header .co-rank { color: #a6e3a1; font-weight: 600; }
+.drill-header .co-fy   { color: #b4befe; }
+.item-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px; margin-top: 4px;
+}
+.item-card {
+    background: #24273a;
+    border: 1px solid #45475a;
+    border-left: 3px solid #89b4fa;
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.item-card:hover {
+    background: #313244; border-left-color: #cba6f7;
+}
+.item-card-row { display: flex; align-items: center; gap: 8px; }
+.item-card-icon { font-size: 22px; flex-shrink: 0; }
+.item-card-num {
+    color: #7f849c; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+}
+.item-card-name {
+    color: #cdd6f4; font-size: 12.5px; font-weight: 500;
+    line-height: 1.45;
+}
+.no-items-note {
+    color: #6c7086; font-size: 13px; padding: 16px 0;
+    text-align: center; background: #181825;
+    border-radius: 8px; border: 1px dashed #45475a;
+}
+</style>
+"""
+        st.markdown(_ITEM_CARD_CSS, unsafe_allow_html=True)
+
+        if not _ITEM_FYS:
+            st.markdown(
+                '<div class="no-items-note">品目データは R03(2021)〜R06(2024) 分のみ利用可能です</div>',
+                unsafe_allow_html=True,
+            )
         else:
-            _avail_fys = [2024, 2023, 2022, 2025]
-            _col_co, _col_fy = st.columns([3, 1])
-            with _col_co:
-                _sel_vendor = st.selectbox(
-                    "企業を選択",
-                    options=top_companies,
-                    key="drill_vendor",
-                )
-            with _col_fy:
-                _sel_fy = st.selectbox(
+            _col_fy2, _col_co2 = st.columns([1, 3])
+            with _col_fy2:
+                _sel_item_fy = st.selectbox(
                     "年度",
-                    options=_avail_fys,
-                    key="drill_fy",
+                    options=_ITEM_FYS[::-1],  # 新しい年度を先頭に
+                    format_func=lambda y: f"R{y-2018:02d}（{y}年度）" if y >= 2019 else f"H{y-1988:02d}（{y}年度）",
+                    key="item_fy_select",
                 )
-            if _sel_vendor:
-                _df_contracts = load_contracts_for_vendor(_sel_vendor, _sel_fy)
-                if _df_contracts.empty:
-                    st.info(
-                        f"{_sel_vendor} の FY{_sel_fy} 契約データが"
-                        "procurement.db に見つかりませんでした。"
-                        "（procurement.db は FY2022-2025 収録）"
+            _items_for_fy = _df_items_all[_df_items_all["fiscal_year"] == _sel_item_fy]
+            _cos_for_fy = (
+                _items_for_fy.sort_values("company_rank")[["company_rank", "company_name"]]
+                .drop_duplicates("company_name")
+            )
+            with _col_co2:
+                if _cos_for_fy.empty:
+                    st.info("この年度の品目データがありません")
+                    _sel_item_co = None
+                else:
+                    _co_opts = _cos_for_fy["company_name"].tolist()
+                    _sel_item_co = st.selectbox(
+                        "企業を選択",
+                        options=_co_opts,
+                        format_func=lambda n: f"{_cos_for_fy[_cos_for_fy['company_name']==n]['company_rank'].values[0]}位｜{n}",
+                        key="item_co_select",
+                    )
+
+            if _sel_item_co:
+                with st.spinner("品目データを読み込み中…"):
+                    _items_rows = _items_for_fy[
+                        _items_for_fy["company_name"] == _sel_item_co
+                    ].sort_values("item_order")
+
+                if _items_rows.empty:
+                    st.markdown(
+                        '<div class="no-items-note">この企業・年度の品目データがありません</div>',
+                        unsafe_allow_html=True,
                     )
                 else:
-                    st.caption(
-                        f"{_sel_vendor} / FY{_sel_fy} — "
-                        f"上位{len(_df_contracts)}件（金額降順）"
+                    _rank_val = int(_items_rows.iloc[0]["company_rank"])
+                    _fy_lbl = f"R{_sel_item_fy-2018:02d}（{_sel_item_fy}年度）" if _sel_item_fy >= 2019 else f"H{_sel_item_fy-1988:02d}（{_sel_item_fy}年度）"
+                    st.markdown(
+                        f'<div class="drill-header">'
+                        f'<span class="co-name">{_sel_item_co}</span>'
+                        f'<span class="co-rank">第{_rank_val}位</span>'
+                        f'<span class="co-fy">{_fy_lbl}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
                     )
-                    st.dataframe(
-                        _df_contracts.rename(columns={
-                            "contract_name": "契約名",
-                            "vendor_name": "契約先",
-                            "amount_100m": "金額（億円）",
-                            "agency_name": "発注機関",
-                            "bid_method": "入札方式",
-                            "contract_date": "契約日",
-                        }),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+
+                    _cards_html = '<div class="item-cards-grid">'
+                    for _, _irow in _items_rows.iterrows():
+                        _icon = _item_icon(str(_irow["item_name"]))
+                        _order = int(_irow["item_order"])
+                        _name  = str(_irow["item_name"])
+                        _cards_html += (
+                            f'<div class="item-card">'
+                            f'<div class="item-card-row">'
+                            f'<span class="item-card-icon">{_icon}</span>'
+                            f'<span class="item-card-num">品目 {_order}</span>'
+                            f'</div>'
+                            f'<div class="item-card-name">{_name}</div>'
+                            f'</div>'
+                        )
+                    _cards_html += '</div>'
+                    st.markdown(_cards_html, unsafe_allow_html=True)
+
+                    st.caption("出典: 防衛装備庁「中央調達実績」PDF（上位20社の主な調達品）")
 
 
 # ══════════════════════════════════════════════════════════════════
