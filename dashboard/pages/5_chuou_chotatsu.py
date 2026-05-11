@@ -105,10 +105,12 @@ _LEGAL_SUFFIX_PATTERNS = [
 
 
 def _strip_legal_suffix(name: str) -> str:
-    """全角スペース正規化 + 法人格表記除去。"""
+    """全角スペース正規化 + 法人格表記除去 + 全角文字間スペース除去。"""
     name = name.replace("　", " ")
     for pattern, repl in _LEGAL_SUFFIX_PATTERNS:
         name = re.sub(pattern, repl, name)
+    # 全角文字の間に挟まった半角スペースを除去（「三 菱 重 工 業」→「三菱重工業」）
+    name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f])", "", name)
     return name.strip()
 
 
