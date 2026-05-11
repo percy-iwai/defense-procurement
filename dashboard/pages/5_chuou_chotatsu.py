@@ -24,6 +24,7 @@ require_password()
 
 PROJECT_ROOT = DASHBOARD_DIR.parent
 CHUOU_DB = PROJECT_ROOT / "data" / "chuou_chotatsu.db"
+PROCUREMENT_DB = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
 TEXT_COLOR = "#cdd6f4"
 TEXT_DIM   = "#bac2de"
@@ -241,6 +242,41 @@ def load_companies() -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=600)
+def load_contracts_for_vendor(company_clean: str, fiscal_year: int) -> pd.DataFrame:
+    """procurement.db から指定企業・年度の契約一覧を取得する（TOP20件）。"""
+    if not PROCUREMENT_DB.exists():
+        return pd.DataFrame()
+    # canonical 名 + 旧名称・統合前企業名を検索対象に含める
+    search_terms = [company_clean]
+    if company_clean in _REVERSE_NORMALIZE:
+        search_terms.extend(_REVERSE_NORMALIZE[company_clean])
+    # 検索キーが短すぎると誤ヒットが多いため4文字未満は除外
+    search_terms = [t for t in search_terms if len(t) >= 3]
+    if not search_terms:
+        return pd.DataFrame()
+    like_clauses = " OR ".join(["vendor_name LIKE ?" for _ in search_terms])
+    params: list = [f"%{t}%" for t in search_terms]
+    params.append(fiscal_year)
+    query = f"""
+        SELECT
+            contract_name,
+            vendor_name,
+            ROUND(contract_amount / 1e8, 1) AS amount_100m,
+            agency_name,
+            bid_method,
+            contract_date
+        FROM contracts
+        WHERE ({like_clauses})
+          AND fiscal_year = ?
+          AND contract_amount IS NOT NULL
+        ORDER BY contract_amount DESC
+        LIMIT 20
+    """
+    with sqlite3.connect(str(PROCUREMENT_DB)) as con:
+        return pd.read_sql_query(query, con, params=params)
+
+
 df_sum = load_summary()
 df_co  = load_companies()
 
@@ -436,9 +472,52 @@ with tab_top:
             f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度、"
             f"延べ{len(df_co)}社件数。"
             "企業名は年代横断で正規化済み（CP932 mojibake 復元・表記揺れ吸収）。"
-            " ※FY1999/2000 は上位19社（重複エントリ削除）、"
-            "FY2002-2004 は HTML 解析エラーにより上位9〜11社のみ収録（順位は金額順に再採番）。"
         )
+
+        # ── 主要契約品目ドリルダウン ──────────────────────────────────
+        st.markdown("#### 主要契約品目ドリルダウン（procurement.db 連携）")
+        if not PROCUREMENT_DB.exists():
+            st.warning("procurement.db が見つかりません。個別契約データは表示できません。")
+        else:
+            _avail_fys = [2024, 2023, 2022, 2025]
+            _col_co, _col_fy = st.columns([3, 1])
+            with _col_co:
+                _sel_vendor = st.selectbox(
+                    "企業を選択",
+                    options=top_companies,
+                    key="drill_vendor",
+                )
+            with _col_fy:
+                _sel_fy = st.selectbox(
+                    "年度",
+                    options=_avail_fys,
+                    key="drill_fy",
+                )
+            if _sel_vendor:
+                _df_contracts = load_contracts_for_vendor(_sel_vendor, _sel_fy)
+                if _df_contracts.empty:
+                    st.info(
+                        f"{_sel_vendor} の FY{_sel_fy} 契約データが"
+                        "procurement.db に見つかりませんでした。"
+                        "（procurement.db は FY2022-2025 収録）"
+                    )
+                else:
+                    st.caption(
+                        f"{_sel_vendor} / FY{_sel_fy} — "
+                        f"上位{len(_df_contracts)}件（金額降順）"
+                    )
+                    st.dataframe(
+                        _df_contracts.rename(columns={
+                            "contract_name": "契約名",
+                            "vendor_name": "契約先",
+                            "amount_100m": "金額（億円）",
+                            "agency_name": "発注機関",
+                            "bid_method": "入札方式",
+                            "contract_date": "契約日",
+                        }),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
 
 
 # ══════════════════════════════════════════════════════════════════
