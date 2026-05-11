@@ -522,7 +522,7 @@ with tab_top:
 
         if not _ITEM_FYS:
             st.markdown(
-                '<div class="no-items-note">品目データは R03(2021)〜R06(2024) 分のみ利用可能です</div>',
+                '<div class="no-items-note">品目データが見つかりません</div>',
                 unsafe_allow_html=True,
             )
         else:

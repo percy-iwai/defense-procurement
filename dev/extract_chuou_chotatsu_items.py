@@ -1,7 +1,7 @@
 """中央調達実績PDFから品目データを抽出してchuou_chotatsu.dbに投入する。
 
 新規テーブル:
-  chuou_chotatsu_company_items  -- 上位20社 × 主な調達品3品目 (R03-R06 / FY2021-2024)
+  chuou_chotatsu_company_items  -- 上位20社 × 主な調達品 (H19-R06 / FY2007-2024)
   chuou_chotatsu_main_items     -- 年度別 主要調達品目一覧 (H19-R06 / FY2007-2024)
 
 既存テーブルへのカラム追加:
@@ -128,20 +128,20 @@ PDF_MAP: list[tuple[int, str, int | None, int | None, int | None]] = [
     (2023, "r05_chotatsu_jisseki.pdf",    2, 1, 0),
     (2022, "r04_jisseki_r05_mikomi.pdf",  2, 1, 0),
     (2021, "r03_jisseki_r04_mikomi.pdf",  2, 1, 0),
-    (2020, "r02_jisseki_mikomi.pdf",   None, 1, 3),
-    (2019, "r01_jisseki_mikomi.pdf",   None, 1, 3),
-    (2018, "h30_jisseki_mikomi.pdf",   None, 1, 3),
-    (2017, "h29_jisseki_mikomi.pdf",   None, 1, 3),
-    (2016, "h28_jisseki_mikomi.pdf",   None, 1, 3),
-    (2015, "h27_jisseki_mikomi.pdf",   None, 1, 3),
-    (2014, "h26_chotatsu_jisseki.pdf", None, 1, 0),
-    (2013, "h25_chotatsu_jisseki.pdf", None, 1, 0),
-    (2012, "h24_chotatsu_jisseki.pdf", None, 1, 0),
-    (2011, "h23_chotatsu_jisseki.pdf", None, 1, 0),
-    (2010, "h22_chotatsu_jisseki.pdf", None, 1, 0),
-    (2009, "h21_chotatsu_jisseki.pdf", None, 1, 0),
-    (2008, "h20_chotatsu_jisseki.pdf", None, 1, 0),
-    (2007, "h19_chotatsu_jisseki.pdf", None, 1, 0),
+    (2020, "r02_jisseki_mikomi.pdf",   2, 1, 3),
+    (2019, "r01_jisseki_mikomi.pdf",   2, 1, 3),
+    (2018, "h30_jisseki_mikomi.pdf",   2, 1, 3),
+    (2017, "h29_jisseki_mikomi.pdf",   2, 1, 3),
+    (2016, "h28_jisseki_mikomi.pdf",   2, 1, 3),
+    (2015, "h27_jisseki_mikomi.pdf",   2, 1, 3),
+    (2014, "h26_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2013, "h25_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2012, "h24_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2011, "h23_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2010, "h22_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2009, "h21_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2008, "h20_chotatsu_jisseki.pdf", 2, 1, 0),
+    (2007, "h19_chotatsu_jisseki.pdf", 2, 1, 0),
     (2005, "h17_jisseki_mikomi.pdf",   None, 1, 0),
 ]
 
@@ -160,60 +160,209 @@ def extract_company_items_r05_r06(
 ) -> list[tuple]:
     """R05/R06形式（items が 1行ずつ）の上位20社主な調達品を抽出する。
 
+    通常は "1三菱重工業株式会社" のように rank+company 連結。
+    東芝インフラシステムズ等は rank 数字のみ → 隣接行に会社名。
+
     Returns list of (fiscal_year, rank, company_name, item_name, item_order, source_file).
     """
     rows = _group_by_y(words, bucket=5)
     ys = sorted(rows.keys())
+    ITEM_X_MIN = 200
 
-    # 企業行の y リストを収集
-    company_ys: list[int] = []
+    # 企業行の検出（連結型 + 単独ランク数字型）
+    company_rows: list[dict] = []
     for y in ys:
         row_words = rows[y]
         leftmost = min(row_words, key=lambda w: w["x0"])
-        if leftmost["x0"] < 200 and _is_rank_line(leftmost["text"]):
-            company_ys.append(y)
+        if leftmost["x0"] >= 200:
+            continue
+        if _is_rank_line(leftmost["text"]):
+            co_words = [w for w in row_words if w["x0"] < ITEM_X_MIN]
+            co_text = "".join(w["text"] for w in co_words).strip()
+            m = re.match(r"^(\d{1,2})\s*(.*)", co_text)
+            if m:
+                company_rows.append({
+                    "y": y, "rank": int(m.group(1)),
+                    "company": m.group(2).strip(), "solo": False,
+                })
+        elif re.match(r"^\d{1,2}$", leftmost["text"]):
+            rank = int(leftmost["text"])
+            if 1 <= rank <= 20:
+                company_rows.append({"y": y, "rank": rank, "company": "", "solo": True})
 
-    # 企業行の y 範囲に含まれる item 行 (x > 200) を収集
-    ITEM_X_MIN = 200
+    # 単独型の会社名: ランク行より上の行（y < rank_y）から収集
+    all_y_set = {info["y"] for info in company_rows}
+    for info in company_rows:
+        if not info["solo"]:
+            continue
+        cy = info["y"]
+        co_parts = []
+        for y in ys:
+            if y >= cy or abs(y - cy) > 20:
+                continue
+            if y in all_y_set:
+                continue
+            for w in sorted(rows[y], key=lambda w: w["x0"]):
+                if w["x0"] < ITEM_X_MIN:
+                    t = w["text"]
+                    if not re.match(r"^[\d,，\s%]+$", t) and "法人番号" not in t:
+                        co_parts.append(t)
+        info["company"] = "".join(co_parts).strip()
+
+    company_rows.sort(key=lambda x: x["rank"])
 
     results: list[tuple] = []
-    for i, cy in enumerate(company_ys):
-        next_cy = company_ys[i + 1] if i + 1 < len(company_ys) else max(ys) + 100
-        # company info: 左端テキストを結合
-        co_words = [w for w in rows[cy] if w["x0"] < ITEM_X_MIN]
-        co_text = "".join(w["text"] for w in co_words).strip()
-        m = re.match(r"^(\d{1,2})\s*(.*)", co_text)
-        if not m:
-            continue
-        rank = int(m.group(1))
-        company_name = m.group(2).strip()
+    for i, info in enumerate(company_rows):
+        cy = info["y"]
+        rank = info["rank"]
+        company_name = info["company"]
 
-        # item 行: y がこの企業の範囲内かつ x > ITEM_X_MIN
-        item_ys = [
-            y for y in ys
-            if (cy - 15) <= y <= (next_cy - 5) and
-            any(w["x0"] >= ITEM_X_MIN for w in rows[y])
-        ]
+        prev_cy = company_rows[i - 1]["y"] if i > 0 else cy - 100
+        next_cy = company_rows[i + 1]["y"] if i + 1 < len(company_rows) else max(ys) + 100
+
+        range_start = int((prev_cy + cy) / 2)
+        range_end   = int((cy + next_cy) / 2)
+
         item_order = 1
-        for iy in sorted(item_ys):
-            item_words = [w for w in rows[iy] if w["x0"] >= ITEM_X_MIN]
+        for y in sorted(ys):
+            if not (range_start <= y <= range_end):
+                continue
+            item_words = [w for w in rows[y] if w["x0"] >= ITEM_X_MIN]
+            if not item_words:
+                continue
             item_text = "".join(w["text"] for w in item_words).strip()
-            # 数字だけの行（件数・金額）は除外
             if re.match(r"^[\d,，\s%]+$", item_text):
                 continue
-            # 「過去の順位」などヘッダー的な文字列を除外
             if any(kw in item_text for kw in ("順位", "件数", "金額", "主な調達品", "法人番号", "年度")):
                 continue
-            # 先頭に混入した「件数+金額」数値列を除去
-            # 例: "23814,56712式地対艦誘導弾" → "12式地対艦誘導弾"
-            # (件数 2-3桁 + 金額 1-3桁+コンマ+3桁)
+            # 先頭の「件数+金額」数値列を除去: "23814,56712式地対艦誘導弾" → "12式地対艦誘導弾"
             item_text = re.sub(r"^\d{3,6}[,，]\d{3}\s*", "", item_text).strip()
             if len(item_text) < 2:
                 continue
             results.append((fiscal_year, rank, company_name, item_text, item_order, fname))
             item_order += 1
-            if item_order > 5:  # 最大5品目まで
+            if item_order > 5:
                 break
+
+    return results
+
+
+def extract_company_items_h19_r02(
+    words: list[dict], fiscal_year: int, fname: str
+) -> list[tuple]:
+    """H19-R02 (FY2007-2020) の上位20社主な調達品を抽出する。
+
+    H19-H26 (3ページ形式): ランク数字と会社名が同一y行またはy±数pt以内
+    H27-R02 (5ページ形式): 会社名がランク行の上に来ることが多い
+    共通: items は x≈260-460, hist_ranks は x≈460+
+
+    Returns list of (fiscal_year, rank, company_name, item_name, item_order, source_file).
+    """
+    rows = _group_by_y(words, bucket=2)
+    ys = sorted(rows.keys())
+
+    RANK_X_MAX    = 100  # ランク数字の x 最大値（H25は x=86）
+    CO_X_MIN      = 58   # 会社名文字の x 最小値
+    CO_X_MAX      = 215  # 会社名文字の x 最大値
+    ITEM_X_MIN    = 258  # 調達品テキストの x 最小値
+    # 過去順位列の上限は設けず numeric filter で除外（H27 x=467〜、H25 x=492〜で差異あり）
+    CO_SEARCH_WIN = 16   # 会社名を探すランク行からの y 幅
+
+    # Step 1: ランク数字行を検出
+    # 「3 平成27年度上位20社の概要」のような章番号を除外するため、
+    # 近傍 (±20pt) に金額列 (x > 150) が存在することを検証する
+    seen_ranks: dict[int, int] = {}
+    for y in ys:
+        rw = rows[y]
+        rank_words = [
+            w for w in rw
+            if w["x0"] < RANK_X_MAX and re.match(r"^\d{1,2}$", w["text"])
+        ]
+        if not rank_words:
+            continue
+        rank_num = int(rank_words[0]["text"])
+        if not (1 <= rank_num <= 20):
+            continue
+        # 近傍行に数値データがあることを検証（章番号・脚注を排除）
+        has_amount = any(
+            w["x0"] > 150 and re.match(r"^\d[\d,\.]+$", w["text"])
+            for y2 in ys if abs(y2 - y) <= 20
+            for w in rows[y2]
+        )
+        if not has_amount:
+            continue
+        if rank_num not in seen_ranks or y < seen_ranks[rank_num]:
+            seen_ranks[rank_num] = y
+
+    sorted_rank_ys = sorted(seen_ranks.items())  # [(rank, y), ...]
+    if not sorted_rank_ys:
+        return []
+
+    # Step 2: 各ランク行の会社名を収集（ランク行の ±CO_SEARCH_WIN pt 以内）
+    def _collect_company(rank_y: int) -> str:
+        co_parts = []
+        for y in ys:
+            if abs(y - rank_y) > CO_SEARCH_WIN:
+                continue
+            for w in sorted(rows[y], key=lambda w: w["x0"]):
+                if CO_X_MIN <= w["x0"] <= CO_X_MAX:
+                    t = w["text"]
+                    # 数字・カンマ・%・小数点のみは除外（金額・件数・順位）
+                    if re.match(r"^[\d,，\s%\.]+$", t):
+                        continue
+                    # 法人番号・その数字部分（13桁数字 + 末尾かっこ）を除外
+                    if "法人番号" in t or re.match(r"^\d{10,}[\)）]?$", t):
+                        continue
+                    if t.startswith("(注") or t.startswith("（注"):
+                        continue
+                    co_parts.append(t)
+        return "".join(co_parts).strip()
+
+    # Step 3: ミッドポイント境界で items を収集
+    header_end = sorted_rank_ys[0][1] - 30
+    page_end   = max(ys) + 100
+
+    results: list[tuple] = []
+    for i, (rank, ry) in enumerate(sorted_rank_ys):
+        company_name = _collect_company(ry)
+
+        prev_ry = sorted_rank_ys[i - 1][1] if i > 0 else header_end
+        next_ry = sorted_rank_ys[i + 1][1] if i + 1 < len(sorted_rank_ys) else page_end
+
+        range_start = int((prev_ry + ry) / 2)
+        range_end   = int((ry + next_ry) / 2)
+
+        # items: x ≥ ITEM_X_MIN（hist_ranks は単数字なので numeric filter で除外）
+        item_parts: list[str] = []
+        for y in ys:
+            if not (range_start <= y <= range_end):
+                continue
+            for w in sorted(rows[y], key=lambda w: w["x0"]):
+                if w["x0"] < ITEM_X_MIN:
+                    continue
+                t = w["text"]
+                if "法人番号" in t:
+                    continue
+                # 過去順位数字（"1"〜"20"）または純数字・%は除外
+                if re.match(r"^[\d,，\s%\.]+$", t):
+                    continue
+                item_parts.append(t)
+
+        item_text = "".join(item_parts).strip()
+
+        for hdr in ("主な調達品", "主要調達品目", "品目名", "調達品目"):
+            if item_text.startswith(hdr):
+                item_text = item_text[len(hdr):].strip()
+
+        if not item_text or len(item_text) < 3:
+            continue
+
+        # 読点・句点で分割
+        items = [s.strip() for s in re.split(r"[、,，。]", item_text) if s.strip()]
+        items = [it for it in items if len(it) >= 3 and not re.match(r"^[\d\s%\.\-]+$", it)]
+
+        for order, it in enumerate(items[:5], start=1):
+            results.append((fiscal_year, rank, company_name, it, order, fname))
 
     return results
 
@@ -550,13 +699,15 @@ def process_all(dry_run: bool = False) -> None:
 
         print(f"\n=== FY{fy} {fname} ===")
 
-        # ① 上位20社の主な調達品（R03-R06のみ）
+        # ① 上位20社の主な調達品
         if top20_pi is not None:
             words = _page_words(pdf_path, top20_pi)
             if fy >= 2023:
                 company_items = extract_company_items_r05_r06(words, fy, fname)
-            else:
+            elif fy >= 2021:
                 company_items = extract_company_items_r03_r04(words, fy, fname)
+            else:  # FY2007-2020 (H19-R02)
+                company_items = extract_company_items_h19_r02(words, fy, fname)
 
             print(f"  company_items: {len(company_items)} rows")
             if not dry_run and company_items:
