@@ -20,6 +20,9 @@ from _auth import require_password  # noqa: E402
 
 require_password()
 
+# Top30 等から equipment_id クエリパラメータ付きで直接リンクされた場合に対応
+_qp_eq_id: str = st.query_params.get("equipment_id", "")
+
 # ── パス ────────────────────────────────────────────────────────────
 from _db import PROC_DB  # noqa: E402
 JR_DB   = DASHBOARD_DIR.parent / "data" / "db" / "jigyou_review.db"
@@ -118,17 +121,27 @@ with fil3:
     kw = st.text_input("キーワード検索（装備品名・keywords）", key="eq_kw")
 
 filt = df_eq.copy()
-if sel_branch != "すべて":
-    filt = filt[filt["branch_label"] == sel_branch]
-if sel_cat != "すべて":
-    filt = filt[filt["category"] == sel_cat]
-if kw:
-    mask = (
-        filt["name_ja"].str.contains(kw, na=False, case=False)
-        | filt["name_en"].fillna("").str.contains(kw, na=False, case=False)
-        | filt["keywords"].fillna("").str.contains(kw, na=False, case=False)
-    )
-    filt = filt[mask]
+if _qp_eq_id:
+    # 直接リンクモード: クエリパラメータで指定された装備品のみ表示
+    filt = filt[filt["equipment_id"] == _qp_eq_id]
+    if filt.empty:
+        st.warning(f"装備品 ID '{_qp_eq_id}' が見つかりません。全一覧を表示します。")
+        filt = df_eq.copy()
+    else:
+        name_direct = filt.iloc[0]["name_ja"]
+        st.info(f"🔗 直接リンク表示: **{name_direct}** ／ [← 全一覧に戻る](/equipment_glossary)")
+else:
+    if sel_branch != "すべて":
+        filt = filt[filt["branch_label"] == sel_branch]
+    if sel_cat != "すべて":
+        filt = filt[filt["category"] == sel_cat]
+    if kw:
+        mask = (
+            filt["name_ja"].str.contains(kw, na=False, case=False)
+            | filt["name_en"].fillna("").str.contains(kw, na=False, case=False)
+            | filt["keywords"].fillna("").str.contains(kw, na=False, case=False)
+        )
+        filt = filt[mask]
 
 # 行政事業レビュー概要を filt にマージ
 _jr_ids = tuple(filt["jigyou_review_id"].dropna().unique().tolist())

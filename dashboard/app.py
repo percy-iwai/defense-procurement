@@ -272,20 +272,17 @@ def _load_contracts() -> pd.DataFrame:
 
 @st.cache_data(ttl=300)
 def _load_equipment_map() -> pd.DataFrame:
-    """contract_id → 装備品名・解説URL のマッピング。
+    """contract_id → 装備品名・装備品解説図鑑URL のマッピング。
 
     複数 equipment にマッチする契約は最高 confidence を採用。SQLite の
     MIN/MAX bare-column 規約により MAX(confidence) と同じ行の equipment_id を返す。
-    解説URLは 3層優先順位：
-      1. ref_url_official   防衛省公式 装備品個別ページ（最具体）
-      2. ref_url_wikipedia  Wikipedia 記事
-      3. ref_url_hakusho    防衛白書の品目紹介ページ（フォールバック）
+    解説URLは装備品解説図鑑ページ（/equipment_glossary?equipment_id=...）への内部リンク。
     """
     with sqlite3.connect(DB_PATH) as conn:
         return pd.read_sql_query(
             """SELECT ce.contract_id,
                       em.name_ja AS equipment_name,
-                      COALESCE(em.ref_url_official, em.ref_url_wikipedia, em.ref_url_hakusho) AS ref_url
+                      '/equipment_glossary?equipment_id=' || em.equipment_id AS ref_url
                FROM (
                    SELECT contract_id, equipment_id, MAX(confidence) AS confidence
                    FROM contract_equipment
@@ -1346,7 +1343,7 @@ def main():
                 "解説":      st.column_config.LinkColumn(width="small", display_text="📖"),
             },
         )
-        st.caption("契約金額（円）降順。NULL（単価契約等）は除外。")
+        st.caption("契約金額（円）降順。NULL（単価契約等）は除外。📖 解説列は装備品解説図鑑へのリンク。")
 
 
     # ── ダイアログ dispatch（1ラン1つ保証） ──────────────────────────────
