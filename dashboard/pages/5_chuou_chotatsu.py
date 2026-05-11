@@ -337,14 +337,13 @@ with tab_top:
             default=top_companies[:min(8, len(top_companies))],
         )
 
-        if selected:
-            # x軸カテゴリを fiscal_year の数値順で固定（H16 等が右端に飛ぶ問題を防止）
-            def _fy_label(y: int) -> str:
-                return f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
-            all_labels = [_fy_label(y) for y in sorted(df_co["fiscal_year"].unique())]
+        # x軸カテゴリを fiscal_year の数値順で固定（H16 等が右端に飛ぶ問題を防止）
+        def _fy_label(y: int) -> str:
+            return f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
+        all_labels = [_fy_label(y) for y in sorted(df_co["fiscal_year"].unique())]
 
+        if selected:
             fig3 = go.Figure()
-            table_rows = []
             for co in selected:
                 sub = df_co[df_co["company_name_clean"] == co].sort_values("fiscal_year").copy()
                 if sub.empty:
@@ -356,8 +355,6 @@ with tab_top:
                     name=co,
                     hovertemplate=f"{co}: %{{y:,.0f}}億円<extra></extra>",
                 ))
-                table_rows.append(sub[["fiscal_year", "label", "company_name_clean", "rank", "amount_100m"]])
-
             fig3.update_layout(
                 template="plotly_dark",
                 height=700,
@@ -371,23 +368,69 @@ with tab_top:
             )
             st.plotly_chart(fig3, use_container_width=True)
 
-            # 年度×企業×順位×金額 テーブル
-            if table_rows:
-                tbl = (
-                    pd.concat(table_rows, ignore_index=True)
-                    .sort_values(["fiscal_year", "rank"])
-                    .rename(columns={
-                        "label": "年度",
-                        "company_name_clean": "企業名",
-                        "rank": "順位",
-                        "amount_100m": "金額（億円）",
-                    })
-                )
-                st.dataframe(
-                    tbl[["年度", "企業名", "順位", "金額（億円）"]],
-                    use_container_width=True,
-                    hide_index=True,
-                )
+        # ── ランク×年度 マトリクス表（全データ） ─────────────────────────
+        st.markdown("#### 順位別・年度別 調達企業一覧（金額: 億円）")
+        all_fys = sorted(df_co["fiscal_year"].unique())
+
+        # (fiscal_year, rank) → (企業名, 金額) のルックアップ
+        _lookup: dict[tuple, tuple] = {}
+        for _, row in df_co.iterrows():
+            _lookup[(int(row["fiscal_year"]), int(row["rank"]))] = (
+                row["company_name_clean"],
+                row["amount_100m"],
+            )
+
+        # HTML 生成
+        _css = """
+<style>
+.rank-matrix-wrap { overflow: auto; max-height: 540px; border: 1px solid #45475a; border-radius: 6px; }
+.rank-matrix { border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.rank-matrix th, .rank-matrix td { border: 1px solid #313244; padding: 3px 7px; }
+.rank-matrix thead th {
+    background: #1e1e2e; color: #89b4fa; font-weight: 600;
+    position: sticky; top: 0; z-index: 2;
+}
+.rank-matrix th.rank-hdr {
+    background: #1e1e2e; color: #89b4fa;
+    position: sticky; left: 0; top: 0; z-index: 3;
+}
+.rank-matrix td.rank-idx {
+    background: #1e1e2e; color: #a6e3a1; font-weight: 600;
+    position: sticky; left: 0; z-index: 1; text-align: center;
+}
+.rank-matrix tbody tr:nth-child(odd)  td { background: #181825; color: #cdd6f4; }
+.rank-matrix tbody tr:nth-child(even) td { background: #11111b; color: #cdd6f4; }
+.rank-matrix tbody tr:nth-child(odd)  td.rank-idx { background: #1e1e2e; }
+.rank-matrix tbody tr:nth-child(even) td.rank-idx { background: #1e1e2e; }
+.rank-matrix td.no-data { color: #45475a; text-align: center; }
+.rank-matrix tbody tr:hover td { background: #313244 !important; }
+</style>
+"""
+        _hdr_cells = ['<th class="rank-hdr">順位</th>']
+        for _fy in all_fys:
+            _hdr_cells.append(f'<th>{_fy_label(_fy)}</th>')
+
+        _body_rows: list[str] = []
+        for _rank in range(1, 21):
+            _cells = [f'<td class="rank-idx">{_rank}</td>']
+            for _fy in all_fys:
+                if (_fy, _rank) in _lookup:
+                    _name, _amt = _lookup[(_fy, _rank)]
+                    _amt_str = f"{_amt:,.0f}" if _amt is not None else "?"
+                    _cells.append(f'<td>{_name}（{_amt_str}）</td>')
+                else:
+                    _cells.append('<td class="no-data">-</td>')
+            _body_rows.append(f'<tr>{"".join(_cells)}</tr>')
+
+        _html = (
+            _css
+            + '<div class="rank-matrix-wrap">'
+            + '<table class="rank-matrix">'
+            + f'<thead><tr>{"".join(_hdr_cells)}</tr></thead>'
+            + f'<tbody>{"".join(_body_rows)}</tbody>'
+            + '</table></div>'
+        )
+        st.markdown(_html, unsafe_allow_html=True)
 
         st.caption(
             f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度、"
