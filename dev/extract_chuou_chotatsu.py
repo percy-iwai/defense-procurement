@@ -735,7 +735,7 @@ def _get_pdf_files() -> dict[int, tuple[Path, str]]:
         fy = _filename_to_fy(fpath.name)
         if fy is None:
             continue
-        dtype = "mikomi" if "mikomi" in fpath.name.lower() else "jisseki"
+        dtype = "jisseki"  # jisseki ディレクトリ内のすべての PDF は実績データを含む（ファイル名に mikomi があっても Section 1 は実績）
         fy_files.setdefault(fy, []).append((fpath, dtype))
 
     result: dict[int, tuple[Path, str]] = {}

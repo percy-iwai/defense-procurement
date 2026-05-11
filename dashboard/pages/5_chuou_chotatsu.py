@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -65,7 +66,6 @@ def load_summary() -> pd.DataFrame:
         df = pd.read_sql_query(
             "SELECT * FROM chuou_chotatsu_summary ORDER BY fiscal_year", con
         )
-    # 西暦→日本語年度ラベル
     def _label(y: int) -> str:
         if y >= 2019:
             return f"R{y - 2018:02d}({y})"
@@ -75,29 +75,81 @@ def load_summary() -> pd.DataFrame:
     return df
 
 
+# ── 企業名正規化 ─────────────────────────────────────────────────
+
+VENDOR_NORMALIZE: dict[str, str] = {
+    "三菱重工": "三菱重工業",
+    "石川島播磨重工業": "IHI",
+    "JX日鉱日石エネルギー": "JXエネルギー",
+    "JXTGエネルギー": "JXエネルギー",
+    "コスモ石油マーケティング": "コスモ石油",
+    "アイ・エイチ・アイ エアロスペース": "IHIエアロスペース",
+    "アイ・エイチ・アイ マリンユナイテッド": "IHIマリンユナイテッド",
+}
+
+
+def _normalize_company(name: str) -> str:
+    """企業名を年代横断で統合できる正規化名に変換する。
+
+    1. \\n 以降を除去（法人番号・注釈を削除）
+    2. 脚注行を除外
+    3. CP932 mojibake decode を試みる（Latin-1 として格納されたバイト列を復元）
+    4. decode 成功時: 会社形態 suffix を除去 → VENDOR_NORMALIZE 適用
+    5. decode 失敗時: 文字間スペース除去 → suffix パターン除去
+    """
+    name = name.split("\n")[0].strip()
+    name = re.sub(r"[（(]注\d+[)）]", "", name).strip()
+    if name.startswith("計数は") or name.startswith("内局等") or not name:
+        return ""
+
+    decoded = None
+    try:
+        decoded = name.encode("latin-1").decode("cp932")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+
+    if decoded:
+        clean = re.sub(r"[（(]株[)）]", "", decoded)
+        clean = re.sub(r"株式会社", "", clean).strip()
+        return VENDOR_NORMALIZE.get(clean, clean)
+    else:
+        # H19-H27 の garbled 名にある文字間スペースを除去して年代間で統一
+        name = re.sub(r"(?<=[^\x00-\x7f]) (?=[^\x00-\x7f(（])", "", name)
+        name = re.sub(r"(?<=[^\x00-\x7f]) (?=[)）])", "", name)
+        name = re.sub(r"(?<=\b[A-Z]) (?=[A-Z])", "", name)
+        name = re.sub(r"(?<=[A-Za-z0-9]) (?=[^\x00-\x7f])", "", name)
+        name = re.sub(r"(?<=[^\x00-\x7f]) (?=[A-Za-z0-9])", "", name)
+        return name.strip()
+
+
 @st.cache_data(ttl=600)
 def load_companies() -> pd.DataFrame:
     with sqlite3.connect(str(CHUOU_DB)) as con:
-        return pd.read_sql_query(
+        df = pd.read_sql_query(
             "SELECT * FROM chuou_chotatsu_companies ORDER BY fiscal_year, rank", con
         )
+    df["company_name_clean"] = df["company_name"].apply(_normalize_company)
+    df = df[df["company_name_clean"] != ""].copy()
+    df = (
+        df.groupby(["fiscal_year", "company_name_clean"], as_index=False)
+        .agg({
+            "rank": "min",
+            "amount_100m": "sum",
+            "contracts_cnt": "sum",
+            "share_pct": "sum",
+            "source_file": "first",
+            "company_name": "first",
+        })
+    )
+    return df
 
 
 df_sum = load_summary()
 df_co  = load_companies()
 
-# data_type ごとの色分け凡例
-DTYPE_COLOR = {
-    "jisseki":       "#89b4fa",  # blue  – PDF抽出（実績）
-    "mikomi":        "#a6e3a1",  # green – PDF抽出（見込み）
-    "seed":          "#cba6f7",  # mauve – 既知確定値（README/公文書）
-    "seed_corrected":"#f38ba8",  # red   – seed値でPDF値を補正
-    "estimate":      "#6c7086",  # gray  – 推計補完
-}
-
 # ── タブ ───────────────────────────────────────────────────────────
-tab_trend, tab_org, tab_top, tab_drill, tab_insight = st.tabs([
-    "全体推移", "機関別推移", "TOP企業推移", "企業ドリルダウン", "考察",
+tab_trend, tab_top, tab_drill, tab_insight = st.tabs([
+    "全体推移", "TOP企業推移", "企業ドリルダウン", "考察",
 ])
 
 
@@ -107,23 +159,20 @@ tab_trend, tab_org, tab_top, tab_drill, tab_insight = st.tabs([
 with tab_trend:
     st.subheader("中央調達額の推移（H11〜R06）")
 
+    JISSEKI_TYPES = {"jisseki", "seed", "seed_corrected", "estimate"}
+    df_plot = df_sum[df_sum["data_type"].isin(JISSEKI_TYPES)].sort_values("fiscal_year")
+
     fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_plot["label"],
+        y=df_plot["total_100m"],
+        mode="lines+markers",
+        name="中央調達額",
+        line=dict(color="#89b4fa", width=2),
+        marker=dict(size=7, color="#89b4fa"),
+        hovertemplate="%{x}<br>%{y:,.0f}億円<extra></extra>",
+    ))
 
-    # データ種別ごとに分けてプロット（凡例のため）
-    for dtype, color in DTYPE_COLOR.items():
-        sub = df_sum[df_sum["data_type"] == dtype]
-        if sub.empty:
-            continue
-        fig.add_trace(go.Scatter(
-            x=sub["label"], y=sub["total_100m"],
-            mode="markers+lines",
-            name=dtype,
-            line=dict(color=color, width=1.5, dash="dot" if dtype == "estimate" else "solid"),
-            marker=dict(size=8 if dtype.startswith("seed") else 6, color=color),
-            hovertemplate="%{x}<br>%{y:,.0f}億円<extra></extra>",
-        ))
-
-    # R05 急増マーカー（縦線）— add_vline はカテゴリ軸で非互換のため add_shape + add_annotation で代替
     fig.add_shape(
         type="line", x0="R05(2023)", x1="R05(2023)", y0=0, y1=1,
         xref="x", yref="paper",
@@ -141,7 +190,6 @@ with tab_trend:
         height=480,
         xaxis=dict(title="年度", tickangle=-45, tickfont=dict(size=10)),
         yaxis=dict(title="調達額（億円）", tickformat=",.0f"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=60, r=20, t=50, b=80),
         hovermode="x unified",
     )
@@ -164,69 +212,15 @@ with tab_trend:
         c4.metric("H17→R04 安定期（約15年）", f"{r04.iloc[0]['total_100m']:,.0f}億円")
 
     st.caption(
-        "**データ凡例**: "
-        "🔵 jisseki = PDF実績値  "
-        "🟢 mikomi = PDF見込み値  "
-        "🟣 seed = 公文書確定値  "
-        "🔴 seed_corrected = PDF抽出値をseedで補正  "
-        "⚫ estimate = 推計補完値"
+        "全年度（H11〜R06）を実績・確定・推計値として表示。"
+        "H11(1999) は Wayback Machine HTML からの推計補完値。"
+        "H18(2006) は公文書確定値（seed）。"
+        "R03/R04 は概況 PDF から抽出（seed）。"
     )
 
 
 # ══════════════════════════════════════════════════════════════════
-# Tab 2: 機関別推移
-# ══════════════════════════════════════════════════════════════════
-with tab_org:
-    st.subheader("機関別調達額の推移（積み上げ棒）")
-
-    df_org = df_sum.dropna(subset=["army_100m", "navy_100m", "airforce_100m"])
-
-    if df_org.empty:
-        st.info("機関別データが利用可能な年度がありません。")
-    else:
-        fig2 = go.Figure()
-        org_cols = [
-            ("navy_100m",     "海自（海幕）",   "#89b4fa"),
-            ("airforce_100m", "空自（空幕）",   "#a6e3a1"),
-            ("army_100m",     "陸自（陸幕）",   "#fab387"),
-        ]
-        for col, label, color in org_cols:
-            fig2.add_trace(go.Bar(
-                x=df_org["label"], y=df_org[col],
-                name=label,
-                marker_color=color,
-                hovertemplate=f"{label}: %{{y:,.0f}}億円<extra></extra>",
-            ))
-
-        # other_100m があれば追加
-        if "other_100m" in df_org.columns and df_org["other_100m"].notna().any():
-            fig2.add_trace(go.Bar(
-                x=df_org["label"], y=df_org["other_100m"],
-                name="装備庁等（その他）",
-                marker_color="#cba6f7",
-                hovertemplate="装備庁等: %{y:,.0f}億円<extra></extra>",
-            ))
-
-        fig2.update_layout(
-            template="plotly_dark",
-            barmode="stack",
-            height=480,
-            xaxis=dict(title="年度", tickangle=-45, tickfont=dict(size=10)),
-            yaxis=dict(title="調達額（億円）", tickformat=",.0f"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-            margin=dict(l=60, r=20, t=50, b=80),
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-        st.caption(
-            f"機関別データ保有年度: {len(df_org)}年度 "
-            f"（{df_org['fiscal_year'].min()}〜{df_org['fiscal_year'].max()}）。"
-            "H11/H18〜H25等は機関別データ未収録。"
-        )
-
-
-# ══════════════════════════════════════════════════════════════════
-# Tab 3: TOP企業推移
+# Tab 2: TOP企業推移
 # ══════════════════════════════════════════════════════════════════
 with tab_top:
     st.subheader("上位企業 調達額推移")
@@ -234,12 +228,11 @@ with tab_top:
     if df_co.empty:
         st.info("企業データがありません。")
     else:
-        # 出現年度数で上位企業を抽出
-        co_counts = df_co.groupby("company_name")["fiscal_year"].nunique().sort_values(ascending=False)
-        top_companies = co_counts[co_counts >= 2].index.tolist()
-
-        if not top_companies:
-            top_companies = co_counts.head(10).index.tolist()
+        co_year_counts = (
+            df_co.groupby("company_name_clean")["fiscal_year"]
+            .nunique().sort_values(ascending=False)
+        )
+        top_companies = co_year_counts.head(30).index.tolist()
 
         selected = st.multiselect(
             "企業を選択（複数可）",
@@ -250,11 +243,9 @@ with tab_top:
         if selected:
             fig3 = go.Figure()
             for co in selected:
-                sub = df_co[df_co["company_name"] == co].sort_values("fiscal_year")
+                sub = df_co[df_co["company_name_clean"] == co].sort_values("fiscal_year").copy()
                 if sub.empty:
                     continue
-                # 年度ラベル
-                sub = sub.copy()
                 sub["label"] = sub["fiscal_year"].apply(
                     lambda y: f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
                 )
@@ -266,7 +257,7 @@ with tab_top:
                 ))
             fig3.update_layout(
                 template="plotly_dark",
-                height=450,
+                height=700,
                 xaxis=dict(title="年度", tickangle=-45),
                 yaxis=dict(title="調達額（億円）", tickformat=",.0f"),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
@@ -277,12 +268,12 @@ with tab_top:
         st.caption(
             f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度、"
             f"延べ{len(df_co)}社件数。"
-            "H17等は社名文字化けのため表示が不完全な場合があります。"
+            "企業名は年代横断で正規化済み（CP932 mojibake 復元・表記揺れ吸収）。"
         )
 
 
 # ══════════════════════════════════════════════════════════════════
-# Tab 4: 企業ドリルダウン
+# Tab 3: 企業ドリルダウン
 # ══════════════════════════════════════════════════════════════════
 with tab_drill:
     st.subheader("企業別 調達実績ドリルダウン")
@@ -291,7 +282,7 @@ with tab_drill:
         st.info("企業データがありません。")
     else:
         co_list = (
-            df_co.groupby("company_name")["fiscal_year"]
+            df_co.groupby("company_name_clean")["fiscal_year"]
             .nunique()
             .sort_values(ascending=False)
             .index.tolist()
@@ -299,7 +290,7 @@ with tab_drill:
         sel_co = st.selectbox("企業を選択", options=co_list)
 
         if sel_co:
-            sub = df_co[df_co["company_name"] == sel_co].sort_values("fiscal_year").copy()
+            sub = df_co[df_co["company_name_clean"] == sel_co].sort_values("fiscal_year").copy()
             sub["label"] = sub["fiscal_year"].apply(
                 lambda y: f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
             )
@@ -341,11 +332,13 @@ with tab_drill:
                 st.plotly_chart(fig_amt, use_container_width=True)
 
             st.dataframe(
-                sub[["label", "rank", "contracts_cnt", "amount_100m", "share_pct", "source_file"]]
+                sub[["label", "rank", "contracts_cnt", "amount_100m", "share_pct",
+                      "company_name_clean", "source_file"]]
                 .rename(columns={
                     "label": "年度", "rank": "順位",
                     "contracts_cnt": "件数", "amount_100m": "金額（億円）",
-                    "share_pct": "構成比(%)", "source_file": "データソース",
+                    "share_pct": "構成比(%)", "company_name_clean": "正規化企業名",
+                    "source_file": "データソース",
                 }),
                 use_container_width=True,
                 hide_index=True,
@@ -353,16 +346,14 @@ with tab_drill:
 
 
 # ══════════════════════════════════════════════════════════════════
-# Tab 5: 考察
+# Tab 4: 考察
 # ══════════════════════════════════════════════════════════════════
 with tab_insight:
     st.subheader("防衛費急増と中央調達の相関")
 
-    # 折れ線グラフ再掲（考察用）
     fig_ins = go.Figure()
-    jisseki_types = {"jisseki", "seed", "seed_corrected"}
-    df_j = df_sum[df_sum["data_type"].isin(jisseki_types)]
-    df_e = df_sum[~df_sum["data_type"].isin(jisseki_types)]
+    jisseki_types = {"jisseki", "seed", "seed_corrected", "estimate"}
+    df_j = df_sum[df_sum["data_type"].isin(jisseki_types)].sort_values("fiscal_year")
 
     if not df_j.empty:
         fig_ins.add_trace(go.Scatter(
@@ -371,13 +362,6 @@ with tab_insight:
             line=dict(color="#89b4fa", width=2),
             marker=dict(size=7),
             hovertemplate="%{x}: %{y:,.0f}億円<extra></extra>",
-        ))
-    if not df_e.empty:
-        fig_ins.add_trace(go.Scatter(
-            x=df_e["label"], y=df_e["total_100m"],
-            mode="markers", name="推計・見込み値",
-            marker=dict(size=6, color="#6c7086", symbol="circle-open"),
-            hovertemplate="%{x}: %{y:,.0f}億円（推計）<extra></extra>",
         ))
     fig_ins.add_shape(
         type="line", x0="R05(2023)", x1="R05(2023)", y0=0, y1=1,
