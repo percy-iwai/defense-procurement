@@ -300,6 +300,21 @@ def load_company_items() -> pd.DataFrame:
 
 
 @st.cache_data(ttl=600)
+def load_main_items() -> pd.DataFrame:
+    """chuou_chotatsu_main_items テーブルから全データを読み込む。"""
+    with sqlite3.connect(str(CHUOU_DB)) as con:
+        try:
+            return pd.read_sql_query(
+                """SELECT fiscal_year, item_name, amount_100m, requesting_org, source_file
+                   FROM chuou_chotatsu_main_items
+                   ORDER BY fiscal_year, amount_100m DESC""",
+                con,
+            )
+        except Exception:
+            return pd.DataFrame()
+
+
+@st.cache_data(ttl=600)
 def load_data_status() -> pd.DataFrame:
     """各年度×5項目のデータ充足状況を返す。
     ○=DB格納済み（SQLで自動判定）、△=元データあり未取込（コード内定数）、×=元データなし。
@@ -374,8 +389,8 @@ df_sum = load_summary()
 df_co  = load_companies()
 
 # ── タブ ───────────────────────────────────────────────────────────
-tab_trend, tab_top, tab_drill, tab_insight, tab_status = st.tabs([
-    "全体推移", "TOP企業推移", "企業ドリルダウン", "考察", "データ充足状況",
+tab_trend, tab_top, tab_drill, tab_insight, tab_status, tab_small = st.tabs([
+    "全体推移", "TOP企業推移", "企業ドリルダウン", "考察", "データ充足状況", "小口案件分析",
 ])
 
 
@@ -995,3 +1010,248 @@ with tab_status:
         tri = counts.get("△", 0)
         ng  = counts.get("×", 0)
         st.caption(f"{label}: ○{ok}年度 / △{tri}年度 / ×{ng}年度（全{total_fy}年度）")
+
+
+# ══════════════════════════════════════════════════════════════════
+# Tab 6: 小口案件分析
+# ══════════════════════════════════════════════════════════════════
+with tab_small:
+    st.subheader("小口案件分析（主要調達品目・企業別契約単価）")
+
+    st.info(
+        "⚠️ **データの性質について**: 中央調達実績（上位20社）は大型装備品の集計データです。"
+        "上位企業の最小調達額は約76億円/年、主要調達品目の大半は100億円超の大型案件です。"
+        "このタブでは「相対的に小規模な案件」として、主要品目一覧（`main_items`）の"
+        "金額帯別分布と、企業別の平均契約単価（`amount / contracts_cnt`）を分析します。"
+        "金額=1.0億円のエントリは PDF 抽出上の番兵値（数値未解析）として除外しています。"
+    )
+
+    df_mi = load_main_items()
+
+    # ── 金額帯別 主要品目分布グラフ ────────────────────────────────
+    st.markdown("#### 主要調達品目の金額帯別分布（年度別）")
+
+    if df_mi.empty:
+        st.info("main_items データがありません。")
+    else:
+        # sentinel (amount=1.0) を除外
+        df_mi_real = df_mi[df_mi["amount_100m"] > 1.0].copy()
+
+        # 金額帯ラベルを付与
+        _BANDS = [
+            (2,    30,   "2〜30億円",    "#a6e3a1"),
+            (31,   100,  "31〜100億円",  "#89b4fa"),
+            (101,  500,  "101〜500億円", "#cba6f7"),
+            (501,  99999,"501億円以上",  "#f38ba8"),
+        ]
+
+        def _band(v: float) -> str:
+            for lo, hi, label, _ in _BANDS:
+                if lo <= v <= hi:
+                    return label
+            return "不明"
+
+        df_mi_real["金額帯"] = df_mi_real["amount_100m"].apply(_band)
+
+        def _fy_lbl(y: int) -> str:
+            return f"R{y-2018:02d}({y})" if y >= 2019 else f"H{y-1988:02d}({y})"
+
+        df_mi_real["label"] = df_mi_real["fiscal_year"].apply(_fy_lbl)
+
+        # 年度×帯 でカウント集計
+        band_counts = (
+            df_mi_real.groupby(["label", "fiscal_year", "金額帯"])
+            .size().reset_index(name="件数")
+        )
+        band_counts = band_counts.sort_values("fiscal_year")
+        all_labels_mi = [_fy_lbl(y) for y in sorted(df_mi_real["fiscal_year"].unique())]
+
+        fig_band = go.Figure()
+        for lo, hi, band_label, color in _BANDS:
+            sub = band_counts[band_counts["金額帯"] == band_label]
+            fig_band.add_trace(go.Bar(
+                x=sub["label"], y=sub["件数"],
+                name=band_label,
+                marker_color=color,
+                hovertemplate=f"{band_label}: %{{y}}件<extra></extra>",
+            ))
+
+        fig_band.update_layout(
+            barmode="stack",
+            template="plotly_dark",
+            height=380,
+            xaxis=dict(
+                title="年度", tickangle=-45,
+                categoryorder="array", categoryarray=all_labels_mi,
+            ),
+            yaxis=dict(title="品目件数"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            margin=dict(l=50, r=20, t=50, b=80),
+        )
+        st.plotly_chart(fig_band, use_container_width=True)
+
+        st.caption(
+            f"対象: {df_mi_real['fiscal_year'].nunique()}年度（"
+            f"{sorted(df_mi_real['fiscal_year'].unique())[0]}〜"
+            f"{sorted(df_mi_real['fiscal_year'].unique())[-1]}）の主要調達品目 {len(df_mi_real)}件。"
+            "金額=1.0億円（PDF抽出番兵値）を除外。"
+            "FY2015-2016・FY2019-2024 は main_items データなし（元PDFに品目別金額の記載がない年度）。"
+        )
+
+    # ── 小規模案件一覧表 ────────────────────────────────────────────
+    st.markdown("#### 相対的小規模品目一覧（2〜50億円）")
+
+    if not df_mi.empty:
+        df_small_items = df_mi[(df_mi["amount_100m"] > 1.0) & (df_mi["amount_100m"] <= 50)].copy()
+        df_small_items["label"] = df_small_items["fiscal_year"].apply(_fy_lbl)
+
+        if df_small_items.empty:
+            st.info("2〜50億円の品目はありません。")
+        else:
+            # 要求機関をcp932 decode で表示
+            def _decode_org(s: str) -> str:
+                if not isinstance(s, str) or not s:
+                    return "—"
+                try:
+                    return s.encode("latin-1").decode("cp932")
+                except Exception:
+                    return s
+
+            df_small_items["要求機関"] = df_small_items["requesting_org"].apply(_decode_org)
+
+            st.dataframe(
+                df_small_items[["label", "item_name", "amount_100m", "要求機関"]]
+                .rename(columns={
+                    "label": "年度",
+                    "item_name": "品目名",
+                    "amount_100m": "金額（億円）",
+                })
+                .sort_values(["年度", "金額（億円）"]),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.caption(
+                f"全{len(df_small_items)}件。中央調達における「小規模」の目安として50億円以下を表示。"
+                "品目名は PDF 抽出のためトランケートされている場合あり。"
+            )
+
+    # ── 企業別 契約単価分析 ────────────────────────────────────────
+    st.markdown("#### 企業別 平均契約単価ランキング（小口契約集中度）")
+
+    if df_co.empty:
+        st.info("企業データがありません。")
+    else:
+        # 全年度分の contracts_cnt と amount を集計
+        co_agg = (
+            df_co[pd.notna(df_co["amount_100m"]) & (df_co["amount_100m"] > 0)
+                  & pd.notna(df_co["contracts_cnt"]) & (df_co["contracts_cnt"] > 0)]
+            .groupby("company_name_clean", as_index=False)
+            .agg(
+                total_amount=("amount_100m", "sum"),
+                total_cnt=("contracts_cnt", "sum"),
+                fy_count=("fiscal_year", "nunique"),
+                avg_rank=("rank", "mean"),
+            )
+        )
+        co_agg["平均単価（億円/件）"] = co_agg["total_amount"] / co_agg["total_cnt"]
+        co_agg = co_agg.sort_values("平均単価（億円/件）")
+
+        col_a, col_b = st.columns(2)
+
+        with col_a:
+            st.markdown("**平均単価が低い企業（小口・多件数型）**")
+            df_low = co_agg.head(15).copy()
+            df_low["累積調達額（億円）"] = df_low["total_amount"].map("{:,.0f}".format)
+            df_low["総件数"] = df_low["total_cnt"].map("{:.0f}".format)
+            df_low["出現年度数"] = df_low["fy_count"]
+            df_low["平均単価"] = df_low["平均単価（億円/件）"].map("{:.1f}億円/件".format)
+            st.dataframe(
+                df_low[["company_name_clean", "平均単価", "累積調達額（億円）", "総件数", "出現年度数"]]
+                .rename(columns={"company_name_clean": "企業名"}),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        with col_b:
+            st.markdown("**平均単価が高い企業（大口・少件数型）**")
+            df_high = co_agg.tail(15).sort_values("平均単価（億円/件）", ascending=False).copy()
+            df_high["累積調達額（億円）"] = df_high["total_amount"].map("{:,.0f}".format)
+            df_high["総件数"] = df_high["total_cnt"].map("{:.0f}".format)
+            df_high["出現年度数"] = df_high["fy_count"]
+            df_high["平均単価"] = df_high["平均単価（億円/件）"].map("{:.1f}億円/件".format)
+            st.dataframe(
+                df_high[["company_name_clean", "平均単価", "累積調達額（億円）", "総件数", "出現年度数"]]
+                .rename(columns={"company_name_clean": "企業名"}),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # 単価分布 散布図（企業名×平均単価、バブル=累積調達額）
+        fig_scatter = go.Figure()
+        fig_scatter.add_trace(go.Scatter(
+            x=co_agg["avg_rank"],
+            y=co_agg["平均単価（億円/件）"],
+            mode="markers+text",
+            marker=dict(
+                size=(co_agg["total_amount"] / co_agg["total_amount"].max() * 60 + 8).clip(8, 60),
+                color=co_agg["平均単価（億円/件）"],
+                colorscale="Turbo",
+                showscale=True,
+                colorbar=dict(title="単価（億/件）"),
+                opacity=0.8,
+            ),
+            text=co_agg["company_name_clean"],
+            textposition="top center",
+            textfont=dict(size=9),
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "平均順位: %{x:.1f}位<br>"
+                "平均単価: %{y:,.1f}億円/件<br>"
+                "<extra></extra>"
+            ),
+        ))
+        fig_scatter.update_layout(
+            template="plotly_dark",
+            height=500,
+            xaxis=dict(title="平均順位（全年度）", autorange="reversed"),
+            yaxis=dict(title="平均契約単価（億円/件）", tickformat=",.0f"),
+            margin=dict(l=60, r=20, t=30, b=60),
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        st.caption(
+            "バブルの大きさ = 累積調達総額。横軸 = 平均順位（左ほど上位）、縦軸 = 平均単価。"
+            "平均単価が低い企業は件数が多く（修理・補給品等）、高い企業は1件あたりの装備品規模が大きい。"
+        )
+
+    # ── 考察 ──────────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("""
+### 考察: 大型調達機関における「小口案件」の意味
+
+中央調達実績（防衛装備庁一括調達）は原則として **大型・複数年度の主要装備品調達** が対象であり、
+数百億円〜数千億円規模の随意契約が大半を占める。このため「小口案件」は相対的な概念にとどまる。
+
+**主要調達品目一覧の金額分布（FY2007-2018）**
+
+PDFに金額記載がある年度（主に H19-H26・H29-H30）の主要品目 355件の中でも、
+「2〜30億円」帯は約50件（14%）存在する。これらは単品・少量発注の試験機材、
+小型センサー、訓練弾薬などが多い。一方で金額=1.0は全133件が番兵値（解析失敗）であり、
+実態は数十〜数百億円の案件と推定される。
+
+**企業別 平均契約単価の読み方**
+
+- **単価の低い企業**（燃料・石油系）: ENEOS・コスモ石油・出光興産は1件あたり数十〜百億円台。
+  件数が多く（30〜58件/累積）、毎年度の定期購入で構成比を稼いでいる。
+- **単価の高い企業**（主要装備系）: ジャパンマリンユナイテッド・川崎重工業・三菱重工業は
+  護衛艦・航空機・誘導弾など1件1,000億円超の大型案件を少数こなす構造。
+- **中間的な企業**: 日本無線・住友重機械・富士通などは複数の修理・改造契約（百億円台）を
+  コンスタントに受注するパターン。
+
+**政策的含意**
+
+随意契約率が金額ベースで80%超を占める中央調達では、
+小口案件（競争入札で単価を下げやすい分野）の比率が低く、
+防衛産業参入の機会は実績積み上げ型（試験・部品・燃料）に限られる。
+R05(2023)以降の防衛費急増期においても、大型装備の追加発注は既存プレイヤーに集中する傾向が続いている。
+""")
+
