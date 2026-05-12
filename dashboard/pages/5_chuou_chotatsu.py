@@ -232,6 +232,34 @@ def _normalize_company(name: str) -> str:
         return name.strip()
 
 
+def _get_decoded_name(name: str) -> str:
+    """CP932 decode + 法人格除去のみ。VENDOR_NORMALIZE は適用しない。
+    [旧名] 表示用（正規化名と旧社名が異なる場合のみ使用）。"""
+    name = re.sub(r"\n?\(法人番号[^)]*\)", "", name)
+    name = re.sub(r"\n?（法人番号[^）]*）", "", name)
+    name = name.replace("\n", "").strip()
+    name = unicodedata.normalize("NFKC", name)
+    name = re.sub(r"[（(]注\d+[)）]", "", name).strip()
+    if not name:
+        return ""
+    decoded = None
+    is_latin1 = True
+    try:
+        raw = name.encode("latin-1")
+        try:
+            decoded = raw.decode("cp932")
+        except UnicodeDecodeError:
+            pass
+    except UnicodeEncodeError:
+        is_latin1 = False
+    if decoded:
+        return _strip_legal_suffix(unicodedata.normalize("NFKC", decoded))
+    elif not is_latin1:
+        return _strip_legal_suffix(name)
+    else:
+        return ""  # garbled—cannot recover original name
+
+
 @st.cache_data(ttl=600)
 def load_companies() -> pd.DataFrame:
     with sqlite3.connect(str(CHUOU_DB)) as con:
@@ -239,16 +267,18 @@ def load_companies() -> pd.DataFrame:
             "SELECT * FROM chuou_chotatsu_companies ORDER BY fiscal_year, rank", con
         )
     df["company_name_clean"] = df["company_name"].apply(_normalize_company)
+    df["company_name_orig"] = df["company_name"].apply(_get_decoded_name)
     df = df[df["company_name_clean"] != ""].copy()
     df = (
         df.groupby(["fiscal_year", "company_name_clean"], as_index=False)
         .agg({
             "rank": "min",
-            "amount_100m": "sum",
-            "contracts_cnt": "sum",
-            "share_pct": "sum",
+            "amount_100m": lambda x: x.sum(min_count=1),
+            "contracts_cnt": lambda x: x.sum(min_count=1),
+            "share_pct": lambda x: x.sum(min_count=1),
             "source_file": "first",
             "company_name": "first",
+            "company_name_orig": "first",
         })
     )
     return df
@@ -468,12 +498,15 @@ with tab_top:
         st.markdown("#### 順位別・年度別 調達企業一覧（金額: 億円）")
         all_fys = sorted(df_co["fiscal_year"].unique())
 
-        # (fiscal_year, rank) → (企業名, 金額) のルックアップ
+        # (fiscal_year, rank) → (正規化名, 旧名, 金額, シェア) のルックアップ
         _lookup: dict[tuple, tuple] = {}
         for _, row in df_co.iterrows():
+            _orig = row.get("company_name_orig", "")
             _lookup[(int(row["fiscal_year"]), int(row["rank"]))] = (
                 row["company_name_clean"],
+                _orig if pd.notna(_orig) else "",
                 row["amount_100m"],
+                row["share_pct"],
             )
 
         # HTML 生成
@@ -511,11 +544,16 @@ with tab_top:
             _cells = [f'<td class="rank-idx">{_rank}</td>']
             for _fy in all_fys:
                 if (_fy, _rank) in _lookup:
-                    _name, _amt = _lookup[(_fy, _rank)]
-                    _amt_str = f"{_amt:,.0f}" if _amt is not None else "?"
-                    _cells.append(f'<td>{_name}（{_amt_str}）</td>')
+                    _cln, _orig, _amt, _share = _lookup[(_fy, _rank)]
+                    _orig_tag = f"[{_orig}]" if (_orig and _orig != _cln) else ""
+                    _nd = f"{_cln}{_orig_tag}"
+                    if pd.notna(_amt) and _amt > 0:
+                        _sh = f"{_share:.1f}%" if (pd.notna(_share) and _share) else "?"
+                        _cells.append(f'<td>{_nd}（{_amt:,.0f}億円、{_sh}）</td>')
+                    else:
+                        _cells.append(f'<td>{_nd}</td>')
                 else:
-                    _cells.append('<td class="no-data">-</td>')
+                    _cells.append('<td class="no-data">情報ナシ※</td>')
             _body_rows.append(f'<tr>{"".join(_cells)}</tr>')
 
         _html = (
@@ -529,9 +567,12 @@ with tab_top:
         st.markdown(_html, unsafe_allow_html=True)
 
         st.caption(
-            f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度、"
+            f"企業データ保有年度数: {df_co['fiscal_year'].nunique()}年度（H06〜R06）、"
             f"延べ{len(df_co)}社件数。"
-            "企業名は年代横断で正規化済み（CP932 mojibake 復元・表記揺れ吸収）。"
+            "セル表示形式: 正規化後企業名[旧社名]（金額億円、シェア%）。旧社名は改称・合併前の名称（例: IHI[石川島播磨重工業]）。"
+            "H06〜H10（1994〜1998）は H11（1999）年度報告書掲載の「過去5カ年順位」から復元。"
+            "金額・シェア情報はなく順位のみ（順位20位超の企業はデータなし）。"
+            "※「情報ナシ」: 当該年度にその順位に該当する企業が H11 上位20社に含まれないため不明。"
         )
 
         # ── 主な調達品 ドリルダウン ────────────────────────────────────
