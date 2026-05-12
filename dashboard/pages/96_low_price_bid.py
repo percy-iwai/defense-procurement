@@ -81,6 +81,37 @@ def _norm(s: str) -> str:
 # ── データ読み込み ──────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=600)
+def _load_central_small(fys: tuple[int, ...]) -> pd.DataFrame:
+    """中央調達（agency_id='atla'）で契約金額 ≤ 1億円の案件を取得する。
+
+    estimated_price は不要（小口契約は予定価格未公表が多い）。
+    """
+    fy_placeholders = ",".join("?" * len(fys))
+    sql = f"""
+        SELECT
+            c.id,
+            c.fiscal_year,
+            c.contract_name,
+            c.vendor_name,
+            c.contract_amount,
+            c.bid_method,
+            c.zuii_reason,
+            c.contract_date,
+            c.source_url
+        FROM contracts c
+        WHERE c.agency_id = 'atla'
+          AND c.contract_amount IS NOT NULL
+          AND c.contract_amount > 0
+          AND c.contract_amount <= 100000000
+          AND c.fiscal_year IN ({fy_placeholders})
+        ORDER BY c.contract_amount ASC
+    """
+    with sqlite3.connect(DB_PATH) as conn:
+        df = pd.read_sql_query(sql, conn, params=list(fys))
+    return df
+
+
+@st.cache_data(ttl=600)
 def _load_low_price(fys: tuple[int, ...]) -> pd.DataFrame:
     """低価格入札データ（ca/ep < 70%）をFY指定で全件取得する。
 
@@ -201,7 +232,7 @@ if not df_view.empty:
 st.divider()
 
 # ── タブ切り替え ──────────────────────────────────────────────────────────────
-tab1, tab2 = st.tabs(["📋 全ベンダーTOP200", "🔍 ベンダー別（全件）"])
+tab1, tab2, tab3 = st.tabs(["📋 全ベンダーTOP200", "🔍 ベンダー別（全件）", "🔬 中央調達×小口案件"])
 
 # ─── TAB1: 全ベンダーTOP200 ───────────────────────────────────────────────────
 with tab1:
@@ -299,3 +330,91 @@ with tab2:
                     height=700,
                     column_config=_COLUMN_CONFIG,
                 )
+
+# ─── TAB3: 中央調達×小口案件 ──────────────────────────────────────────────────
+with tab3:
+    st.subheader("中央調達（防衛装備庁 調達事業部）の 1億円以下案件")
+    st.caption(
+        "防衛装備庁が中央調達として締結した契約のうち、契約金額が1億円以下のもの。"
+        "通常は数十億〜数百億規模の大型案件が主体のため、これらは特異な存在。"
+        "予定価格が未公表でも対象とする（低価格入札分析タブとは独立した条件）。"
+    )
+
+    df_cs = _load_central_small(active_fys_tuple)
+
+    if df_cs.empty:
+        st.info("該当データがありません。")
+        st.stop()
+
+    # ① サマリーメトリクス
+    zuii_count = df_cs["bid_method"].str.contains("随意", na=False).sum()
+    zuii_ratio = zuii_count / len(df_cs) * 100 if len(df_cs) > 0 else 0.0
+    total_oku = df_cs["contract_amount"].sum() / 1e8
+    avg_man = df_cs["contract_amount"].mean() / 1e4
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("件数", f"{len(df_cs):,}件")
+    m2.metric("合計金額", f"{total_oku:.1f}億円")
+    m3.metric("平均金額", f"{avg_man:,.0f}万円")
+    m4.metric("随意契約比率", f"{zuii_ratio:.1f}%")
+
+    st.divider()
+
+    # ② FY別推移テーブル
+    st.markdown("**FY別推移**")
+    fy_grp = (
+        df_cs.groupby("fiscal_year")
+        .agg(件数=("id", "count"), 合計金額億=("contract_amount", lambda x: x.sum() / 1e8), 平均金額万=("contract_amount", lambda x: x.mean() / 1e4))
+        .rename(columns={"合計金額億": "合計金額(億円)", "平均金額万": "平均金額(万円)"})
+    )
+    fy_grp.index = [f"FY{y}" for y in fy_grp.index]
+    fy_grp["合計金額(億円)"] = fy_grp["合計金額(億円)"].round(1)
+    fy_grp["平均金額(万円)"] = fy_grp["平均金額(万円)"].round(0).astype(int)
+    st.dataframe(fy_grp.T, use_container_width=False)
+
+    st.divider()
+
+    # ③ 契約方式別内訳テーブル
+    st.markdown("**契約方式別内訳**")
+    bm_grp = (
+        df_cs.groupby("bid_method", dropna=False)
+        .agg(件数=("id", "count"), 合計金額億=("contract_amount", lambda x: x.sum() / 1e8))
+        .rename(columns={"合計金額億": "合計金額(億円)"})
+        .sort_values("件数", ascending=False)
+    )
+    bm_grp["構成比(%)"] = (bm_grp["件数"] / bm_grp["件数"].sum() * 100).round(1)
+    bm_grp["合計金額(億円)"] = bm_grp["合計金額(億円)"].round(1)
+    bm_grp.index.name = "契約方式"
+    st.dataframe(bm_grp, use_container_width=False)
+
+    st.divider()
+
+    # ④ 案件一覧（全件）
+    st.markdown(f"**案件一覧（全{len(df_cs):,}件 — 契約金額 昇順）**")
+    disp = pd.DataFrame()
+    disp["年度"]         = df_cs["fiscal_year"].astype(str).apply(lambda y: f"FY{y}")
+    disp["案件名"]       = df_cs["contract_name"]
+    disp["受注企業"]     = df_cs["vendor_name"]
+    disp["契約金額(万円)"] = (df_cs["contract_amount"] / 1e4).round(1)
+    disp["契約方式"]     = df_cs["bid_method"]
+    disp["随意契約理由"] = df_cs["zuii_reason"]
+    disp["契約日"]       = df_cs["contract_date"]
+    st.dataframe(
+        disp,
+        use_container_width=True,
+        hide_index=True,
+        height=600,
+        column_config={
+            "案件名":         st.column_config.TextColumn(width="large"),
+            "受注企業":       st.column_config.TextColumn(width="medium"),
+            "随意契約理由":   st.column_config.TextColumn(width="medium"),
+            "契約金額(万円)": st.column_config.NumberColumn(format="%.1f"),
+        },
+    )
+
+    st.caption(
+        "中央調達（防衛装備庁 調達事業部）では通常数十億〜数百億規模の案件を扱うが、"
+        "1億円以下の小口案件も存在する。随意契約が大多数を占め、"
+        "FMSに付随する小口スペアパーツや単価契約の随時発注が主な内訳とみられる。"
+        "「随意契約理由」欄に契約根拠（特許・秘密保持・緊急など）が記載されている場合がある。"
+    )
