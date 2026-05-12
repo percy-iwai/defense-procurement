@@ -335,10 +335,13 @@ def load_data_status() -> pd.DataFrame:
     )
 
     # 元データはあるがDB未格納の年度（△判定用）
-    _SRC_ARMY     = {2021, 2022}           # chuou_chotatsu_gaikyo に機関別あり
-    _SRC_METHOD   = {2021, 2022}           # 同上、契約方式別あり
-    _SRC_CO_ITEMS = {1999,2000,2001,2002,2003,2004,2005,2006}  # HTML「主な調達品」あり
-    _SRC_MAIN     = {1997,1999,2000,2001,2002,2003,2004,2006}  # HTML/PDF 主要品目あり
+    # H19-R05(FY2007-2023): 各 jisseki PDF に「調達要求元別」あり（cp932 decode で確認）
+    # H18(FY2006): 特殊フォーマット（23p政策文書）、機関別セクション検出不可 → ×
+    _SRC_ARMY     = set(range(2007, 2024))
+    # H18(FY2006): 「随意契約」記載あり; R02-R04 gaikyo(FY2020-2022): 同
+    _SRC_METHOD   = {2006, 2020, 2021, 2022}
+    _SRC_CO_ITEMS = set(range(1999, 2007))  # H11-H18 HTML/PDF に企業別品目あり
+    _SRC_MAIN     = {1997, 1998} | set(range(1999, 2005))  # Wayback HTML に主要品目あり
 
     def _s1(r):  # ①機関別
         return "○" if pd.notna(r.army_100m) and r.army_100m else (
@@ -498,6 +501,13 @@ with tab_top:
         st.markdown("#### 順位別・年度別 調達企業一覧（金額: 億円）")
         all_fys = sorted(df_co["fiscal_year"].unique())
 
+        # FY → 総調達額（シェア計算用）
+        _total_by_fy: dict[int, float] = {
+            int(r["fiscal_year"]): float(r["total_100m"])
+            for _, r in df_sum.iterrows()
+            if pd.notna(r["total_100m"]) and r["total_100m"] > 0
+        }
+
         # (fiscal_year, rank) → (正規化名, 旧名, 金額, シェア) のルックアップ
         _lookup: dict[tuple, tuple] = {}
         for _, row in df_co.iterrows():
@@ -531,7 +541,7 @@ with tab_top:
 .rank-matrix tbody tr:nth-child(even) td { background: #11111b; color: #cdd6f4; }
 .rank-matrix tbody tr:nth-child(odd)  td.rank-idx { background: #1e1e2e; }
 .rank-matrix tbody tr:nth-child(even) td.rank-idx { background: #1e1e2e; }
-.rank-matrix td.no-data { color: #45475a; text-align: center; }
+.rank-matrix td.no-data { color: #45475a; text-align: left; }
 .rank-matrix tbody tr:hover td { background: #313244 !important; }
 </style>
 """
@@ -548,7 +558,12 @@ with tab_top:
                     _orig_tag = f"[{_orig}]" if (_orig and _orig != _cln) else ""
                     _nd = f"{_cln}{_orig_tag}"
                     if pd.notna(_amt) and _amt > 0:
-                        _sh = f"{_share:.1f}%" if (pd.notna(_share) and _share) else "?"
+                        if pd.notna(_share) and _share > 0:
+                            _sh = f"{_share:.1f}%"
+                        elif _fy in _total_by_fy and _total_by_fy[_fy] > 0:
+                            _sh = f"{_amt / _total_by_fy[_fy] * 100:.1f}%"
+                        else:
+                            _sh = "?"
                         _cells.append(f'<td>{_nd}（{_amt:,.0f}億円、{_sh}）</td>')
                     else:
                         _cells.append(f'<td>{_nd}</td>')
