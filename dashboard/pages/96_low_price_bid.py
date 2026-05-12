@@ -162,7 +162,7 @@ def _color_ratio(val: float) -> str:
 
 
 def _style_df(df: pd.DataFrame, ratio_col: str = "落札率(%)") -> pd.DataFrame.style:
-    return df.style.applymap(_color_ratio, subset=[ratio_col])
+    return df.style.map(_color_ratio, subset=[ratio_col])
 
 
 # ── 表示用DataFrame整形 ──────────────────────────────────────────────────────
