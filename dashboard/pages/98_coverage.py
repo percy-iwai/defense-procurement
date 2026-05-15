@@ -176,7 +176,6 @@ with cov_c2:
 st.caption(
     "実質母数 = 物件費（契約ベース）− 非契約系（光熱水・補助金等）− 不用額。"
     "FY2025不用額は未公表のため0として計算。"
-    "FY2025は3月分が未公開につき未収録のため、収録額・カバレッジ率は暫定値。"
 )
 
 st.divider()
@@ -223,8 +222,6 @@ with col_waterfall:
         showlegend=False,
     )
     st.plotly_chart(fig_wf, use_container_width=True)
-    if sel_cov_fy == 2025:
-        st.caption("※FY2025 は3月分が未公開につき未収録のため、DB収録額・カバレッジ率は暫定値。")
 
 with col_gap:
     st.markdown("**差し引き一覧**")

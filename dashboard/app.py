@@ -1058,7 +1058,6 @@ def main():
             margin=dict(l=10, r=10, t=20, b=10),
         )
         st.plotly_chart(fig_trend, use_container_width=True, config={"displayModeBar": False})
-        st.caption("※FY2025 は3月分が未公開につき未収録（暫定値）。")
 
     with ch2:
         _sun_fy_label = " / ".join(f"FY{y}" for y in sorted(_active_fys)) if _is_filtered else "全FY"
