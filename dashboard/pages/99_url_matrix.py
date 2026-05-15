@@ -802,10 +802,144 @@ def _build_excel(rows: list[tuple], idx: dict, months: list[int]) -> bytes:
     return buf.getvalue()
 
 
+def _build_url_list_excel() -> bytes:
+    """掲載URL・WARPスナップ一覧を2シート構成のExcelで返す。"""
+    con = sqlite3.connect(URL_DB)
+    con.row_factory = sqlite3.Row
+
+    rows = con.execute(
+        """
+        SELECT
+            agency_id, agency_name, fiscal_year, month,
+            category, bid_method, filename, url,
+            site_url_2025_07, site_url_2024_07, site_url_2023_07,
+            flag_warp, flag_collected, flag_404, status,
+            sort_order
+        FROM url_matrix
+        ORDER BY COALESCE(sort_order, 9999), fiscal_year, month
+        """
+    ).fetchall()
+
+    summary = con.execute(
+        """
+        SELECT
+            agency_id,
+            agency_name,
+            COUNT(CASE WHEN url IS NOT NULL AND url != '' THEN 1 END) AS url_count,
+            SUM(COALESCE(flag_warp, 0))      AS warp_count,
+            SUM(COALESCE(flag_collected, 0)) AS collected_count,
+            SUM(COALESCE(flag_404, 0))       AS err404_count,
+            MIN(COALESCE(sort_order, 9999))  AS _order
+        FROM url_matrix
+        GROUP BY agency_id, agency_name
+        ORDER BY MIN(COALESCE(sort_order, 9999))
+        """
+    ).fetchall()
+
+    con.close()
+
+    wb = openpyxl.Workbook()
+    hdr_fill = PatternFill("solid", fgColor="1E1E2E")
+    hdr_font = Font(bold=True, color="CDD6F4")
+    link_font = Font(color="7C83FD", underline="single")
+    text_font = Font(color="CDD6F4")
+
+    # ── Sheet 1: 全件一覧 ──────────────────────────────────
+    ws1 = wb.active
+    ws1.title = "掲載URL一覧"
+
+    sheet1_headers = [
+        "No.", "agency_id", "機関名", "FY", "月",
+        "カテゴリ", "入札方式", "ファイル名",
+        "掲載URL",
+        "WARPスナップ 2025-07", "WARPスナップ 2024-07", "WARPスナップ 2023-07",
+        "WARP収録", "収集済", "404", "ステータス",
+    ]
+    for ci, h in enumerate(sheet1_headers, 1):
+        c = ws1.cell(row=1, column=ci, value=h)
+        c.font = hdr_font
+        c.fill = hdr_fill
+        c.alignment = Alignment(horizontal="center", vertical="center")
+    ws1.row_dimensions[1].height = 20
+
+    url_cols = {9, 10, 11, 12}  # 1-indexed columns that hold URLs
+    for ri, row in enumerate(rows, 2):
+        vals = [
+            ri - 1,
+            row["agency_id"],
+            row["agency_name"],
+            row["fiscal_year"],
+            row["month"],
+            row["category"],
+            row["bid_method"],
+            row["filename"],
+            row["url"],
+            row["site_url_2025_07"],
+            row["site_url_2024_07"],
+            row["site_url_2023_07"],
+            row["flag_warp"],
+            row["flag_collected"],
+            row["flag_404"],
+            row["status"],
+        ]
+        for ci, val in enumerate(vals, 1):
+            c = ws1.cell(row=ri, column=ci, value=val)
+            if ci in url_cols and val:
+                c.hyperlink = val
+                c.font = link_font
+            else:
+                c.font = text_font
+
+    col_widths = [6, 22, 24, 6, 5, 12, 10, 30, 60, 60, 60, 60, 10, 8, 6, 12]
+    for ci, w in enumerate(col_widths, 1):
+        ws1.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+
+    # ── Sheet 2: 機関別サマリー ───────────────────────────
+    ws2 = wb.create_sheet("機関別サマリー")
+    sheet2_headers = ["agency_id", "機関名", "URL件数", "WARP有り", "WARP無し", "収集済", "404"]
+    for ci, h in enumerate(sheet2_headers, 1):
+        c = ws2.cell(row=1, column=ci, value=h)
+        c.font = hdr_font
+        c.fill = hdr_fill
+        c.alignment = Alignment(horizontal="center", vertical="center")
+    ws2.row_dimensions[1].height = 20
+
+    for ri, row in enumerate(summary, 2):
+        url_count = row["url_count"] or 0
+        warp_count = row["warp_count"] or 0
+        vals2 = [
+            row["agency_id"],
+            row["agency_name"],
+            url_count,
+            warp_count,
+            url_count - warp_count,
+            row["collected_count"] or 0,
+            row["err404_count"] or 0,
+        ]
+        for ci, val in enumerate(vals2, 1):
+            ws2.cell(row=ri, column=ci, value=val).font = text_font
+
+    for ci, w in enumerate([22, 24, 10, 10, 10, 10, 8], 1):
+        ws2.column_dimensions[openpyxl.utils.get_column_letter(ci)].width = w
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
 st.divider()
-st.download_button(
-    label="📥 Excel ダウンロード",
-    data=_build_excel(row_keys, cell_index, FY_MONTHS),
-    file_name="url_matrix_status.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-)
+col1, col2 = st.columns(2)
+with col1:
+    st.download_button(
+        label="📥 Excel ダウンロード",
+        data=_build_excel(row_keys, cell_index, FY_MONTHS),
+        file_name="url_matrix_status.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+with col2:
+    st.download_button(
+        label="📥 掲載URL・WARPスナップ一覧 (Excel)",
+        data=_build_url_list_excel(),
+        file_name="url_warp_list.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
