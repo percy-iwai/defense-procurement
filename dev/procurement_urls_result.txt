@@ -1,0 +1,19 @@
+﻿
+https://www.mod.go.jp/j/procurement/: 200 (1891 bytes)
+  Links: []
+https://www.mod.go.jp/j/procurement/: ERROR 'cp932' codec can't encode character '\ufeff' in position 8: illegal multibyte sequence
+
+https://www.mod.go.jp/j/approach/hyouka/jisseki/: 404 (1143 bytes)
+
+https://www.mod.go.jp/j/approach/zaim/: 404 (1133 bytes)
+
+https://www.mod.go.jp/j/procurement/jisseki/: 404 (1139 bytes)
+
+https://www.mod.go.jp/j/procurement/index.html: 200 (1891 bytes)
+  Links: []
+https://www.mod.go.jp/j/procurement/index.html: ERROR 'cp932' codec can't encode character '\ufeff' in position 8: illegal multibyte sequence
+
+=== Checking WARP API for mod.go.jp ATLA jisseki ===
+WARP API h29: 404
+
+CDX API: 503

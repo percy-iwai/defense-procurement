@@ -1,0 +1,2181 @@
+{
+  "generated_at": "2026-05-15",
+  "total_agencies_in_db": 109,
+  "missing_march_2026_count": 81,
+  "loaders": [
+    {
+      "loader_script": "pipeline/load_atla.py",
+      "description": "防衛装備庁本庁（月次Excel）",
+      "source_type": "Excel",
+      "agency_count": 1,
+      "agency_ids": [
+        "atla"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_atla_sub.py",
+      "description": "防衛装備庁サブ機関（研究所・試験場）",
+      "source_type": "PDF",
+      "agency_count": 9,
+      "agency_ids": [
+        "atla_kanbo",
+        "atla_koukuu",
+        "atla_riku",
+        "atla_kantei",
+        "atla_shinsedai",
+        "atla_chitose",
+        "atla_shimokita",
+        "atla_gifu",
+        "atla_disti"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_asdf.py",
+      "description": "航空自衛隊 29機関",
+      "source_type": "Excel/PDF/HTML",
+      "agency_count": 29,
+      "agency_ids": [
+        "asdf_2dep",
+        "asdf_3dep",
+        "asdf_4dep",
+        "asdf_ichigaya",
+        "asdf_chitose",
+        "asdf_misawa",
+        "asdf_iruma",
+        "asdf_matsushima",
+        "asdf_hyakuri",
+        "asdf_komatsu",
+        "asdf_gifu",
+        "asdf_hamamatsu",
+        "asdf_yokota",
+        "asdf_komaki",
+        "asdf_kisarazu",
+        "asdf_niigata",
+        "asdf_fuchu",
+        "asdf_nara",
+        "asdf_tsuiki",
+        "asdf_hofukita",
+        "asdf_hofuminami",
+        "asdf_miho",
+        "asdf_kumagaya",
+        "asdf_shizuhama",
+        "asdf_akita",
+        "asdf_meguro",
+        "asdf_ashiya",
+        "asdf_kasuga",
+        "asdf_nyutabaru"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_gsdf.py",
+      "description": "陸上自衛隊 25+機関",
+      "source_type": "PDF/HTML",
+      "agency_count": 27,
+      "agency_ids": [
+        "gsdf_gmcc",
+        "gsdf_cfin",
+        "gsdf_chubu",
+        "hokubu_kaikei",
+        "gsdf_seibu",
+        "gsdf_ctrans",
+        "gsdf_tercom",
+        "gsdf_eadep",
+        "gsdf_nadep",
+        "gsdf_neadep",
+        "gsdf_madep",
+        "tohoku_kaikei",
+        "gsdf_eafin",
+        "gsdf_ocsh",
+        "gsdf_fsh",
+        "gsdf_aasch",
+        "gsdf_akeno",
+        "gsdf_sigsch",
+        "gsdf_kodaira",
+        "gsdf_eisei",
+        "gsdf_chosp",
+        "gsdf_kitautsu",
+        "gsdf_essch",
+        "gsdf_buki",
+        "gsdf_eadep_koga",
+        "gsdf_eadep_yooga",
+        "gsdf_eadep_matudo"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_msdf.py",
+      "description": "海上自衛隊 24機関",
+      "source_type": "Excel",
+      "agency_count": 24,
+      "agency_ids": [
+        "msdf_y0",
+        "msdf_k0",
+        "msdf_s0",
+        "msdf_m0",
+        "msdf_d0",
+        "msdf_t2",
+        "msdf_asd",
+        "msdf_yd",
+        "msdf_k4",
+        "msdf_sk",
+        "msdf_d1",
+        "msdf_k1",
+        "msdf_dw",
+        "msdf_dy",
+        "msdf_y6",
+        "msdf_y2",
+        "msdf_k2",
+        "msdf_k7",
+        "msdf_s3",
+        "msdf_st",
+        "msdf_s2",
+        "msdf_sn",
+        "msdf_sa",
+        "msdf_s1"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_rdb.py",
+      "description": "地方防衛局 9機関",
+      "source_type": "Excel/PDF/HTML",
+      "agency_count": 9,
+      "agency_ids": [
+        "rdb_hokkaido",
+        "rdb_tohoku",
+        "rdb_n_kanto",
+        "rdb_s_kanto",
+        "rdb_kinchu",
+        "rdb_chushi",
+        "rdb_kyushu",
+        "rdb_okinawa",
+        "rdb_tokai"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_misc.py",
+      "description": "内局・統幕・防衛医科大・防衛研究所・防衛大学校",
+      "source_type": "Excel/PDF",
+      "agency_count": 6,
+      "agency_ids": [
+        "naikyoku_kaikei",
+        "dih",
+        "js",
+        "ndmc",
+        "nids",
+        "nda"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_igo.py",
+      "description": "防衛監察本部",
+      "source_type": "PDF",
+      "agency_count": 1,
+      "agency_ids": [
+        "igo"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_misawa_ocr.py",
+      "description": "三沢基地FY2024画像PDF専用（easyocr）",
+      "source_type": "OCR",
+      "agency_count": 1,
+      "agency_ids": [
+        "asdf_misawa"
+      ],
+      "note": "load_asdf.pyとは別の専用ローダー"
+    },
+    {
+      "loader_script": "pipeline/load_kenkyuu_hyouka.py",
+      "description": "政策評価書（総務省ポータル）— 要求元判定補助用",
+      "source_type": "PDF",
+      "agency_count": 1,
+      "agency_ids": [
+        "kenkyuu_hyouka"
+      ],
+      "note": ""
+    },
+    {
+      "loader_script": "pipeline/load_from_urlmatrix.py",
+      "description": "url_matrix.db 未収録URL補完（after主要ローダー完了後）",
+      "source_type": "mixed",
+      "agency_count": 0,
+      "agency_ids": [],
+      "note": "reconcile_urlmatrix.py → load_from_urlmatrix.py の順で実行"
+    },
+    {
+      "loader_script": "pipeline/load_eadep_nadep_warp.py",
+      "description": "関東・北海道補給処FY2024 WARP専用",
+      "source_type": "PDF (WARP)",
+      "agency_count": 2,
+      "agency_ids": [
+        "gsdf_eadep",
+        "gsdf_nadep"
+      ],
+      "note": "一回限りスクリプト（FY2024分のみ）"
+    }
+  ],
+  "parsers": [
+    {
+      "file": "parsers/pdf_table.py",
+      "description": "PDF表パーサー（50+ヘッダーキーワード対応）"
+    },
+    {
+      "file": "parsers/excel_parser.py",
+      "description": "Excelパーサー（.xlsx/.xls両対応）"
+    },
+    {
+      "file": "parsers/ocr_parser.py",
+      "description": "easyocr画像PDFパーサー"
+    }
+  ],
+  "collectors": [
+    {
+      "file": "collectors/http_client.py",
+      "description": "HTTPクライアント（WARP Cookie・キャッシュ・リトライ対応）"
+    },
+    {
+      "file": "collectors/index_scraper.py",
+      "description": "HTMLインデックスページ解析（PDF/Excelリンク抽出）"
+    }
+  ],
+  "parallel_groups": {
+    "note": "group1-7 は互いに独立・並列実行可。完了後に group8 を順次実行。",
+    "group1_atla": [
+      "python -m pipeline.load_atla",
+      "python -m pipeline.load_atla_sub"
+    ],
+    "group2_asdf": [
+      "python -m pipeline.load_asdf"
+    ],
+    "group3_msdf": [
+      "python -m pipeline.load_msdf"
+    ],
+    "group4_gsdf": [
+      "python -m pipeline.load_gsdf"
+    ],
+    "group5_rdb": [
+      "python -m pipeline.load_rdb"
+    ],
+    "group6_misc": [
+      "python -m pipeline.load_misc"
+    ],
+    "group7_igo": [
+      "python -m pipeline.load_igo"
+    ],
+    "group8_post": [
+      "python pipeline/reconcile_urlmatrix.py",
+      "python -m pipeline.load_from_urlmatrix"
+    ]
+  },
+  "agencies": [
+    {
+      "agency_id": "asdf_2dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 9635,
+      "fy2025_cnt": 1456,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_3dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250731",
+      "total_cnt": 3636,
+      "fy2025_cnt": 252,
+      "fy2025_max_date": "20250731",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_4dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 5149,
+      "fy2025_cnt": 1078,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_akita",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260220",
+      "total_cnt": 113,
+      "fy2025_cnt": 28,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_ashiya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250212",
+      "total_cnt": 76,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_chitose",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250324",
+      "total_cnt": 1208,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_fuchu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251128",
+      "total_cnt": 327,
+      "fy2025_cnt": 51,
+      "fy2025_max_date": "20251128",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_gifu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260129",
+      "total_cnt": 411,
+      "fy2025_cnt": 100,
+      "fy2025_max_date": "20260129",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hamamatsu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251128",
+      "total_cnt": 462,
+      "fy2025_cnt": 114,
+      "fy2025_max_date": "20251128",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hofukita",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251017",
+      "total_cnt": 16,
+      "fy2025_cnt": 4,
+      "fy2025_max_date": "20251017",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hofuminami",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260217",
+      "total_cnt": 254,
+      "fy2025_cnt": 80,
+      "fy2025_max_date": "20260217",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hyakuri",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 586,
+      "fy2025_cnt": 101,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_ichigaya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 794,
+      "fy2025_cnt": 163,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_iruma",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250430",
+      "total_cnt": 1192,
+      "fy2025_cnt": 50,
+      "fy2025_max_date": "20250430",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_kisarazu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251027",
+      "total_cnt": 9,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251027",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_komaki",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260306",
+      "total_cnt": 420,
+      "fy2025_cnt": 148,
+      "fy2025_max_date": "20260306",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "asdf_komatsu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 520,
+      "fy2025_cnt": 147,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_kumagaya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260225",
+      "total_cnt": 425,
+      "fy2025_cnt": 72,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_matsushima",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 187,
+      "fy2025_cnt": 80,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_meguro",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250919",
+      "total_cnt": 127,
+      "fy2025_cnt": 7,
+      "fy2025_max_date": "20250919",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_miho",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260220",
+      "total_cnt": 250,
+      "fy2025_cnt": 115,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_misawa",
+      "loader_script": "pipeline/load_misawa_ocr.py",
+      "source_type": "OCR",
+      "max_date": "20251224",
+      "total_cnt": 496,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20251224",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_nara",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260316",
+      "total_cnt": 187,
+      "fy2025_cnt": 43,
+      "fy2025_max_date": "20260316",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "asdf_niigata",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 162,
+      "fy2025_cnt": 36,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_nyutabaru",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20240717",
+      "total_cnt": 259,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_shizuhama",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260213",
+      "total_cnt": 179,
+      "fy2025_cnt": 40,
+      "fy2025_max_date": "20260213",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_tsuiki",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251222",
+      "total_cnt": 362,
+      "fy2025_cnt": 68,
+      "fy2025_max_date": "20251222",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_yokota",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250130",
+      "total_cnt": 74,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla",
+      "loader_script": "pipeline/load_atla.py",
+      "source_type": "Excel",
+      "max_date": "20260331",
+      "total_cnt": 26686,
+      "fy2025_cnt": 6595,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "atla_chitose",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260219",
+      "total_cnt": 137,
+      "fy2025_cnt": 25,
+      "fy2025_max_date": "20260219",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_disti",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260220",
+      "total_cnt": 145,
+      "fy2025_cnt": 97,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_gifu",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 122,
+      "fy2025_cnt": 23,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_kanbo",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 1816,
+      "fy2025_cnt": 339,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_kantei",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 563,
+      "fy2025_cnt": 119,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_koukuu",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260224",
+      "total_cnt": 672,
+      "fy2025_cnt": 142,
+      "fy2025_max_date": "20260224",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_riku",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260218",
+      "total_cnt": 889,
+      "fy2025_cnt": 154,
+      "fy2025_max_date": "20260218",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_shimokita",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260225",
+      "total_cnt": 425,
+      "fy2025_cnt": 57,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_shinsedai",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260212",
+      "total_cnt": 354,
+      "fy2025_cnt": 120,
+      "fy2025_max_date": "20260212",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "dih",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260227",
+      "total_cnt": 597,
+      "fy2025_cnt": 156,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_aasch",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260319",
+      "total_cnt": 45,
+      "fy2025_cnt": 45,
+      "fy2025_max_date": "20260319",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_akeno",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260306",
+      "total_cnt": 169,
+      "fy2025_cnt": 38,
+      "fy2025_max_date": "20260306",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_buki",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250918",
+      "total_cnt": 78,
+      "fy2025_cnt": 13,
+      "fy2025_max_date": "20250918",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_cfin",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260327",
+      "total_cnt": 1781,
+      "fy2025_cnt": 432,
+      "fy2025_max_date": "20260327",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_chosp",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260313",
+      "total_cnt": 397,
+      "fy2025_cnt": 218,
+      "fy2025_max_date": "20260313",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_chubu",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251225",
+      "total_cnt": 3917,
+      "fy2025_cnt": 694,
+      "fy2025_max_date": "20251225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_ctrans",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251027",
+      "total_cnt": 229,
+      "fy2025_cnt": 62,
+      "fy2025_max_date": "20251027",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep",
+      "loader_script": "pipeline/load_eadep_nadep_warp.py",
+      "source_type": "PDF (WARP)",
+      "max_date": "20260327",
+      "total_cnt": 827,
+      "fy2025_cnt": 188,
+      "fy2025_max_date": "20260327",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_eadep_koga",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260318",
+      "total_cnt": 182,
+      "fy2025_cnt": 51,
+      "fy2025_max_date": "20260318",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_eadep_matudo",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 391,
+      "fy2025_cnt": 58,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep_yoga",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20250708",
+      "total_cnt": 49,
+      "fy2025_cnt": 8,
+      "fy2025_max_date": "20250708",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep_yooga",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250708",
+      "total_cnt": 65,
+      "fy2025_cnt": 8,
+      "fy2025_max_date": "20250708",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eafin",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1148,
+      "fy2025_cnt": 1146,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eisei",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260219",
+      "total_cnt": 148,
+      "fy2025_cnt": 38,
+      "fy2025_max_date": "20260219",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_fsh",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260316",
+      "total_cnt": 1352,
+      "fy2025_cnt": 288,
+      "fy2025_max_date": "20260316",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_gmcc",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260330",
+      "total_cnt": 10169,
+      "fy2025_cnt": 2327,
+      "fy2025_max_date": "20260330",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_jujyo",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20250227",
+      "total_cnt": 114,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_kodaira",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250918",
+      "total_cnt": 123,
+      "fy2025_cnt": 19,
+      "fy2025_max_date": "20250918",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_madep",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260327",
+      "total_cnt": 785,
+      "fy2025_cnt": 177,
+      "fy2025_max_date": "20260327",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_nadep",
+      "loader_script": "pipeline/load_eadep_nadep_warp.py",
+      "source_type": "PDF (WARP)",
+      "max_date": "20260323",
+      "total_cnt": 875,
+      "fy2025_cnt": 365,
+      "fy2025_max_date": "20260323",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_neadep",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260331",
+      "total_cnt": 574,
+      "fy2025_cnt": 110,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_seibu",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260316",
+      "total_cnt": 3280,
+      "fy2025_cnt": 971,
+      "fy2025_max_date": "20260316",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "gsdf_sigsch",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251217",
+      "total_cnt": 191,
+      "fy2025_cnt": 43,
+      "fy2025_max_date": "20251217",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_tercom",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 141,
+      "fy2025_cnt": 32,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "hokubu_kaikei",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260331",
+      "total_cnt": 4412,
+      "fy2025_cnt": 987,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "igo",
+      "loader_script": "pipeline/load_igo.py",
+      "source_type": "PDF",
+      "max_date": "20260212",
+      "total_cnt": 34,
+      "fy2025_cnt": 15,
+      "fy2025_max_date": "20260212",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "js",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260225",
+      "total_cnt": 446,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_asd",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260331",
+      "total_cnt": 7870,
+      "fy2025_cnt": 1771,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_d0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260331",
+      "total_cnt": 1649,
+      "fy2025_cnt": 417,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_d1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250829",
+      "total_cnt": 137,
+      "fy2025_cnt": 3,
+      "fy2025_max_date": "20250829",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_dw",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20241210",
+      "total_cnt": 4,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_dy",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251216",
+      "total_cnt": 11,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251216",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260330",
+      "total_cnt": 4511,
+      "fy2025_cnt": 1100,
+      "fy2025_max_date": "20260330",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_k1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260213",
+      "total_cnt": 669,
+      "fy2025_cnt": 187,
+      "fy2025_max_date": "20260213",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260122",
+      "total_cnt": 118,
+      "fy2025_cnt": 37,
+      "fy2025_max_date": "20260122",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k4",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250930",
+      "total_cnt": 628,
+      "fy2025_cnt": 76,
+      "fy2025_max_date": "20250930",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k7",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250828",
+      "total_cnt": 103,
+      "fy2025_cnt": 27,
+      "fy2025_max_date": "20250828",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_kure",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20240314",
+      "total_cnt": 3,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_m0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260330",
+      "total_cnt": 1954,
+      "fy2025_cnt": 465,
+      "fy2025_max_date": "20260330",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_maizuru",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20260330",
+      "total_cnt": 461,
+      "fy2025_cnt": 274,
+      "fy2025_max_date": "20260330",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_s0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260327",
+      "total_cnt": 3538,
+      "fy2025_cnt": 925,
+      "fy2025_max_date": "20260327",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_s1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251225",
+      "total_cnt": 36,
+      "fy2025_cnt": 14,
+      "fy2025_max_date": "20251225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260202",
+      "total_cnt": 139,
+      "fy2025_cnt": 139,
+      "fy2025_max_date": "20260202",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s3",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260130",
+      "total_cnt": 163,
+      "fy2025_cnt": 35,
+      "fy2025_max_date": "20260130",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s4",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20260109",
+      "total_cnt": 44,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20260109",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sa",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251215",
+      "total_cnt": 33,
+      "fy2025_cnt": 9,
+      "fy2025_max_date": "20251215",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sk",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20241127",
+      "total_cnt": 353,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sn",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 282,
+      "fy2025_cnt": 122,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_st",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251002",
+      "total_cnt": 7,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251002",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_t2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260331",
+      "total_cnt": 4221,
+      "fy2025_cnt": 1056,
+      "fy2025_max_date": "20260331",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_y0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 5684,
+      "fy2025_cnt": 1379,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260121",
+      "total_cnt": 190,
+      "fy2025_cnt": 52,
+      "fy2025_max_date": "20260121",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y3",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20260220",
+      "total_cnt": 81,
+      "fy2025_cnt": 81,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y6",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260309",
+      "total_cnt": 517,
+      "fy2025_cnt": 192,
+      "fy2025_max_date": "20260309",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "msdf_yd",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 6544,
+      "fy2025_cnt": 1140,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_yokosuka",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20240822",
+      "total_cnt": 893,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "naikyoku_kaikei",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260326",
+      "total_cnt": 887,
+      "fy2025_cnt": 241,
+      "fy2025_max_date": "20260326",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "nda",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260309",
+      "total_cnt": 744,
+      "fy2025_cnt": 299,
+      "fy2025_max_date": "20260309",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "ndmc",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20251223",
+      "total_cnt": 2646,
+      "fy2025_cnt": 532,
+      "fy2025_max_date": "20251223",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "nids",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260225",
+      "total_cnt": 234,
+      "fy2025_cnt": 56,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_chushi",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260327",
+      "total_cnt": 831,
+      "fy2025_cnt": 297,
+      "fy2025_max_date": "20260327",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "rdb_hokkaido",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 659,
+      "fy2025_cnt": 177,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_kinchu",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1370,
+      "fy2025_cnt": 402,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_kyushu",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1930,
+      "fy2025_cnt": 418,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_n_kanto",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 1381,
+      "fy2025_cnt": 370,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_okinawa",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 2081,
+      "fy2025_cnt": 475,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_s_kanto",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 2010,
+      "fy2025_cnt": 603,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_tohoku",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260330",
+      "total_cnt": 1138,
+      "fy2025_cnt": 200,
+      "fy2025_max_date": "20260330",
+      "missing_march_2026": false
+    },
+    {
+      "agency_id": "rdb_tokai",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260123",
+      "total_cnt": 87,
+      "fy2025_cnt": 28,
+      "fy2025_max_date": "20260123",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "tohoku_kaikei",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 2781,
+      "fy2025_cnt": 395,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    }
+  ],
+  "missing_march_2026": [
+    {
+      "agency_id": "asdf_2dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 9635,
+      "fy2025_cnt": 1456,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y0",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 5684,
+      "fy2025_cnt": 1379,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eafin",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1148,
+      "fy2025_cnt": 1146,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_yd",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 6544,
+      "fy2025_cnt": 1140,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_4dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 5149,
+      "fy2025_cnt": 1078,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_chubu",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251225",
+      "total_cnt": 3917,
+      "fy2025_cnt": 694,
+      "fy2025_max_date": "20251225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_s_kanto",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 2010,
+      "fy2025_cnt": 603,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "ndmc",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20251223",
+      "total_cnt": 2646,
+      "fy2025_cnt": 532,
+      "fy2025_max_date": "20251223",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_okinawa",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 2081,
+      "fy2025_cnt": 475,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_kyushu",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1930,
+      "fy2025_cnt": 418,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_kinchu",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 1370,
+      "fy2025_cnt": 402,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "tohoku_kaikei",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 2781,
+      "fy2025_cnt": 395,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_n_kanto",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 1381,
+      "fy2025_cnt": 370,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_kanbo",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 1816,
+      "fy2025_cnt": 339,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_3dep",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250731",
+      "total_cnt": 3636,
+      "fy2025_cnt": 252,
+      "fy2025_max_date": "20250731",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260213",
+      "total_cnt": 669,
+      "fy2025_cnt": 187,
+      "fy2025_max_date": "20260213",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_hokkaido",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 659,
+      "fy2025_cnt": 177,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_ichigaya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 794,
+      "fy2025_cnt": 163,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "dih",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260227",
+      "total_cnt": 597,
+      "fy2025_cnt": 156,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_riku",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260218",
+      "total_cnt": 889,
+      "fy2025_cnt": 154,
+      "fy2025_max_date": "20260218",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_komatsu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 520,
+      "fy2025_cnt": 147,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_koukuu",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260224",
+      "total_cnt": 672,
+      "fy2025_cnt": 142,
+      "fy2025_max_date": "20260224",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260202",
+      "total_cnt": 139,
+      "fy2025_cnt": 139,
+      "fy2025_max_date": "20260202",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sn",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260227",
+      "total_cnt": 282,
+      "fy2025_cnt": 122,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_shinsedai",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260212",
+      "total_cnt": 354,
+      "fy2025_cnt": 120,
+      "fy2025_max_date": "20260212",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_kantei",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 563,
+      "fy2025_cnt": 119,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_miho",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260220",
+      "total_cnt": 250,
+      "fy2025_cnt": 115,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hamamatsu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251128",
+      "total_cnt": 462,
+      "fy2025_cnt": 114,
+      "fy2025_max_date": "20251128",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hyakuri",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 586,
+      "fy2025_cnt": 101,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_gifu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260129",
+      "total_cnt": 411,
+      "fy2025_cnt": 100,
+      "fy2025_max_date": "20260129",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_disti",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260220",
+      "total_cnt": 145,
+      "fy2025_cnt": 97,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y3",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20260220",
+      "total_cnt": 81,
+      "fy2025_cnt": 81,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hofuminami",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260217",
+      "total_cnt": 254,
+      "fy2025_cnt": 80,
+      "fy2025_max_date": "20260217",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_matsushima",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 187,
+      "fy2025_cnt": 80,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k4",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250930",
+      "total_cnt": 628,
+      "fy2025_cnt": 76,
+      "fy2025_max_date": "20250930",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_kumagaya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260225",
+      "total_cnt": 425,
+      "fy2025_cnt": 72,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_tsuiki",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251222",
+      "total_cnt": 362,
+      "fy2025_cnt": 68,
+      "fy2025_max_date": "20251222",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_ctrans",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251027",
+      "total_cnt": 229,
+      "fy2025_cnt": 62,
+      "fy2025_max_date": "20251027",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep_matudo",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260227",
+      "total_cnt": 391,
+      "fy2025_cnt": 58,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_shimokita",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260225",
+      "total_cnt": 425,
+      "fy2025_cnt": 57,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "nids",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260225",
+      "total_cnt": 234,
+      "fy2025_cnt": 56,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_y2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260121",
+      "total_cnt": 190,
+      "fy2025_cnt": 52,
+      "fy2025_max_date": "20260121",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_fuchu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251128",
+      "total_cnt": 327,
+      "fy2025_cnt": 51,
+      "fy2025_max_date": "20251128",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_iruma",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250430",
+      "total_cnt": 1192,
+      "fy2025_cnt": 50,
+      "fy2025_max_date": "20250430",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_misawa",
+      "loader_script": "pipeline/load_misawa_ocr.py",
+      "source_type": "OCR",
+      "max_date": "20251224",
+      "total_cnt": 496,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20251224",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "js",
+      "loader_script": "pipeline/load_misc.py",
+      "source_type": "Excel/PDF",
+      "max_date": "20260225",
+      "total_cnt": 446,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20260225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s4",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20260109",
+      "total_cnt": 44,
+      "fy2025_cnt": 44,
+      "fy2025_max_date": "20260109",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_sigsch",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20251217",
+      "total_cnt": 191,
+      "fy2025_cnt": 43,
+      "fy2025_max_date": "20251217",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_shizuhama",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260213",
+      "total_cnt": 179,
+      "fy2025_cnt": 40,
+      "fy2025_max_date": "20260213",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eisei",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260219",
+      "total_cnt": 148,
+      "fy2025_cnt": 38,
+      "fy2025_max_date": "20260219",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k2",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260122",
+      "total_cnt": 118,
+      "fy2025_cnt": 37,
+      "fy2025_max_date": "20260122",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_niigata",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 162,
+      "fy2025_cnt": 36,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s3",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20260130",
+      "total_cnt": 163,
+      "fy2025_cnt": 35,
+      "fy2025_max_date": "20260130",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_tercom",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20260226",
+      "total_cnt": 141,
+      "fy2025_cnt": 32,
+      "fy2025_max_date": "20260226",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_akita",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260220",
+      "total_cnt": 113,
+      "fy2025_cnt": 28,
+      "fy2025_max_date": "20260220",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "rdb_tokai",
+      "loader_script": "pipeline/load_rdb.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20260123",
+      "total_cnt": 87,
+      "fy2025_cnt": 28,
+      "fy2025_max_date": "20260123",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_k7",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250828",
+      "total_cnt": 103,
+      "fy2025_cnt": 27,
+      "fy2025_max_date": "20250828",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_chitose",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260219",
+      "total_cnt": 137,
+      "fy2025_cnt": 25,
+      "fy2025_max_date": "20260219",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "atla_gifu",
+      "loader_script": "pipeline/load_atla_sub.py",
+      "source_type": "PDF",
+      "max_date": "20260227",
+      "total_cnt": 122,
+      "fy2025_cnt": 23,
+      "fy2025_max_date": "20260227",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_kodaira",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250918",
+      "total_cnt": 123,
+      "fy2025_cnt": 19,
+      "fy2025_max_date": "20250918",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "igo",
+      "loader_script": "pipeline/load_igo.py",
+      "source_type": "PDF",
+      "max_date": "20260212",
+      "total_cnt": 34,
+      "fy2025_cnt": 15,
+      "fy2025_max_date": "20260212",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_s1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251225",
+      "total_cnt": 36,
+      "fy2025_cnt": 14,
+      "fy2025_max_date": "20251225",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_buki",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250918",
+      "total_cnt": 78,
+      "fy2025_cnt": 13,
+      "fy2025_max_date": "20250918",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sa",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251215",
+      "total_cnt": 33,
+      "fy2025_cnt": 9,
+      "fy2025_max_date": "20251215",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep_yoga",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20250708",
+      "total_cnt": 49,
+      "fy2025_cnt": 8,
+      "fy2025_max_date": "20250708",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_eadep_yooga",
+      "loader_script": "pipeline/load_gsdf.py",
+      "source_type": "PDF/HTML",
+      "max_date": "20250708",
+      "total_cnt": 65,
+      "fy2025_cnt": 8,
+      "fy2025_max_date": "20250708",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_meguro",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250919",
+      "total_cnt": 127,
+      "fy2025_cnt": 7,
+      "fy2025_max_date": "20250919",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_kisarazu",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251027",
+      "total_cnt": 9,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251027",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_dy",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251216",
+      "total_cnt": 11,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251216",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_st",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20251002",
+      "total_cnt": 7,
+      "fy2025_cnt": 6,
+      "fy2025_max_date": "20251002",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_hofukita",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20251017",
+      "total_cnt": 16,
+      "fy2025_cnt": 4,
+      "fy2025_max_date": "20251017",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_d1",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20250829",
+      "total_cnt": 137,
+      "fy2025_cnt": 3,
+      "fy2025_max_date": "20250829",
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_ashiya",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250212",
+      "total_cnt": 76,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_chitose",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250324",
+      "total_cnt": 1208,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_nyutabaru",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20240717",
+      "total_cnt": 259,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "asdf_yokota",
+      "loader_script": "pipeline/load_asdf.py",
+      "source_type": "Excel/PDF/HTML",
+      "max_date": "20250130",
+      "total_cnt": 74,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "gsdf_jujyo",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20250227",
+      "total_cnt": 114,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_dw",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20241210",
+      "total_cnt": 4,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_kure",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20240314",
+      "total_cnt": 3,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_sk",
+      "loader_script": "pipeline/load_msdf.py",
+      "source_type": "Excel",
+      "max_date": "20241127",
+      "total_cnt": 353,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    },
+    {
+      "agency_id": "msdf_yokosuka",
+      "loader_script": "unknown",
+      "source_type": "unknown",
+      "max_date": "20240822",
+      "total_cnt": 893,
+      "fy2025_cnt": 0,
+      "fy2025_max_date": null,
+      "missing_march_2026": true
+    }
+  ]
+}
