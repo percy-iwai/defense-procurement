@@ -743,15 +743,19 @@ ASDF_AGENCIES: list[dict] = [
         "skip_reason": "全ファイル画像スキャンPDF（OCR必要）",
     },
 
-    # 28. 春日基地（second/kaikei/ が403 → 収集不可確定）
-    # 原DB: 0件。tyoutatujyouhou.htm は入札結果PDFのみ（画像PDF工事系）
+    # 28. 春日基地（全件画像PDF・OCR必要）
+    # WARP 20250510/20250509054434 で second/kaikei/tyoutatujouhou.htm は取得可能。
+    # koujijouhou6nendo.htm から FY2024 月次PDF 12本（tekiseika04〜koukyouchoutatsu3）あり。
+    # ただし全 PDF が CCITTFaxDecode スキャン画像PDF（テキスト抽出不可）。FY2023以前は WARP でも 404。
+    # asdf_ashiya と同様。将来の OCR 実装時は以下を参照:
+    #   index: https://warp.ndl.go.jp/20250510/20250509054434/https://www.mod.go.jp/asdf/kasuga/second/kaikei/koujijouhou6nendo.htm
     {
         "agency_id": "asdf_kasuga",
         "agency_name": "春日基地",
         "index_urls": [],
         "url_patterns": [],
         "skip": True,
-        "skip_reason": "second/kaikei/ 403・標準公表書式ページ未発見",
+        "skip_reason": "全ファイル画像PDF（CCITTFaxDecode）・OCR必要（WARP 20250510/20250509054434 でFY2024のみアクセス可）",
     },
 
     # 29. 新田原基地（月次PDFパターン）

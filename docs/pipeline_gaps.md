@@ -79,7 +79,7 @@
 ### 既知の収集困難機関（例外）
 | 機関 | agency_id | 理由 |
 |---|---|---|
-| 春日基地（航空自衛隊） | asdf_kasuga | second/kaikei/ が HTTP 403 で取得不可 |
+| 春日基地（航空自衛隊） | asdf_kasuga | WARP（20250510/20250509054434）経由でFY2024データのインデックス取得可能。ただし全PDFがCCITTFaxDecodeスキャン画像PDF（テキスト抽出不可）・OCR必要。FY2023以前はWARPでも404。asdf_ashiyaと同等の状況。 |
 | 芦屋基地（航空自衛隊） | asdf_ashiya | 全件画像PDF。OCR実施済みだが品質粗め（4月分3件） |
 | 北部補給処（陸上自衛隊） | gsdf_hokyuu_honbu | source_url なし（10,374件）。直接DBコピー不可 |
 | 第2整備補給隊（海上自衛隊） | msdf_d2 | ローリングXLSがFY2021データに後退、FY2022+なし |
@@ -110,7 +110,7 @@ https://warp.ndl.go.jp/{coll}/{ts}/{original_url}
 |---|---|---|
 | 4分類実装 | GSDF/ASDF/RDBで工事/物品役務の区別が不完全 | 許容（URLパターンで近似） |
 | 4分類実装 | ATLAは閾値ベース区別（MoF 4分類とは軸が異なる） | 許容（ATLA固有の公表形式に従う） |
-| アクセス不可 | asdf_kasuga（403）、msdf_d2（データなし） | 回収困難 |
+| 画像PDF（OCR未実装） | asdf_kasuga（WARP FY2024のみ、全件画像PDF）、msdf_d2（データなし） | asdf_kasugaはWARP URL特定済み。OCR実装で収集可能 |
 | 画像PDF | asdf_ashiya FY2024 4月分（OCR実施済み、品質粗め） | 一部収録済み |
 | source_url なし | gsdf_hokyuu_honbu 10,374件 | 直接移行不可 |
 | WARP Cookie | 一部WARP URLへのアクセスにCookie認証が必要 | http_client.py で対応済み |
