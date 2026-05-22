@@ -80,9 +80,9 @@ Dashboardは `dashboard/app.py`（Dash/Plotly）で可視化。
 | asdf_hofukita（防府北基地） | 16件 | HTML（工期始を契約日代用） |
 | asdf_kisarazu（木更津分屯基地） | 9件 | HTML（R6/8/9形式日付） |
 | asdf_ashiya（芦屋基地） | 73件 | FY2024 PDF（5〜翌2月分はテキストPDF）、4月分は画像PDF→OCR要 |
-| asdf_kasuga（春日基地） | 0件 | スキップ：second/kaikei/ 403 |
+| asdf_kasuga（春日基地） | 94件 | WARP OCR（koukyouchoutatsu2/3のみ取得可、tekiseika系縦向きPDFは0件） |
 
-**ASDF合計: ≥22,805件 / ≥12,130億円（Phase 5込み、misawa OCR込み）**
+**ASDF合計: ≥22,899件 / ≥12,130億円（Phase 5込み、misawa OCR込み、kasuga 94件追加）**
 
 ---
 
