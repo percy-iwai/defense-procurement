@@ -356,7 +356,7 @@ python dev/recompute_atla_requesting_org.py --workers 14
 ### 収集結果（Phase 1: pipeline/load_kenkyuu_hyouka.py）
 
 - **ポータルエントリ数**: 480件（FY2015–FY2025）
-- **kenkyuu_hyouka テーブル挿入**: 432件（48件重複スキップ）→ **現在349件**（btreeページ損失により83件喪失、再収集要）
+- **kenkyuu_hyouka テーブル挿入**: 432件（48件重複スキップ）→ **現在450件**（2026-05-22 再収集完了、83件回復済み）
 - **PDF取得失敗**: 0件
 - **担当部局抽出失敗**: 0件
 - **org_key マッピング**: ATLA 394件 / MSDF 17件 / GSDF 10件 / ASDF 8件 / NAIKYOKU 3件
@@ -517,7 +517,7 @@ python dev/apply_fallback_50oku.py                       # 本番適用（/tmp �
 | pillar_mapping_sources | 2,548件 | マッピング根拠ソース（Phase 11でbukai+5、hakusho+6） |
 
 - `procurement.db` から `defense_pillar_jigyou` / `pillar_mapping_sources` テーブルを削除済み
-- `kenkyuu_hyouka` テーブル: btreeページ損失により432件→**349件**（再収集で回復予定）
+- `kenkyuu_hyouka` テーブル: btreeページ損失で一時349件に減少 → **450件**（2026-05-22 再収集完了）
 
 ### DB接続
 
@@ -833,7 +833,7 @@ python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類�
 | 優先度 | タスク | 理由 |
 |--------|--------|------|
 | 高 | FY2025 3月（202603）定期収集 | 各機関が4-5月に順次公表中 |
-| 中 | `kenkyuu_hyouka` 再収集（349→432件） | btreeページ損失で83件喪失、`python -m pipeline.load_kenkyuu_hyouka` で回復可 |
+| ✅完了 | `kenkyuu_hyouka` 再収集（2026-05-22） | 450件に回復済み |
 | 中 | P4/P7 親残存（P4=6件、P7=1件）の手動分類 | 正規表現でマッチしない7件が未分類で残存 |
 | 中 | `gsdf_hokyuu_honbu` 10,374件 | source_urlなしのため直接移行不可 |
 | 中 | `msdf_d2` 92件 | ローリングXLSがFY2021に後退、回収不可 |
