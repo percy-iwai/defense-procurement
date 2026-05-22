@@ -33,6 +33,8 @@ GSDF_AGENCIES: list[dict] = [
             for rr, mm in _months_4y_all()
             for nn in range(1, 16)
         ],
+        # hzyo071201.pdf のように契約日が非公表（#####）のファイルをURLから FY 補完
+        "url_fy_fallback": True,
     },
     # ── 2. 陸自中央会計隊（連番）─────────
     # file{N}.pdf 番号制（N=1..960程度まで存在）。custom.html に最新ファイルリンクあり。

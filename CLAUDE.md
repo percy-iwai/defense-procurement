@@ -160,7 +160,7 @@ Dashboardは `dashboard/app.py`（Dash/Plotly）で可視化。
 | migrate_from_v3 | `migrate_from_v3.py` | 多数 | 3rd DB差分URL再収集 |
 
 **既知の未収録（回収困難）:**
-- `gsdf_hokyuu_honbu` 10,374件: source_type=None（URL無し）、直接DBコピー不可
+- `gsdf_hokyuu_honbu` 10,374件: **解決済み（2026-05-22）** → 実体は `gsdf_gmcc`（補給統制本部）と同一。FY2022-2025は収録済み。FY2021(832件)のみ対象外。
 - `msdf_d2` 92件: ローリングXLSがFY2021期に後退、FY2022+データなし
 - `msdf_y3` 81件 → 収録済み ✓
 - `nda` 48件 → HTML収集完了 ✓
@@ -835,7 +835,7 @@ python dev/assign_pillar_semantic.py --threshold 0.75     # 緩め（誤分類�
 | 高 | FY2025 3月（202603）定期収集 | 各機関が4-5月に順次公表中 |
 | ✅完了 | `kenkyuu_hyouka` 再収集（2026-05-22） | 450件に回復済み |
 | 中 | P4/P7 親残存（P4=6件、P7=1件）の手動分類 | 正規表現でマッチしない7件が未分類で残存 |
-| 中 | `gsdf_hokyuu_honbu` 10,374件 | source_urlなしのため直接移行不可 |
+| ✅完了 | `gsdf_hokyuu_honbu` 調査・補完（2026-05-22） | 実体は `gsdf_gmcc`（同一機関）。FY2022-2025収録済み。hzyo071201.pdf 27件も url_fy_fallback 修正で収録 |
 | 中 | `msdf_d2` 92件 | ローリングXLSがFY2021に後退、回収不可 |
 | 中 | url_matrix filled_new 85件 | 特定月PDFが未収集（atla_gifu等）|
 | 低 | asdf_ashiya FY2024 4月分 | 画像PDF、OCR実施済み（品質粗め3件）|

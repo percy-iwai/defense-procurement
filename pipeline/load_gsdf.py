@@ -66,7 +66,16 @@ def _fy_from_pdf_url(url: str) -> int | None:
     """URLから令和年度→FYを推定。
     koukyou7.4.pdf → R7年4月 → FY2025 (月>=4なのでそのまま 2018+7=2025)
     koukyou7.1.pdf → R7年1月 → FY2024 (月<4なので 2018+7-1=2024)
-    汎用: [rR]0?(\d{1,2})[\.\-_]?(\d{1,2}) 形式"""
+    hzyo071201.pdf → R7年12月 → FY2025
+    汎用: [rR]0?(\\d{1,2})[\\.\\-_]?(\\d{1,2}) 形式"""
+    # hzyo{RR}{MM}{NN}.pdf pattern (gsdf_gmcc 補給統制本部)
+    m = re.search(r"hzyo(\d{2})(\d{2})\d{2}\.pdf", url.lower())
+    if m:
+        ry, mm = int(m.group(1)), int(m.group(2))
+        if 1 <= ry <= 20 and 1 <= mm <= 12:
+            base = 2018 + ry
+            return base if mm >= 4 else base - 1
+    # 汎用パターン
     m = re.search(r"[rR]0?(\d{1,2})[\.\-_](\d{1,2})", url)
     if m:
         ry, mm = int(m.group(1)), int(m.group(2))
