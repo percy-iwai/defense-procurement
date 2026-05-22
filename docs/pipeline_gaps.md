@@ -110,7 +110,7 @@ https://warp.ndl.go.jp/{coll}/{ts}/{original_url}
 |---|---|---|
 | 4分類実装 | GSDF/ASDF/RDBで工事/物品役務の区別が不完全 | 許容（URLパターンで近似） |
 | 4分類実装 | ATLAは閾値ベース区別（MoF 4分類とは軸が異なる） | 許容（ATLA固有の公表形式に従う） |
-| 画像PDF（OCR未実装） | asdf_kasuga（WARP FY2024のみ、全件画像PDF）、msdf_d2（データなし） | asdf_kasugaはWARP URL特定済み。OCR実装で収集可能 |
+| 画像PDF（OCR未実装） | msdf_d2（データなし） | asdf_kasugaはtekiseika_parser実装済み・276件収録済み ✅ |
 | 画像PDF | asdf_ashiya FY2024 4月分（OCR実施済み、品質粗め） | 一部収録済み |
 | source_url なし | gsdf_hokyuu_honbu → **解決済み** | 実体は gsdf_gmcc（同一機関）、FY2022-2025 収録済み。FY2021のみ対象外 |
 | WARP Cookie | 一部WARP URLへのアクセスにCookie認証が必要 | http_client.py で対応済み |

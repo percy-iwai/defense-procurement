@@ -24,6 +24,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from collectors.http_client import fetch  # noqa: E402
 from collectors.index_scraper import scrape_file_links  # noqa: E402
 from parsers.ocr_parser import parse_ocr_records  # noqa: E402
+from parsers.tekiseika_parser import is_landscape_scan, parse_tekiseika_pdf  # noqa: E402
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
@@ -158,7 +159,11 @@ def collect(agency_id: str, *, dry_run: bool = False) -> dict:
 
         logger.info(f"  [{fname}] {len(data) // 1024}KB → OCR開始")
         try:
-            recs = parse_ocr_records(data, target_fys=TARGET_FYS)
+            if is_landscape_scan(data):
+                logger.info(f"  [{fname}] landscape scan 検出 → tekiseika parser 使用")
+                recs = parse_tekiseika_pdf(data, target_fys=TARGET_FYS)
+            else:
+                recs = parse_ocr_records(data, target_fys=TARGET_FYS)
         except Exception as e:
             logger.warning(f"  [{fname}] OCR失敗: {e}")
             recs = []
