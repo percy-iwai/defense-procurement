@@ -28,7 +28,7 @@ from parsers.tekiseika_parser import is_landscape_scan, parse_tekiseika_pdf  # n
 
 DB_PATH = PROJECT_ROOT / "data" / "db" / "procurement.db"
 
-TARGET_FYS = {2024}
+TARGET_FYS = {2024, 2025}
 
 # ---------------------------------------------------------------------------
 # 機関設定
@@ -40,10 +40,13 @@ KASUGA_WARP_INDEX = (
     "https://www.mod.go.jp/asdf/kasuga/second/kaikei/koujijouhou6nendo.htm"
 )
 
-# 芦屋基地: 4月分のみ画像PDF（5〜翌2月はテキストPDFで収集済み）
-ASHIYA_IMAGE_URLS: list[str] = [
-    "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/6/zyouhoukoukai/zyouhoukoukai6-4.pdf",
-]
+# 芦屋基地: 4月分は画像PDF、FY2024 3月は文字エンコード問題でテキスト抽出不可→OCR
+# {url: default_fy}  ← OCR で日付パース失敗時のフォールバックFY
+ASHIYA_IMAGE_URLS: dict[str, int] = {
+    "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/6/zyouhoukoukai/zyouhoukoukai6-4.pdf": 2024,
+    "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/6/zyouhoukoukai/zyouhoukoukai7-3.pdf": 2024,  # FY2024 3月: フォントエンコード問題→OCR
+    "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/7/zyouhoukoukai/zyouhoukoukai7-4.pdf": 2025,  # FY2025 4月: 画像PDF
+}
 
 AGENCIES: dict[str, dict] = {
     "asdf_kasuga": {
@@ -136,17 +139,19 @@ def collect(agency_id: str, *, dry_run: bool = False) -> dict:
     }
 
     if agency_id == "asdf_kasuga":
-        pdf_urls = _pdf_urls_for_kasuga()
+        # kasuga: list of str URLs (FY determined from content)
+        pdf_url_map: dict[str, int] = {u: AGENCIES[agency_id]["default_fy"]
+                                        for u in _pdf_urls_for_kasuga()}
     else:
-        pdf_urls = list(ASHIYA_IMAGE_URLS)
+        pdf_url_map = dict(ASHIYA_IMAGE_URLS)
 
-    if not pdf_urls:
+    if not pdf_url_map:
         logger.warning(f"{agency_id}: 対象 PDF が見つかりませんでした")
         return stats
 
     all_records: list[dict] = []
 
-    for url in pdf_urls:
+    for url, url_default_fy in pdf_url_map.items():
         fname = url.split("/")[-1]
         stats["files_tried"] += 1
         logger.info(f"[{fname}] 取得中...")
@@ -174,10 +179,9 @@ def collect(agency_id: str, *, dry_run: bool = False) -> dict:
             continue
 
         stats["files_ok"] += 1
-        cfg = AGENCIES[agency_id]
         for rec in recs:
             if not rec.get("fiscal_year"):
-                rec["fiscal_year"] = cfg["default_fy"]
+                rec["fiscal_year"] = url_default_fy
             _enrich(rec, agency_id=agency_id, source_url=url)
         all_records.extend(recs)
         stats["rows_parsed"] += len(recs)

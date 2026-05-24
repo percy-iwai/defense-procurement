@@ -366,6 +366,21 @@ def _meguro_patterns() -> list[str]:
     return sorted(out)
 
 
+def _ashiya_patterns() -> list[str]:
+    """芦屋基地: FY2024 3月分 + FY2025 5-8月分（テキストPDF）。
+    4月分は画像PDFのため load_asdf_ocr.py で別途 OCR 処理。
+    rakusatu/6/ : FY2024（R7-3 = 2025年3月）
+    rakusatu/7/ : FY2025（R7-5〜R7-8 = 2025年5〜8月）
+    """
+    base = "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/"
+    urls = [
+        base + "6/zyouhoukoukai/zyouhoukoukai7-3.pdf",  # FY2024 3月（R7年3月）
+    ]
+    for m in range(5, 9):  # 5,6,7,8月（FY2025）
+        urls.append(base + f"7/zyouhoukoukai/zyouhoukoukai7-{m}.pdf")
+    return urls
+
+
 def _hyakuri_patterns() -> list[str]:
     """百里基地: /acs/2-7_procurement/kouhyou/{ry}-{mm}koukyou.pdf
     ry = Reiwa年 (single digit), mm = month (no leading zero)
@@ -733,14 +748,12 @@ ASDF_AGENCIES: list[dict] = [
         "url_patterns": _meguro_patterns(),
     },
 
-    # 27. 芦屋基地（画像PDF → スキップ）
+    # 27. 芦屋基地（テキストPDF: FY2024 3月 + FY2025 5-8月。4月分は画像PDFのため load_asdf_ocr.py で OCR）
     {
         "agency_id": "asdf_ashiya",
         "agency_name": "芦屋基地",
         "index_urls": [],
-        "url_patterns": [],
-        "skip": True,
-        "skip_reason": "全ファイル画像スキャンPDF（OCR必要）",
+        "url_patterns": _ashiya_patterns(),
     },
 
     # 28. 春日基地（全件画像PDF・OCR必要）
