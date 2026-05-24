@@ -1,12 +1,14 @@
-"""春日基地・芦屋基地 OCR 収集スクリプト。
+"""画像スキャン PDF OCR 収集スクリプト（春日・芦屋・浜松 等）。
 
-画像スキャン PDF（CCITTFaxDecode）を easyocr で解析し、
-contracts テーブルに INSERT OR IGNORE する。
+画像スキャン PDF を easyocr で解析し contracts テーブルに INSERT OR IGNORE する。
+- CCITTFaxDecode (1bpc landscape): tekiseika_parser 経由（is_landscape_scan() が True の場合）
+- DCTDecode (JPEG 等): 汎用 parse_ocr_records 経由
 
 実行:
-    python -m pipeline.load_asdf_ocr                        # 両機関
-    python -m pipeline.load_asdf_ocr --agency asdf_kasuga   # 春日のみ
-    python -m pipeline.load_asdf_ocr --agency asdf_ashiya   # 芦屋のみ（4月分）
+    python -m pipeline.load_asdf_ocr                          # 全機関
+    python -m pipeline.load_asdf_ocr --agency asdf_kasuga     # 春日のみ
+    python -m pipeline.load_asdf_ocr --agency asdf_ashiya     # 芦屋のみ
+    python -m pipeline.load_asdf_ocr --agency asdf_hamamatsu  # 浜松のみ（FY2024 7・8月分）
     python -m pipeline.load_asdf_ocr --dry-run
 """
 from __future__ import annotations
@@ -40,12 +42,21 @@ KASUGA_WARP_INDEX = (
     "https://www.mod.go.jp/asdf/kasuga/second/kaikei/koujijouhou6nendo.htm"
 )
 
-# 芦屋基地: 4月分は画像PDF、FY2024 3月は文字エンコード問題でテキスト抽出不可→OCR
-# {url: default_fy}  ← OCR で日付パース失敗時のフォールバックFY
+# 各機関の画像PDF URL → デフォルトFY マッピング
+# OCR で contract_date からFYが取れない場合のフォールバック
+
+# 芦屋基地: 4月分は画像PDF（CCITTFaxDecode）、FY2024 3月・FY2025 4月も追加
 ASHIYA_IMAGE_URLS: dict[str, int] = {
     "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/6/zyouhoukoukai/zyouhoukoukai6-4.pdf": 2024,
     "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/6/zyouhoukoukai/zyouhoukoukai7-3.pdf": 2024,  # FY2024 3月: フォントエンコード問題→OCR
     "https://www.mod.go.jp/asdf/ashiya/choutatsu/kaikei/rakusatu/7/zyouhoukoukai/zyouhoukoukai7-4.pdf": 2025,  # FY2025 4月: 画像PDF
+}
+
+# 浜松基地: FY2024 7月・8月分のみ画像PDF（DCTDecode/JPEG）
+# 他月（6月・7月・10月・12月・1月・2月）は通常テキストPDFで load_asdf.py 経由収集済み
+HAMAMATSU_IMAGE_URLS: dict[str, int] = {
+    "https://www.mod.go.jp/asdf/hamamatsu/choutatsu/koukoku/r6kokyo20240801.pdf": 2024,
+    "https://www.mod.go.jp/asdf/hamamatsu/choutatsu/koukoku/r6kokyo20240905.pdf": 2024,
 }
 
 AGENCIES: dict[str, dict] = {
@@ -53,11 +64,20 @@ AGENCIES: dict[str, dict] = {
         "agency_name": "春日基地",
         "agency_category": "航空自衛隊",
         "default_fy": 2024,
+        # warp_index キーがある機関はインデックスページを動的にスクレイプする
+        "warp_index": KASUGA_WARP_INDEX,
     },
     "asdf_ashiya": {
         "agency_name": "芦屋基地",
         "agency_category": "航空自衛隊",
         "default_fy": 2024,
+        "image_pdf_urls": ASHIYA_IMAGE_URLS,
+    },
+    "asdf_hamamatsu": {
+        "agency_name": "浜松基地",
+        "agency_category": "航空自衛隊",
+        "default_fy": 2024,
+        "image_pdf_urls": HAMAMATSU_IMAGE_URLS,
     },
 }
 
@@ -109,18 +129,18 @@ def _enrich(rec: dict, *, agency_id: str, source_url: str) -> dict:
     return rec
 
 
-def _pdf_urls_for_kasuga() -> list[str]:
-    """WARP インデックスから春日基地 FY2024 PDF URL リストを収集する。"""
+def _pdf_urls_for_warp_index(warp_index_url: str) -> list[str]:
+    """WARP インデックスページから PDF URL リストを収集する。"""
     links = scrape_file_links(
-        KASUGA_WARP_INDEX,
+        warp_index_url,
         extensions=(".pdf",),
         is_warp=True,
     )
     urls = [url for url, _ in links]
     if not urls:
-        logger.warning("春日基地 WARP インデックスから PDF リンクが見つかりませんでした")
+        logger.warning(f"WARP インデックス {warp_index_url} から PDF リンクが見つかりませんでした")
     else:
-        logger.info(f"春日基地: {len(urls)}件の PDF リンクを発見")
+        logger.info(f"{len(urls)}件の PDF リンクを発見")
         for url in urls:
             logger.debug(f"  {url.split('/')[-1]}")
     return urls
@@ -138,12 +158,14 @@ def collect(agency_id: str, *, dry_run: bool = False) -> dict:
         "skipped_no_fy": 0,
     }
 
-    if agency_id == "asdf_kasuga":
-        # kasuga: list of str URLs (FY determined from content)
-        pdf_url_map: dict[str, int] = {u: AGENCIES[agency_id]["default_fy"]
-                                        for u in _pdf_urls_for_kasuga()}
+    cfg = AGENCIES[agency_id]
+    if "warp_index" in cfg:
+        # WARP インデックスページを動的スクレイプ（春日基地等）
+        urls = _pdf_urls_for_warp_index(cfg["warp_index"])
+        pdf_url_map: dict[str, int] = {u: cfg["default_fy"] for u in urls}
     else:
-        pdf_url_map = dict(ASHIYA_IMAGE_URLS)
+        # 固定 URL リスト（芦屋・浜松等）
+        pdf_url_map = dict(cfg.get("image_pdf_urls", {}))
 
     if not pdf_url_map:
         logger.warning(f"{agency_id}: 対象 PDF が見つかりませんでした")
@@ -260,11 +282,11 @@ def _print_db_counts(agency_id: str) -> None:
 
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="春日基地・芦屋基地 OCR 収集")
+    p = argparse.ArgumentParser(description="画像スキャン PDF OCR 収集（春日・芦屋・浜松等）")
     p.add_argument(
         "--agency",
         choices=list(AGENCIES.keys()),
-        help="対象機関（省略時は両機関）",
+        help="対象機関（省略時は全機関）",
     )
     p.add_argument("--dry-run", action="store_true", help="DB書き込みを行わない")
     args = p.parse_args()
