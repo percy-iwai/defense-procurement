@@ -79,7 +79,7 @@ Dashboardは `dashboard/app.py`（Dash/Plotly）で可視化。
 | asdf_miho（美保基地） | 21件 | HTML（工期始を契約日代用） |
 | asdf_hofukita（防府北基地） | 16件 | HTML（工期始を契約日代用） |
 | asdf_kisarazu（木更津分屯基地） | 9件 | HTML（R6/8/9形式日付） |
-| asdf_ashiya（芦屋基地） | 73件 | FY2024 PDF（5〜翌2月分はテキストPDF）、4月分は画像PDF→OCR要 |
+| asdf_ashiya（芦屋基地） | 115件 | FY2024 76件 + FY2025 39件（4月OCR10件+5〜8月テキストPDF29件）。月9〜3はライブ404・WARP20250715未収録 |
 | asdf_kasuga（春日基地） | 248件 | WARP OCR（tekiseika_parser で全12ファイル収集済み、重複28件削除・誤抽出37件contract_name NULL化済み） |
 
 **ASDF合計: ≥23,053件 / ≥12,130億円（Phase 5込み、misawa OCR込み、kasuga 248件）**
