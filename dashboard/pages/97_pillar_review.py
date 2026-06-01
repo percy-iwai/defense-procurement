@@ -125,7 +125,7 @@ def _load_contracts(fys: tuple[int, ...]) -> pd.DataFrame:
 _l1_names, _l2_names = _load_pillar_names()
 
 # ── フィルター UI ─────────────────────────────────────────────────────────────
-col_fy, col_l1, col_l2 = st.columns([1, 2, 2])
+col_fy, col_l1, col_l2, col_chuo = st.columns([1, 2, 2, 1])
 
 with col_fy:
     sel_fy = st.multiselect(
@@ -136,6 +136,15 @@ if not sel_fy:
     st.stop()
 
 df_all = _load_contracts(tuple(sorted(sel_fy)))
+
+with col_chuo:
+    st.markdown("<div style='margin-top:1.6rem'></div>", unsafe_allow_html=True)
+    chuo_only = st.checkbox(
+        "中央契約のみ", value=False, key="pr_chuo",
+        help="防衛装備庁（ATLA）が調達した契約のみ表示",
+    )
+if chuo_only:
+    df_all = df_all[df_all["agency_id"].str.startswith("atla", na=False)]
 
 all_l1_codes = sorted(df_all["pillar_l1_code"].dropna().astype(int).unique().tolist())
 all_l2_codes = sorted(df_all["pillar_l2_code"].dropna().astype(int).unique().tolist())

@@ -393,7 +393,8 @@ def _load_pillar_detail(
 
 @st.cache_data(ttl=300)
 def _load_pillar_detail_l2(
-    pillar_l1: int, pillar_l2: int | None, fys: tuple[int, ...], limit: int = 10
+    pillar_l1: int, pillar_l2: int | None, fys: tuple[int, ...], limit: int = 10,
+    chuo_only: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """指定L1(+任意L2)ピラーのトップN契約・上位10社・vendor_norm→raw_names辞書を返す。
 
@@ -403,6 +404,7 @@ def _load_pillar_detail_l2(
       それ以外 → 特定のL2サブピラー
     """
     ph = ",".join("?" * len(fys))
+    _atla_clause = "AND c.agency_id LIKE 'atla%'" if chuo_only else ""
     if pillar_l2 is None:
         l2_clause, l2_params = "", ()
     elif pillar_l2 == pillar_l1:
@@ -422,6 +424,7 @@ def _load_pillar_detail_l2(
                   {l2_clause}
                   AND c.fiscal_year IN ({ph})
                   AND c.contract_amount IS NOT NULL
+                  {_atla_clause}
                 ORDER BY c.contract_amount DESC
                 LIMIT {limit}""",
             conn, params=(pillar_l1, *l2_params, *fys),
@@ -438,6 +441,7 @@ def _load_pillar_detail_l2(
                   AND c.fiscal_year IN ({ph})
                   AND c.vendor_name IS NOT NULL
                   AND c.contract_amount IS NOT NULL
+                  {_atla_clause}
                 GROUP BY c.vendor_name
                 ORDER BY SUM(c.contract_amount) DESC
                 LIMIT 50""",
@@ -472,13 +476,14 @@ def _load_pillar_detail_l2(
 @st.cache_data(ttl=300)
 def _load_vendor_contracts_in_pillar(
     vendor_names: tuple[str, ...], pillar_l1: int, pillar_l2: int | None,
-    fys: tuple[int, ...]
+    fys: tuple[int, ...], chuo_only: bool = False,
 ) -> pd.DataFrame:
     """指定ベンダー生名リストの指定ピラースコープ内の全契約（金額降順）。"""
     if not vendor_names:
         return pd.DataFrame()
     ph_v = ",".join("?" * len(vendor_names))
     ph_f = ",".join("?" * len(fys))
+    _atla_clause = "AND c.agency_id LIKE 'atla%'" if chuo_only else ""
     if pillar_l2 is None:
         l2_clause, l2_params = "", ()
     elif pillar_l2 == pillar_l1:
@@ -501,6 +506,7 @@ def _load_vendor_contracts_in_pillar(
                   {l2_clause}
                   AND c.fiscal_year IN ({ph_f})
                   AND c.vendor_name IN ({ph_v})
+                  {_atla_clause}
                 ORDER BY c.contract_amount DESC NULLS LAST""",
             conn, params=(pillar_l1, *l2_params, *fys, *vendor_names),
         )
@@ -792,10 +798,11 @@ def show_vendor_drilldown(sub: pd.DataFrame, title: str) -> None:
 
 
 def _render_pillar_section(
-    l1: int, l2: int | None, fys: tuple[int, ...], top_n: int, key_suffix: str
+    l1: int, l2: int | None, fys: tuple[int, ...], top_n: int, key_suffix: str,
+    chuo_only: bool = False,
 ) -> None:
     """大型案件テーブル + 受注企業バーグラフ + ドリルダウンを描画。"""
-    _top_c, _top_v, _vmap = _load_pillar_detail_l2(l1, l2, fys, limit=top_n)
+    _top_c, _top_v, _vmap = _load_pillar_detail_l2(l1, l2, fys, limit=top_n, chuo_only=chuo_only)
     _pc_l, _pc_r = st.columns([11, 9])
 
     with _pc_l:
@@ -908,7 +915,7 @@ def _render_pillar_section(
                 if _sel_vendor:
                     _raw_names = tuple(_vmap.get(_sel_vendor, []))
                     if _raw_names:
-                        _dd = _load_vendor_contracts_in_pillar(_raw_names, l1, l2, fys)
+                        _dd = _load_vendor_contracts_in_pillar(_raw_names, l1, l2, fys, chuo_only)
                         if not _dd.empty:
                             st.markdown(
                                 f"<div style='font-size:0.85rem;font-weight:600;"
@@ -1219,14 +1226,21 @@ def main():
         "FY2023": (2023,),
         "FY2022": (2022,),
     }
-    _pfy_sel: str = st.radio(
-        "集計年度",
-        list(_pfy_opts.keys()),
-        index=0,
-        horizontal=True,
-        key="pillar_detail_fy",
-        label_visibility="collapsed",
-    )
+    _pfy_radio_col, _pfy_chuo_col = st.columns([5, 1])
+    with _pfy_radio_col:
+        _pfy_sel: str = st.radio(
+            "集計年度",
+            list(_pfy_opts.keys()),
+            index=0,
+            horizontal=True,
+            key="pillar_detail_fy",
+            label_visibility="collapsed",
+        )
+    with _pfy_chuo_col:
+        _chuo_only = st.checkbox(
+            "中央契約のみ", value=False, key="pillar_chuo_only",
+            help="防衛装備庁（ATLA）が調達した契約のみ集計",
+        )
     _pfy: tuple[int, ...] = _pfy_opts[_pfy_sel]
 
     _ptabs = st.tabs([_PILLAR_SHORT[i] for i in range(1, 9)])
@@ -1235,13 +1249,15 @@ def main():
         with _ptab:
             _sub_l2s = _L1_SUB_L2.get(_l1, [])
             if not _sub_l2s:
-                _render_pillar_section(_l1, None, _pfy, top_n=10, key_suffix=f"{_l1}_all")
+                _render_pillar_section(_l1, None, _pfy, top_n=10, key_suffix=f"{_l1}_all",
+                                       chuo_only=_chuo_only)
             else:
                 for _l2 in _sub_l2s:
                     _l2_name = _PILLAR_L2_NAMES.get(_l2, f"P{_l2}")
                     with st.expander(f"P{_l2}  {_l2_name}", expanded=False):
                         _render_pillar_section(
-                            _l1, _l2, _pfy, top_n=5, key_suffix=f"{_l1}_{_l2}"
+                            _l1, _l2, _pfy, top_n=5, key_suffix=f"{_l1}_{_l2}",
+                            chuo_only=_chuo_only,
                         )
 
     st.divider()

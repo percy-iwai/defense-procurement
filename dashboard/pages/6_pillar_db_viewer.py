@@ -150,11 +150,12 @@ _L1_NAMES: dict[int, str] = {
 
 
 @st.cache_data(ttl=600)
-def _load_pillar_summary(fy: int) -> pd.DataFrame:
+def _load_pillar_summary(fy: int, chuo_only: bool = False) -> pd.DataFrame:
     """指定FYの L1 柱別集計（DB金額・件数）を返す。未分類行を末尾に追加。"""
+    _atla_clause = "AND c.agency_id LIKE 'atla%'" if chuo_only else ""
     with sqlite3.connect(str(PROC_DB_PATH)) as conn:
         df = pd.read_sql_query(
-            """
+            f"""
             SELECT
                 cp.pillar_l1_code,
                 COUNT(*)                              AS 件数,
@@ -162,6 +163,7 @@ def _load_pillar_summary(fy: int) -> pd.DataFrame:
             FROM contract_pillar cp
             JOIN contracts c ON cp.contract_id = c.id
             WHERE c.fiscal_year = ?
+              {_atla_clause}
             GROUP BY cp.pillar_l1_code
             ORDER BY cp.pillar_l1_code
             """,
@@ -195,6 +197,13 @@ def _load_pillar_summary(fy: int) -> pd.DataFrame:
 
 df_master  = _load_master()
 df_sources = _load_sources()
+
+chuo_only = st.checkbox(
+    "中央契約のみ集計（ATLA）",
+    value=False,
+    key="pdb_chuo",
+    help="防衛装備庁（ATLA）が調達した契約のみ集計します（柱別集計・年度比較タブに適用）",
+)
 
 _l1 = df_master[df_master["level"] == 1].set_index("pillar_id")["name"].to_dict()
 _l2 = df_master[df_master["level"] == 2].set_index("pillar_id")["name"].to_dict()
@@ -250,7 +259,7 @@ with tab0:
     if not PROC_DB_PATH.exists():
         st.error(f"procurement.db が見つかりません: {PROC_DB_PATH}")
     else:
-        df_summary = _load_pillar_summary(sel_fy0)
+        df_summary = _load_pillar_summary(sel_fy0, chuo_only)
 
         # 分類済み / 未分類 の分割
         _classified   = df_summary[df_summary["ピラー"] != "未分類"]
@@ -538,7 +547,7 @@ with tab4:
         _compare_fys = [2023, 2024, 2025]
         _compare_rows = []
         for _cfy in _compare_fys:
-            _df = _load_pillar_summary(_cfy)
+            _df = _load_pillar_summary(_cfy, chuo_only)
             for _, _r in _df[_df["ピラー"] != "未分類"].iterrows():
                 _compare_rows.append({
                     "FY":             _cfy,
@@ -581,7 +590,7 @@ with tab4:
         st.subheader("FY別カバレッジ早見表")
         _tbl_rows = []
         for _cfy in _compare_fys:
-            _df_s = _load_pillar_summary(_cfy)
+            _df_s = _load_pillar_summary(_cfy, chuo_only)
             _cls  = _df_s[_df_s["ピラー"] != "未分類"]
             _unc  = _df_s[_df_s["ピラー"] == "未分類"]
             _bgt  = sum(_BUDGET_ALL.get(_cfy, {}).values())
