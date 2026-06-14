@@ -1388,6 +1388,21 @@ with st.sidebar:
     else:
         st.caption(f"選択中: {' / '.join(f'FY{y}' for y in sorted(_gfy_state))}")
 
+    st.divider()
+    st.caption("🗂️ 引っ越しキット")
+    _kit_path = PROJECT_ROOT / "defense_procurement_kit_20260614.zip"
+    if _kit_path.exists():
+        with open(_kit_path, "rb") as _kf:
+            st.download_button(
+                label="📦 kit をダウンロード",
+                data=_kf.read(),
+                file_name="defense_procurement_kit_20260614.zip",
+                mime="application/zip",
+                help="ダッシュボード・DB・パイプライン一式のアーカイブ",
+            )
+    else:
+        st.info("ローカル環境でのみ\nダウンロード可能です", icon="💻")
+
 pg = st.navigation(
     {
         "": [
