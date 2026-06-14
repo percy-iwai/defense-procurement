@@ -1105,4 +1105,5 @@ DBの契約集計額も**契約額ベース**。
 
 ## Phase 18: 引っ越しキット構築（2026-06-13）
 
-- `kit/` 一式作成（export/downloader/rebuild/import/verify/repair/zip + README_KIT/REBUILD/AGENT_INSTRUCTIONS）。データ非携行でCowork環境に再構築可能。⚠️ **contract_pillar btree破損を発見**（重複682件、5/10以降全バックアップ汚染）→ 修復済みコピー `backup/procurement_repaired_20260613.db` からエクスポート済み。ライブDBの修復は `kit/repair_contract_pillar.py --in-place`（docs/db_quality_audit_20260613.md A-1参照、未実施）。監査: `docs/db_quality_audit_20260613.md` / サービス案: `docs/service_ideas.md`
+- `kit/` 一式作成（export/downloader/rebuild/import/verify/repair/zip + README_KIT/REBUILD/AGENT_INSTRUCTIONS）。データ非携行でCowork環境に再構築可能。⚠️ **contract_pillar btree破損を発見**（重複765件、5/10以降全バックアップ汚染）→ 修復済みコピー `backup/procurement_repaired_20260613.db` からエクスポート済み。ライブDBの修復は `kit/repair_contract_pillar.py --in-place`（docs/db_quality_audit_20260613.md A-1参照、未実施）。監査: `docs/db_quality_audit_20260613.md` / サービス案: `docs/service_ideas.md`
+- **DB品質修正完了（2026-06-14）**: `docs/db_quality_audit_20260613.md` 全11項目実施済み。A-1修復（765件→0重複）・A-2手動判定12件再適用＋recomputeガード追加・A-3 bid_method正規化・A-4 FY2022分類（FY全4年100%カバー達成）・A-5 vendor_name_norm追加・B-1/B-2/B-4/C-1処理済み。新スクリプト: `dev/fix_db_quality.py` / `dev/apply_manual_overrides.py` / `dev/normalize_bid_method.py` / `dev/add_vendor_norm.py`
