@@ -637,22 +637,30 @@ def recompute_all(
     cur = con.cursor()
     try:
         cur.execute("BEGIN IMMEDIATE")
+        # 手動判定 match_source はrecompute対象外（上書き保護）
+        _PROTECTED_SOURCES = (
+            "manual_analysis", "mod_search", "mod_research",
+            "fuzzy_lowthreshold", "kenkyuu_hyouka", "jigyou_review",
+        )
+        placeholders = ",".join("?" * len(_PROTECTED_SOURCES))
         cur.execute(
-            """DELETE FROM contract_requesting_org
+            f"""DELETE FROM contract_requesting_org
                WHERE contract_id IN (
                  SELECT id FROM contracts
                  WHERE agency_id = 'atla' OR agency_id LIKE 'atla\\_%' ESCAPE '\\'
-               )"""
+               )
+               AND match_source NOT IN ({placeholders})""",
+            _PROTECTED_SOURCES,
         )
         deleted = cur.rowcount
-        print(f"  既存ATLA行 DELETE: {deleted:,}件")
+        print(f"  既存ATLA行 DELETE: {deleted:,}件（保護済みソース除外）")
 
         rows_to_insert = [
             (cid, org, source, chy_id, conf)
             for (cid, org, source, conf, chy_id) in results
         ]
         cur.executemany(
-            """INSERT INTO contract_requesting_org
+            """INSERT OR IGNORE INTO contract_requesting_org
                (contract_id, requesting_org, match_source, choutatsuyotei_id, confidence)
                VALUES (?, ?, ?, ?, ?)""",
             rows_to_insert,

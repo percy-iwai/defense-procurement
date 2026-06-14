@@ -732,7 +732,7 @@ def build_fuzzy_corpus(pillar_db: str) -> list[tuple[str, int]]:
 
 
 # ─── メイン処理 ─────────────────────────────────────────────────────────────
-def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
+def main(dry_run: bool = False, fy: int = TARGET_FY, gap_fill: bool = False) -> None:
     corpus = build_fuzzy_corpus(str(DB_PILLAR))
     corpus_names = [c[0] for c in corpus]
     name_to_pid  = {c[0]: c[1] for c in corpus}
@@ -758,18 +758,28 @@ def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
     conn.commit()
     print("contract_pillar table: ready")
 
-    # FY対象の既存行を削除（冪等実行のため）
-    if not dry_run:
+    # FY対象の既存行を削除（冪等実行のため）— gap_fill時はスキップ
+    if not dry_run and not gap_fill:
         cur.execute("DELETE FROM contract_pillar WHERE fiscal_year = ?", (fy,))
         conn.commit()
         print(f"FY{fy} existing rows deleted.")
+    elif gap_fill:
+        print(f"FY{fy} gap-fill mode: 既存行を保持して未分類契約のみ対象")
 
-    # FY 契約ロード
-    cur.execute("""
-        SELECT id, contract_name, agency_id
-        FROM contracts
-        WHERE fiscal_year = ?
-    """, (fy,))
+    # FY 契約ロード（gap_fill時は contract_pillar に行がない契約のみ）
+    if gap_fill:
+        cur.execute("""
+            SELECT id, contract_name, agency_id
+            FROM contracts
+            WHERE fiscal_year = ?
+              AND id NOT IN (SELECT contract_id FROM contract_pillar)
+        """, (fy,))
+    else:
+        cur.execute("""
+            SELECT id, contract_name, agency_id
+            FROM contracts
+            WHERE fiscal_year = ?
+        """, (fy,))
     contracts = cur.fetchall()
     print(f"FY{fy} contracts loaded: {len(contracts)}")
 
@@ -855,14 +865,15 @@ def main(dry_run: bool = False, fy: int = TARGET_FY) -> None:
         (r[0], r[1], r[2], r[3], r[4], r[5], fy, now_iso)
         for r in results
     ]
-    cur.executemany("""
-        INSERT OR REPLACE INTO contract_pillar
+    insert_sql = """
+        INSERT OR {} INTO contract_pillar
         (contract_id, pillar_l1_code, pillar_l2_code, confidence,
          match_method, match_source, fiscal_year, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, rows_to_insert)
+    """.format("IGNORE" if gap_fill else "REPLACE")
+    cur.executemany(insert_sql, rows_to_insert)
     conn.commit()
-    print(f"\n{len(rows_to_insert)} rows inserted/replaced into contract_pillar.")
+    print(f"\n{len(rows_to_insert)} rows inserted into contract_pillar ({'IGNORE' if gap_fill else 'REPLACE'}).")
 
     # ─── org_fallback ステージ ──────────────────────────────────────────────
     print("\n=== org_fallback 適用 ===")
@@ -939,5 +950,7 @@ if __name__ == "__main__":
                         help="DBに書き込まず上位マッチ20件を確認する")
     parser.add_argument("--fy", type=int, default=TARGET_FY,
                         help=f"対象年度（デフォルト: {TARGET_FY}）")
+    parser.add_argument("--gap-fill", action="store_true",
+                        help="既存行を保持し、contract_pillarに行がない契約のみ分類（セマンティック結果を保護）")
     args = parser.parse_args()
-    main(dry_run=args.dry_run, fy=args.fy)
+    main(dry_run=args.dry_run, fy=args.fy, gap_fill=args.gap_fill)
