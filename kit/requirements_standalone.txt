@@ -1,0 +1,16 @@
+# スタンドアロン版 依存（収集→DB化→CSV/XLSX出力のみ。ダッシュボードなし）
+#
+# この5本だけで「downloader → rebuild_all → export_tables」が完走する。
+# Streamlit / Plotly は含まない（可視化が要るときだけ requirements_cpu.txt を使う）。
+#
+# 出力CLI（kit/export_tables.py）自体は標準ライブラリ + openpyxl のみで動く。
+# pandas が要るのは収集パイプライン本体（parsers/excel_parser.py 等のExcel解析）。
+
+requests>=2.31        # ダウンロード（WARP/mod.go.jp）
+pandas>=2.1           # Excel解析（excel_parser の中核）
+openpyxl>=3.1         # .xlsx 読み書き（解析 & 出力）
+xlrd>=2.0             # 旧 .xls 読み込み
+beautifulsoup4>=4.12  # HTMLテーブル解析
+pdfplumber>=0.10      # PDF表解析
+rapidfuzz>=3.5        # 要求元・7本柱の名寄せ（rebuild時）
+loguru>=0.7           # ログ

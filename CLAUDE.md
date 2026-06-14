@@ -1102,3 +1102,7 @@ DBの契約集計額も**契約額ベース**。
 - `防衛セキュリティゲートウェイ` は P42（conf=0.82、P5「セキュリティゲートウェイ」より優先）
 - `自動警戒管制システム` / `移動式警戒監視システム` は P2（conf=0.84）
 - `戦術データリンク` は P5（conf=0.82）
+
+## Phase 18: 引っ越しキット構築（2026-06-13）
+
+- `kit/` 一式作成（export/downloader/rebuild/import/verify/repair/zip + README_KIT/REBUILD/AGENT_INSTRUCTIONS）。データ非携行でCowork環境に再構築可能。⚠️ **contract_pillar btree破損を発見**（重複682件、5/10以降全バックアップ汚染）→ 修復済みコピー `backup/procurement_repaired_20260613.db` からエクスポート済み。ライブDBの修復は `kit/repair_contract_pillar.py --in-place`（docs/db_quality_audit_20260613.md A-1参照、未実施）。監査: `docs/db_quality_audit_20260613.md` / サービス案: `docs/service_ideas.md`

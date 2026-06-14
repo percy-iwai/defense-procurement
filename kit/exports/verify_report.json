@@ -1,0 +1,103 @@
+{
+ "ts": "2026-06-14T12:29:03.601519",
+ "db": "data/db/backup/procurement_repaired_20260614.db",
+ "checks": [
+  {
+   "name": "contracts行数",
+   "expected": 156525,
+   "actual": 156525,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "contracts金額合計(億円)",
+   "expected": 269080,
+   "actual": 269080,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "contract_pillar行数",
+   "expected": 113118,
+   "actual": 113118,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "contract_requesting_org行数",
+   "expected": 150314,
+   "actual": 151192,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "contract_equipment行数",
+   "expected": 12644,
+   "actual": 12743,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "choutatsuyotei行数",
+   "expected": 49075,
+   "actual": 49075,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "kenkyuu_hyouka行数",
+   "expected": 450,
+   "actual": 450,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "fy_budget行数",
+   "expected": 5,
+   "actual": 5,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "equipment_master行数",
+   "expected": 126,
+   "actual": 126,
+   "ok": true,
+   "detail": null
+  },
+  {
+   "name": "agency×FY 完全一致セル",
+   "expected": 384,
+   "actual": 384,
+   "ok": true,
+   "detail": []
+  },
+  {
+   "name": "pillar match_method",
+   "expected": 6,
+   "actual": 6,
+   "ok": true,
+   "detail": {}
+  },
+  {
+   "name": "requesting_org match_source",
+   "expected": 15,
+   "actual": 15,
+   "ok": true,
+   "detail": {}
+  },
+  {
+   "name": "URL欠損（informational）",
+   "expected": 0,
+   "actual": 0,
+   "ok": true,
+   "detail": {
+    "missing_urls": 0,
+    "missing_rows": 0
+   }
+  }
+ ],
+ "result": "PASS",
+ "fails": [],
+ "warns": []
+}

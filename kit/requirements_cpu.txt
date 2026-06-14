@@ -1,0 +1,16 @@
+# 引っ越しキット用 依存パッケージ（CPUのみ・GPU系なし）
+# 元の requirements.txt + 実コードで import されているが記載漏れだった3件
+requests>=2.31
+pandas>=2.1
+openpyxl>=3.1
+xlrd>=2.0
+loguru>=0.7
+streamlit>=1.30
+plotly>=5.18
+beautifulsoup4>=4.12
+pdfplumber>=0.10
+rapidfuzz>=3.5
+
+# GPU系（torch / sentence-transformers / easyocr）は意図的に含めない。
+# セマンティック7本柱分類・OCR結果は kit/exports/ にエクスポート済みで、
+# kit/import_enrichments.py がインポートするため再計算不要。
