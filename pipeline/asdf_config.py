@@ -25,11 +25,12 @@ BASE_HAMAMATSU = "https://www.mod.go.jp/asdf/hamamatsu/choutatsu/koukoku/"
 
 
 def _2dep_patterns() -> list[str]:
-    """第2補給処: kou_{nyu|zui}_{RR}{MM}.xlsx (RR=04-07, MM=01-12)
+    """第2補給処: kou_{nyu|zui}_{RR}{MM}.xlsx (RR=04-08, MM=01-12)
     FY2022 (RR=04) はlive 404 → WARP 20230715スナップ経由
+    RR=08 (令和8年=2026年) はlive直接アクセス
     """
     out = []
-    for rr in ("04", "05", "06", "07"):
+    for rr in ("04", "05", "06", "07", "08"):
         for mm in (f"{m:02d}" for m in range(1, 13)):
             for typ in ("nyu", "zui"):
                 live = f"{BASE_2DEP}/kou_{typ}_{rr}{mm}.xlsx"
@@ -37,6 +38,28 @@ def _2dep_patterns() -> list[str]:
                     out.append(f"{WARP_BASE_2DEP}{live}")
                 else:
                     out.append(live)
+    return out
+
+
+# 第3補給処 liveベースURL（WARPスナップ後の月次をlive取得するために使用）
+BASE_3DEP = "https://www.mod.go.jp/asdf/3dep/prd/kakusyukouhyou/koukyou/"
+
+
+def _3dep_live_patterns() -> list[str]:
+    """第3補給処 WARPスナップ(2025-05-10)以降の月次をlive URLで補完。
+    対象: RR=07 の MM=07-12 (2025年7-12月) + RR=08 の MM=01-03 (2026年1-3月)
+    """
+    out = []
+    for mm in range(7, 13):
+        mm_s = f"{mm:02d}"
+        yymm = "07" + mm_s
+        out.append(f"{BASE_3DEP}koukyou_excell/zuikei/kouhyou-z-{yymm}.xlsx")
+        out.append(f"{BASE_3DEP}koukyou_excell/nyuusatu/kouhyou-n-{yymm}.xlsx")
+    for mm in range(1, 4):
+        mm_s = f"{mm:02d}"
+        yymm = "08" + mm_s
+        out.append(f"{BASE_3DEP}koukyou_excell/zuikei/kouhyou-z-{yymm}.xlsx")
+        out.append(f"{BASE_3DEP}koukyou_excell/nyuusatu/kouhyou-n-{yymm}.xlsx")
     return out
 
 
@@ -455,10 +478,12 @@ ASDF_AGENCIES: list[dict] = [
         "source_format": "excel",
     },
 
-    # 2. 第3補給処（Excel + WARP必須）
+    # 2. 第3補給処（Excel + WARP + live補完）
     # WARP coll=20250510 / ts=20250509054434 (深夜クロールのため日付またぎ)
     # 構造: koukyou_excell/nyuusatu/kouhyou-n-{RYMM}.xlsx (競争)
     #        koukyou_excell/zuikei/kouhyou-z-{RYMM}.xlsx (随意)
+    # WARPスナップ(2025-05-10)はFY2025 7月以降のデータを含まないため
+    # _3dep_live_patterns() でlive URLを追加補完（RR=07 MM=07-12, RR=08 MM=01-03）
     {
         "agency_id": "asdf_3dep",
         "agency_name": "第3補給処",
@@ -466,8 +491,11 @@ ASDF_AGENCIES: list[dict] = [
             WARP_BASE_3DEP,
             WARP_BASE_3DEP + "koukyou_excell/nyuusatu/",
             WARP_BASE_3DEP + "koukyou_excell/zuikei/",
+            BASE_3DEP,
+            BASE_3DEP + "koukyou_excell/nyuusatu/",
+            BASE_3DEP + "koukyou_excell/zuikei/",
         ],
-        "url_patterns": _3dep_warp_patterns(),
+        "url_patterns": _3dep_warp_patterns() + _3dep_live_patterns(),
         "source_format": "excel",
         "is_warp": True,
     },
