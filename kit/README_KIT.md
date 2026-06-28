@@ -35,6 +35,9 @@ python kit/rebuild_all.py
 | `kit/README_KIT.md` | このファイル（人間向け概要） |
 | `kit/REBUILD.md` | ステップバイステップ再構築手順書（失敗時の対処つき） |
 | `kit/STANDALONE.md` | **ダッシュボード抜き**で収集→DB→CSV/XLSX出力する最小構成手順 |
+| `kit/MONTHLY_UPDATE.md` | **月次更新**の運用手順（ネット開放マシンで増分→SharePoint/Teamsへ） |
+| `kit/update_monthly.py` | 月次増分更新（既存DBに今月分を追記→7本柱分類→Excel/CSV出力） |
+| `kit/make_dashboard_xlsx.py` | Teams/SharePoint配布用ダッシュボードExcel（グラフ＋明細） |
 | `kit/export_tables.py` | DB→CSV/XLSX 出力（標準lib+openpyxlのみ。Streamlit不要） |
 | `kit/requirements_standalone.txt` | スタンドアロン版の依存8本（Streamlit/Plotly抜き） |
 | `kit/AGENT_INSTRUCTIONS.md` | **Claude Cowork 等のAIエージェント向け指示書**（最初に読ませる） |
@@ -81,14 +84,24 @@ python kit/rebuild_all.py
 - 可視化まで欲しいときだけ `requirements_cpu.txt`（Streamlit/Plotli込み）を使い、
   `python -m streamlit run dashboard/app.py` を起動します。
 
+## 実行場所（重要・2026-06-28 訂正）
+
+- **収集（downloader / update_monthly / rebuild の収集ステップ）は、ネットが開放された
+  通常マシン（ターミナルのPython、または母艦の Claude Code）で実行する。**
+  Cowork のVM内では動かない（mod.go.jp がallowlist遮断＋ディスク約1.4GB）。
+- **Cowork（VM）で動かしてよいのは収集を伴わない処理**（export_tables / make_dashboard_xlsx /
+  verify / 分析・資料作成）。
+- 本番キットは `--with-db` 版（DB同梱）なので、引っ越し直後の再構築・収集は不要。
+  解凍 →（必要時のみ）月次更新はネット開放マシンで、という流れ。
+
 ## AIクレジット節約方針（重要）
 
-このキットの全工程は**人間がコマンドを叩くだけでも完走できる**よう設計されています。
-AIエージェント（Claude Cowork等）に任せる場合も:
-
-1. エージェントの仕事は「コマンドを起動して完了を待ち、最後の `SUMMARY` 行を読む」だけ
-2. スクリプトの中身を読ませたり、独自に作り直させたりしない
-3. AIが頭を使うのは **verify が FAIL したときだけ**（`kit/AGENT_INSTRUCTIONS.md` 参照）
+- **データのダウンロードや Python 実行そのものはトークン（クレジット）を消費しない。**
+  消費されるのは「AIが推論する」分だけ。だから収集は人がターミナルで起動すればAIコスト0。
+- AIエージェントに任せる場合も:
+  1. 仕事は「コマンドを起動して完了を待ち、最後の `SUMMARY` 行を読む」だけ
+  2. スクリプトの中身を読ませたり、独自に作り直させたりしない
+  3. AIが頭を使うのは **異常時だけ**（`kit/AGENT_INSTRUCTIONS.md` 参照）
 
 ## リハーサル実測値（2026-06-13、本キット開発時の検証）
 

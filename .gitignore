@@ -41,3 +41,20 @@ data/db/*.db-shm
 
 # Notebook checkpoints
 .ipynb_checkpoints/
+
+# YouTube アップロードツール（shorts/）
+shorts/client_secret.json
+shorts/token.json
+shorts/upload_log.json
+shorts/comment_log.json
+
+# kit runtime outputs (regenerated; not source)
+kit/exports/download_manifest.jsonl
+kit/out/
+logs/monthly/
+logs/rebuild/
+
+# 巨大バイナリ（git管理しない）
+data/raw/
+shorts/
+temp/

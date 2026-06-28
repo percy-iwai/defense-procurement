@@ -3,6 +3,19 @@
 このフォルダは「防衛調達DB 引っ越しキット」です。あなた（AIエージェント）の役割は、
 **用意済みのスクリプトを順番に起動して完了を待つこと**です。コードを書くことではありません。
 
+> ⚠️ **実行場所の鉄則（2026-06-28 追記）**
+> - **収集（`downloader.py` / `update_monthly.py` / `rebuild_all.py` の収集ステップ）は
+>   Cowork のVM内では動かない。** CoworkのVMはネットがallowlist制
+>   （`api.anthropic.com / pypi.org / registry.npmjs.org` のみ）で **mod.go.jp / WARP に到達不可**、
+>   かつ空きディスク約1.4GBで11GBのPDFが入らない。→ これらは
+>   **ネット開放された通常マシン（ターミナルのPython、または母艦で動く Claude Code）で実行**する。
+> - **`--with-db` 版キットなら、そもそも収集も再構築も不要**（解凍時点でDBが入っている）。
+>   その場合は `update_monthly.py`（月次）と `export_tables.py` / `make_dashboard_xlsx.py`（出力）だけ。
+>   ただし `update_monthly.py` も新規収集を伴うのでネット開放マシンで。
+> - **Cowork（VM）でやってよいのは収集を伴わない処理だけ**：`export_tables.py`、
+>   `make_dashboard_xlsx.py`、`verify_rebuild.py`、分析・資料作成。これらはネット不要・小容量。
+> - 成果物は必ずマウントされたローカル共有フォルダに書く（VM内は再起動で消える）。
+
 ## 最初に貼るプロンプト（人間用: これをCoworkセッションの最初に貼り付ける）
 
 ```

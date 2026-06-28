@@ -35,6 +35,7 @@ INCLUDE_FILES = [
     "CLAUDE.md", "requirements.txt",
     "data/db/url_matrix.db", "data/db/defense_pillar.db",
     "data/db/jigyou_review.db",
+    "data/chuou_chotatsu.db",   # 中央調達実績DB（data/db/外にあり従来取りこぼしていた）
     ".streamlit/config.toml",
 ]
 # dev/ は再構築・増分収集・修復に必要なものだけ
@@ -64,6 +65,12 @@ def _excluded(p: Path) -> bool:
     if p.suffix.lower() in EXCLUDE_SUFFIXES:
         return True
     if p.name == "secrets.toml":
+        return True
+    # 0バイトの残骸ファイル（例: 空の db/defense_procurement.db）は同梱しない
+    try:
+        if p.stat().st_size == 0:
+            return True
+    except OSError:
         return True
     # kit/exports のランタイム生成物（manifest・レポート）は除外
     if p.name in {"download_manifest.jsonl", "rebuild_log.json",
@@ -106,6 +113,12 @@ def collect_files(include_chy_pdf: bool) -> list[Path]:
     return sorted(set(files))
 
 
+def _newest_repaired_db() -> Path | None:
+    cands = sorted((PROJECT_ROOT / "data" / "db" / "backup").glob(
+        "procurement_repaired_*.db"))
+    return cands[-1] if cands else None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="引っ越しキットzip生成")
     parser.add_argument("--output",
@@ -114,10 +127,27 @@ def main() -> None:
                                     f"{datetime.now():%Y%m%d}.zip"))
     parser.add_argument("--include-choutatsuyotei-pdf", action="store_true",
                         help="data/choutatsuyotei の原本PDF(66MB)も同梱")
+    parser.add_argument("--with-db", action="store_true",
+                        help="procurement.db（圧縮で約27MB）を同梱し、引っ越し先での"
+                             "再構築をスキップ可能にする")
+    parser.add_argument("--db", help="同梱するDB（既定: 最新の修復済みコピー）")
     args = parser.parse_args()
 
     files = collect_files(args.include_choutatsuyotei_pdf)
     out = Path(args.output)
+
+    # --with-db: クリーンな修復済みDBを同梱（zipのdeflateで約27MBに圧縮される）
+    db_arc: Path | None = None
+    if args.with_db:
+        db_src = Path(args.db) if args.db else _newest_repaired_db()
+        if db_src is None or not db_src.exists():
+            parser.error("同梱するDBが見つかりません。--db で指定するか、先に "
+                         "kit/repair_contract_pillar.py --output で修復済みコピーを作成")
+        if "repaired" not in db_src.name:
+            print(f"  WARN: {db_src.name} は修復済みDBではありません。"
+                  "破損(A-1)の可能性 → repair_contract_pillar.py で作った clean コピー推奨")
+        db_arc = db_src
+        print(f"  DB同梱: {db_src.name} ({db_src.stat().st_size / 1e6:.0f}MB → 圧縮後 約27MB)")
 
     manifest: dict = {"created_at": datetime.now().isoformat(),
                       "files": {}}
@@ -129,6 +159,12 @@ def main() -> None:
                 "bytes": p.stat().st_size,
                 "sha256": hashlib.sha256(p.read_bytes()).hexdigest()[:16],
             }
+        if db_arc is not None:
+            # 引っ越し先がそのまま使えるよう data/db/procurement.db として格納
+            zf.write(db_arc, "data/db/procurement.db")
+            manifest["files"]["data/db/procurement.db"] = {
+                "bytes": db_arc.stat().st_size, "source": db_arc.name}
+            manifest["db_included"] = True
         zf.writestr(".streamlit/secrets.toml.example", SECRETS_EXAMPLE)
         zf.writestr("kit_manifest.json",
                     json.dumps(manifest, ensure_ascii=False, indent=1))

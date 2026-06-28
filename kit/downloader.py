@@ -242,6 +242,8 @@ def main() -> None:
     parser.add_argument("--limit", type=int, help="処理URL数上限（デバッグ用）")
     parser.add_argument("--dry-run", action="store_true",
                         help="通信せずキャッシュ/manifestヒット状況のみ表示")
+    parser.add_argument("--force", action="store_true",
+                        help="到達性プリチェックの失敗を無視して続行")
     args = parser.parse_args()
 
     manifest = load_manifest()
@@ -275,6 +277,25 @@ def main() -> None:
     session = requests.Session()
     session.headers.update({"User-Agent": UA})
     throttle = Throttle(args.rate)
+
+    # 到達性プリチェック: mod.go.jp に届くか1発だけ確認。
+    # Cowork等のネット制限環境（allowlist: anthropic/pypi/npm のみ）では
+    # mod.go.jp が 403 blocked-by-allowlist になり全URLが失敗する。早期に止める。
+    if not args.force:
+        try:
+            r = session.get("https://www.mod.go.jp/", timeout=20)
+            ok = r.status_code < 500
+        except requests.RequestException as exc:
+            ok = False
+            r = None
+        if not ok:
+            print("⚠️ mod.go.jp に到達できません。")
+            print("   この環境はネット制限（Cowork VM等のallowlist）の可能性が高いです。")
+            print("   収集は『ネットが開放された編集者マシン（通常のPython or Claude Code）』で")
+            print("   実行してください。Cowork VM内では収集できません（kit/REBUILD.md 参照）。")
+            print("   制限を承知で続行する場合は --force を付けてください。")
+            print("SUMMARY ok=0 cached=0 gone404=0 fail=0 aborted=preflight")
+            sys.exit(2)
 
     stats = {"ok": 0, "cached": 0, "gone": 0, "fail": 0, "skipped": 0}
     t0 = time.monotonic()
